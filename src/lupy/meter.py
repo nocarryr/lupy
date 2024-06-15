@@ -1,4 +1,3 @@
-import numpy as np
 
 from .sampling import Sampler
 from .processing import BlockProcessor

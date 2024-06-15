@@ -1,9 +1,7 @@
-from typing import TypeVar, NamedTuple, SupportsIndex, cast
+from typing import TypeVar, NamedTuple
 from fractions import Fraction
 
 import numpy as np
-import numpy.typing as npt
-# from numpy.lib.stride_tricks import sliding_window_view
 
 from .types import *
 from .filters import FilterGroup
@@ -106,7 +104,6 @@ class Slice:
         if self.index == 0:
             self.index += 1
             return
-        # ix = self.index + 1
         start_ix = self.start_index + self.overlap
         if start_ix >= x.shape[axis]:
             self.index = 0
@@ -120,7 +117,6 @@ class Slice:
 
     def indices(self, arr_len: int) -> IndexArray:
         a = np.arange(self.step, dtype=np.intp) + self.start_index
-        # oob_ix = a[a>=arr_len]
         a[a>=arr_len] -= arr_len
         return a
 
@@ -128,18 +124,15 @@ class Slice:
         ndim = x.ndim
         if axis == ndim - 1:
             new_shape = list(x.shape[:-1])
-            # new_shape.append(x.shape[axis] * self.step)
             new_shape.append(self.step)
         else:
             new_shape = list(x.shape)
-            # ax_size = x.shape[axis + 1] * self.step
             ax_size = self.step
             new_shape[axis] = ax_size
             del new_shape[axis + 1]
         return tuple(new_shape)
 
     def _build_slice_array(self, x: AnyArray, axis: int):
-        # new_shape = self._calc_shape(x, axis)
         start_ix, end_ix = self.start_index, self.end_index
         if start_ix == 0:
             start_ix = None
@@ -148,10 +141,7 @@ class Slice:
         ]
         if self.is_wrapped(x, axis):
             ax_slice = self.indices(x.shape[axis])
-            # indices = self.indices(x.shape[axis])
-            # sl_arr[axis] = indices
         else:
-            # sl_arr[axis] = slice(start_ix, end_ix)
             ax_slice = slice(start_ix, end_ix)
         sl_arr[axis] = ax_slice
         return tuple(sl_arr)
@@ -159,37 +149,7 @@ class Slice:
     def slice(self, x: AnyArray, axis: int) -> AnyArray:
         sl_arr = self._build_slice_array(x, axis)
         new_shape = self._calc_shape(x, axis)
-        # if self.overlap != 0:
-        #     print(f'{self.index=}, {self.is_wrapped(x, axis)=}, {x.shape=}, {axis=}, {new_shape=}, {sl_arr=}')
         return np.reshape(x[sl_arr], new_shape)
-
-
-    # def slice(self, x: FloatArray, axis: int) -> FloatArray:
-    #     start_ix, end_ix = self.start_index, self.end_index
-    #     if start_ix == 0:
-    #         start_ix = None
-    #     assert x.ndim == 3
-    #     assert axis == 1
-    #     print(f'{start_ix=}, {end_ix=}')
-    #     # ix_arr: list[slice|IndexArray] = [np.s_[:] for _ in range(x.ndim)]
-    #     # if axis == -1:
-    #     #     axis = x.ndim - 1
-    #     ax_size = self.step * x.shape[2]
-    #     # new_shape = [s for i, s in enumerate(x.shape) if i != axis]
-    #     new_shape = (x.shape[0], ax_size)
-
-
-    #     if start_ix is None or (end_ix > start_ix and end_ix <= x.shape[axis]):
-    #         # ix_arr[axis] = np.s_[start_ix:end_ix]
-    #         s = slice(start_ix, end_ix)
-    #         return np.reshape(x[:,s,:], new_shape)
-    #     else:
-    #         # ix_arr[axis] = self.indices(x.shape[axis])
-    #         indices = self.indices(x.shape[axis])
-    #         print(f'{indices=}')
-    #         return np.reshape(x[:,indices,:], new_shape)
-    #     print(f'{ix_arr=}')
-    #     return x[tuple(ix_arr)]
 
     def __repr__(self) -> str:
         return f'<Slice: {self}>'
@@ -224,18 +184,11 @@ def calc_buffer_length(sample_rate: int, block_size: int) -> BufferShape:
     bfr_len = int(bfr_len)
     assert bfr_len % block_size == 0
     num_blocks = bfr_len // block_size
-    # num_gb = bfr_len // gate_size + bfr_len // (pad_size-1)
-    # num_gb = int(round((bfr_len - gate_size + 1) / (pad_size - 2)))
-    # num_gb = np.ceil(bfr_len - pad_size) / (gate_size - pad_size)
-
-    # num_gb = int(np.ceil(bfr_len / (pad_size * 2))) + 1
-    # num_gb = bfr_len // pad_size + 1
     bfr_t = bfr_len / fs
 
     x = (bfr_t - gate_len) / (gate_len * step)
     num_gb = int(np.round(float(x)+1))
 
-    # num_gb = int(np.round(((T - T_g) / (T_g * step)))+1)
     return BufferShape(
         total_samples=bfr_len,
         block_size=block_size,
@@ -268,7 +221,6 @@ class Sampler:
     """
 
     def __init__(self, block_size: int, num_channels: int):
-        # self.block_size = block_size
         self.num_channels = num_channels
 
         bfr_shape = self.bfr_shape = calc_buffer_length(
@@ -285,36 +237,12 @@ class Sampler:
             self.sample_array,
             (num_channels, self.num_blocks, self.block_size)
         )
-
         self.gate_view = self.sample_array.view()
-        # self.gate_view = sliding_window_view(
-        #     x=self.sample_array,
-        #     window_shape=(num_channels, self.gate_size),
-        #     axis=cast(SupportsIndex, (0, 1)),
-        # )[0,::self.pad_size,:]
-        # assert self.gate_view.shape[0] == self.num_gate_blocks
-        # # assert self.gate_view.shape == (self.num_gate_blocks, self.num_channels, self.gate_size)
-
-
-        # self.gate_view = np.reshape(
-        #     self.sample_array,
-        #     (num_channels, bfr_len // self.pad_size, self.pad_size)
-        #     # (num_channels, (self.num_gate_blocks * 2) - 1, self.pad_size)
-        # )
 
         self.write_slice = Slice(self.block_size, max_index=self.num_blocks-1)
-        # self.gate_slice = Slice(
-        #     step=4,
-        #     overlap=1,
-        #     index_=0,
-        #     max_index=self.gate_view.shape[1] - 1,
-        # )
-        # self.gate_slice = Slice(step=1, max_index=self.num_gate_blocks-1)
         self.gate_slice = Slice(
             step=self.gate_size,
-            # step=1,
             overlap=self.pad_size,
-            # overlap=self.gate_size,
             max_index=self.num_gate_blocks,
         )
 

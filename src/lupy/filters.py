@@ -41,18 +41,13 @@ MOMENTARY_HP_COEFF = Coeff(
 
 class Filter:
     sos_zi: FloatArray
-    lfilt_zi: FloatArray
     coeff: Coeff
-    # ndim: int
     num_channels: int
     def __init__(self, coeff: Coeff, num_channels: int = 1):
         self.coeff = coeff
         zi = signal.sosfilt_zi(coeff.sos)
         zi[...] = 0
         self.sos_zi = np.repeat(np.expand_dims(zi, axis=1), num_channels, axis=1)
-        # zi = signal.lfilter_zi(coeff.b, coeff.a)
-        # zi[...] = 0
-        # self.lfilt_zi = np.repeat(np.expand_dims(zi, axis=1), num_channels, axis=1)
         self.num_channels = num_channels
 
     def _sos(self, x: FloatArray) -> FloatArray:
@@ -71,25 +66,6 @@ class Filter:
         y, zi = signal.sosfilt(self.coeff.sos, x, axis=axis, zi=zi)
         self.sos_zi = zi
         return y
-
-    # def _lfilter(self, x: FloatArray) -> FloatArray:
-    #     zi = self.lfilt_zi
-
-    #     n_dim = x.ndim
-    #     if n_dim == 1:
-    #         assert self.num_channels == 1
-    #         # zi = zi[0]
-    #         x = np.reshape(x, (1, *x.shape))
-    #         axis = 1
-    #     else:
-    #         assert n_dim == 2
-    #         assert x.shape[0] == self.num_channels
-    #         axis = 1
-
-    #     y, zi = signal.lfilter(self.coeff.b, self.coeff.a, x, axis=axis, zi=zi)
-
-    #     self.lfilt_zi = zi
-    #     return y
 
     def __call__(self, x: FloatArray) -> FloatArray:
         return self._sos(x)
