@@ -1,0 +1,379 @@
+from typing import TypeVar, NamedTuple, SupportsIndex, cast
+from fractions import Fraction
+
+import numpy as np
+import numpy.typing as npt
+# from numpy.lib.stride_tricks import sliding_window_view
+
+from .types import *
+from .filters import FilterGroup
+
+T = TypeVar('T')
+
+__all__ = ('Sampler',)
+
+
+class BufferShape(NamedTuple):
+    total_samples: int
+    block_size: int
+    num_blocks: int
+    pad_size: int
+    gate_size: int
+    num_gate_blocks: int
+    gate_step_size: int
+
+
+
+def find_even_fractions(fr1: Fraction, fr2: Fraction, max_iter: int = 100):
+    orig_fr1, orig_fr2 = fr1, fr2
+    i = 0
+    while i < max_iter:
+        if fr1 == fr2:
+            return fr1
+        if fr1 < fr2:
+            j = 0
+            while fr1 < fr2:
+                fr1 = fr1 + orig_fr1
+                j += 1
+                if j >= max_iter:
+                    raise ValueError(f'max iter: {fr1=}, {fr2=}')
+        else:
+            j = 0
+            while fr2 < fr1:
+                fr2 = fr2 + orig_fr2
+                j += 1
+                if j >= max_iter:
+                    raise ValueError(f'max iter: {fr1=}, {fr2=}')
+
+        i += 1
+    raise ValueError(f'no match found: {i=}, {fr1=}, {fr2=}')
+
+
+class Slice:
+    step: int
+    """Length of each sliced array chunk
+    (this would be better named "win_size")
+    """
+
+    overlap: int
+    """Number of elements to repeat for each sliced array chunk
+    (this would be better named "step")
+    """
+    def __init__(
+        self,
+        step: int,
+        max_index: int,
+        index_: int = 0,
+        overlap: int = 0
+    ) -> None:
+        self._index = index_
+        self.step = step
+        self.overlap = overlap
+        self.max_index = max_index
+        self._start_index: int|None = None
+        self._end_index: int|None = None
+
+    @property
+    def index(self) -> int:
+        return self._index
+    @index.setter
+    def index(self, value: int):
+        if value > self.max_index:
+            value = 0
+        if value == self._index:
+            return
+        self._index = value
+        self._start_index = None
+        self._end_index = None
+
+    @property
+    def start_index(self) -> int:
+        ix = self._start_index
+        if ix is None:
+            ix = self._start_index = self.index * self.overlap
+            if ix < 0:
+                ix = 0
+        return ix
+
+    @property
+    def end_index(self) -> int:
+        ix = self._end_index
+        if ix is None:
+            ix = self._end_index = self.start_index + self.step
+        return ix
+
+    def increment(self, x: AnyArray, axis: int) -> None:
+        if self.index == 0:
+            self.index += 1
+            return
+        # ix = self.index + 1
+        start_ix = self.start_index + self.overlap
+        if start_ix >= x.shape[axis]:
+            self.index = 0
+        else:
+            self._index += 1
+            self._start_index = start_ix
+            self._end_index = None
+
+    def is_wrapped(self, x: AnyArray, axis: int) -> bool:
+        return self.end_index > x.shape[axis]
+
+    def indices(self, arr_len: int) -> IndexArray:
+        a = np.arange(self.step, dtype=np.intp) + self.start_index
+        # oob_ix = a[a>=arr_len]
+        a[a>=arr_len] -= arr_len
+        return a
+
+    def _calc_shape(self, x: AnyArray, axis: int):
+        ndim = x.ndim
+        if axis == ndim - 1:
+            new_shape = list(x.shape[:-1])
+            # new_shape.append(x.shape[axis] * self.step)
+            new_shape.append(self.step)
+        else:
+            new_shape = list(x.shape)
+            # ax_size = x.shape[axis + 1] * self.step
+            ax_size = self.step
+            new_shape[axis] = ax_size
+            del new_shape[axis + 1]
+        return tuple(new_shape)
+
+    def _build_slice_array(self, x: AnyArray, axis: int):
+        # new_shape = self._calc_shape(x, axis)
+        start_ix, end_ix = self.start_index, self.end_index
+        if start_ix == 0:
+            start_ix = None
+        sl_arr: list[slice|IndexArray] = [
+            slice(None, None, None) for _ in range(x.ndim)
+        ]
+        if self.is_wrapped(x, axis):
+            ax_slice = self.indices(x.shape[axis])
+            # indices = self.indices(x.shape[axis])
+            # sl_arr[axis] = indices
+        else:
+            # sl_arr[axis] = slice(start_ix, end_ix)
+            ax_slice = slice(start_ix, end_ix)
+        sl_arr[axis] = ax_slice
+        return tuple(sl_arr)
+
+    def slice(self, x: AnyArray, axis: int) -> AnyArray:
+        sl_arr = self._build_slice_array(x, axis)
+        new_shape = self._calc_shape(x, axis)
+        # if self.overlap != 0:
+        #     print(f'{self.index=}, {self.is_wrapped(x, axis)=}, {x.shape=}, {axis=}, {new_shape=}, {sl_arr=}')
+        return np.reshape(x[sl_arr], new_shape)
+
+
+    # def slice(self, x: FloatArray, axis: int) -> FloatArray:
+    #     start_ix, end_ix = self.start_index, self.end_index
+    #     if start_ix == 0:
+    #         start_ix = None
+    #     assert x.ndim == 3
+    #     assert axis == 1
+    #     print(f'{start_ix=}, {end_ix=}')
+    #     # ix_arr: list[slice|IndexArray] = [np.s_[:] for _ in range(x.ndim)]
+    #     # if axis == -1:
+    #     #     axis = x.ndim - 1
+    #     ax_size = self.step * x.shape[2]
+    #     # new_shape = [s for i, s in enumerate(x.shape) if i != axis]
+    #     new_shape = (x.shape[0], ax_size)
+
+
+    #     if start_ix is None or (end_ix > start_ix and end_ix <= x.shape[axis]):
+    #         # ix_arr[axis] = np.s_[start_ix:end_ix]
+    #         s = slice(start_ix, end_ix)
+    #         return np.reshape(x[:,s,:], new_shape)
+    #     else:
+    #         # ix_arr[axis] = self.indices(x.shape[axis])
+    #         indices = self.indices(x.shape[axis])
+    #         print(f'{indices=}')
+    #         return np.reshape(x[:,indices,:], new_shape)
+    #     print(f'{ix_arr=}')
+    #     return x[tuple(ix_arr)]
+
+    def __repr__(self) -> str:
+        return f'<Slice: {self}>'
+
+    def __str__(self) -> str:
+        return str(self.index)
+
+
+def calc_buffer_length(sample_rate: int, block_size: int) -> BufferShape:
+    one_sample = Fraction(1, sample_rate)
+    fs = Fraction(sample_rate, 1)
+    overlap = Fraction(3, 4)
+    step = 1 - overlap
+    step_samp = fs * step
+    assert step_samp % 1 == 0
+
+    block_len = one_sample * block_size
+    gate_len = Fraction(4, 10)
+    pad_len = Fraction(1, 10)
+    assert (sample_rate * gate_len) % 1 == 0
+    assert (sample_rate * pad_len) % 1 == 0
+    gate_size = int(sample_rate * gate_len)
+    pad_size = int(sample_rate * pad_len)
+
+    max_fr = find_even_fractions(pad_len, block_len)
+
+    bfr_len = sample_rate * max_fr
+    while bfr_len <= gate_size:
+        bfr_len *= 2
+
+    assert bfr_len % 1 == 0
+    bfr_len = int(bfr_len)
+    assert bfr_len % block_size == 0
+    num_blocks = bfr_len // block_size
+    # num_gb = bfr_len // gate_size + bfr_len // (pad_size-1)
+    # num_gb = int(round((bfr_len - gate_size + 1) / (pad_size - 2)))
+    # num_gb = np.ceil(bfr_len - pad_size) / (gate_size - pad_size)
+
+    # num_gb = int(np.ceil(bfr_len / (pad_size * 2))) + 1
+    # num_gb = bfr_len // pad_size + 1
+    bfr_t = bfr_len / fs
+
+    x = (bfr_t - gate_len) / (gate_len * step)
+    num_gb = int(np.round(float(x)+1))
+
+    # num_gb = int(np.round(((T - T_g) / (T_g * step)))+1)
+    return BufferShape(
+        total_samples=bfr_len,
+        block_size=block_size,
+        num_blocks=num_blocks,
+        pad_size=pad_size,
+        gate_size=gate_size,
+        num_gate_blocks=num_gb,
+        gate_step_size=int(step_samp),
+    )
+
+
+
+class Sampler:
+    sample_rate = Fraction(48000, 1)
+
+    num_channels: int
+    """Number of channels"""
+
+    sample_array: FloatArray
+    """Flat array to store samples waiting to process"""
+
+    write_view: FloatArray
+    """View of :attr:`sample_array` with shape
+    ``(num_channels, block_size, sample_array.shape[1] // block_size)
+    """
+
+    gate_view: FloatArray
+    """Sliding window view of :attr:`sample_array` with 75% overlap and shape
+    ``(num_channels, gate_size, sample_array.shape[1] // gate_size)``
+    """
+
+    def __init__(self, block_size: int, num_channels: int):
+        # self.block_size = block_size
+        self.num_channels = num_channels
+
+        bfr_shape = self.bfr_shape = calc_buffer_length(
+            int(self.sample_rate), block_size,
+        )
+        bfr_len = bfr_shape.total_samples
+
+        self.sample_array = np.zeros(
+            (num_channels, bfr_len),
+            dtype=np.float64,
+        )
+
+        self.write_view = np.reshape(
+            self.sample_array,
+            (num_channels, self.num_blocks, self.block_size)
+        )
+
+        self.gate_view = self.sample_array.view()
+        # self.gate_view = sliding_window_view(
+        #     x=self.sample_array,
+        #     window_shape=(num_channels, self.gate_size),
+        #     axis=cast(SupportsIndex, (0, 1)),
+        # )[0,::self.pad_size,:]
+        # assert self.gate_view.shape[0] == self.num_gate_blocks
+        # # assert self.gate_view.shape == (self.num_gate_blocks, self.num_channels, self.gate_size)
+
+
+        # self.gate_view = np.reshape(
+        #     self.sample_array,
+        #     (num_channels, bfr_len // self.pad_size, self.pad_size)
+        #     # (num_channels, (self.num_gate_blocks * 2) - 1, self.pad_size)
+        # )
+
+        self.write_slice = Slice(self.block_size, max_index=self.num_blocks-1)
+        # self.gate_slice = Slice(
+        #     step=4,
+        #     overlap=1,
+        #     index_=0,
+        #     max_index=self.gate_view.shape[1] - 1,
+        # )
+        # self.gate_slice = Slice(step=1, max_index=self.num_gate_blocks-1)
+        self.gate_slice = Slice(
+            step=self.gate_size,
+            # step=1,
+            overlap=self.pad_size,
+            # overlap=self.gate_size,
+            max_index=self.num_gate_blocks,
+        )
+
+        self.samples_available = 0
+        self.filter = FilterGroup(num_channels=self.num_channels)
+
+    @property
+    def block_size(self) -> int:
+        """Sample length per call to :meth:`write`
+        """
+        return self.bfr_shape.block_size
+
+    @property
+    def num_blocks(self) -> int:
+        return self.bfr_shape.num_blocks
+
+    @property
+    def total_samples(self) -> int:
+        return self.bfr_shape.total_samples
+
+    @property
+    def gate_size(self) -> int:
+        """Length of one gated block in samples (400ms)"""
+        return self.bfr_shape.gate_size
+
+    @property
+    def pad_size(self) -> int:
+        """Overlap amount per gated block in samples (100ms)"""
+        return self.bfr_shape.pad_size
+
+    @property
+    def num_gate_blocks(self) -> int:
+        return self.bfr_shape.num_gate_blocks
+
+    def write(self, samples: FloatArray, apply_filter: bool = True) -> None:
+        assert samples.shape == (self.num_channels, self.block_size)
+        if apply_filter:
+            samples = self.filter(samples)
+
+        sl = self.write_slice
+        self.write_view[:,sl.index,:] = samples
+        sl.index += 1
+        self.samples_available += samples.shape[1]
+
+    def can_write(self) -> bool:
+        return self.samples_available <= self.total_samples - self.block_size
+
+    def can_read(self) -> bool:
+        return self.samples_available >= self.gate_size
+
+    def read(self) -> FloatArray:
+        sl = self.gate_slice
+        r: FloatArray = sl.slice(self.gate_view, axis=1)
+        sl.increment(self.gate_view, axis=1)
+        self.samples_available -= self.pad_size
+        return r
+
+    def clear(self) -> None:
+        self.sample_array[...] = 0
+        self.samples_available = 0
+        self.write_slice.index = 0
+        self.gate_slice.index = 0
