@@ -252,9 +252,9 @@ class BlockProcessor:
             return
         st_loudness = self._short_term_lkfs[:block_index+1]
         abs_ix = np.greater_equal(st_loudness, -70)
-        if not abs_ix.size:
-            return
         st_abs_gated = st_loudness[abs_ix]
+        if not st_abs_gated.size:
+            return
         st_abs_power = np.mean(from_lk_log10(st_abs_gated))#, offset=0))
 
         st_integrated = lk_log10(st_abs_power)#, offset=0)
