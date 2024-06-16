@@ -15,12 +15,28 @@ __all__ = ('Sampler',)
 
 class BufferShape(NamedTuple):
     total_samples: int
+    """Total number of samples for the buffer"""
+
     block_size: int
+    """The input block size"""
+
     num_blocks: int
+    """Number of blocks (``total_samples // block_size``)"""
+
     pad_size: int
+    """The padding (overlap) between each windowed :term:`gating block`"""
+
     gate_size: int
+    """Total length in samples of each :term:`gating block`"""
+
     num_gate_blocks: int
+    """Number of overlapping gating blocks that can be stored within
+    :attr:`total_samples`
+    """
+
     gate_step_size: int
+    """The step size in samples between each overlapped :term:`gating block`
+    """
 
 
 
@@ -161,6 +177,14 @@ class Slice:
 
 
 def calc_buffer_length(sample_rate: int, block_size: int) -> BufferShape:
+    """Calculate an appropriate :class:`BufferShape` for the given
+    sample rate and block size
+
+    The :attr:`~BufferShape.total_samples` of the result will be chosen to
+    divide evenly with both the :attr:`~BufferShape.block_size` and
+    :attr:`~BufferShape.pad_size`, allowing for input and output views of the
+    same array through :func:`reshaping <numpy.reshape>`
+    """
     one_sample = Fraction(1, sample_rate)
     fs = Fraction(sample_rate, 1)
     overlap = Fraction(3, 4)
@@ -204,6 +228,10 @@ def calc_buffer_length(sample_rate: int, block_size: int) -> BufferShape:
 
 
 class Sampler:
+    """Allows input data to be stored in chunks of a specified length
+    and read out in windowed segments as needed for :term:`gating block`
+    calculations.
+    """
     sample_rate = Fraction(48000, 1)
 
     num_channels: int
@@ -214,7 +242,7 @@ class Sampler:
 
     write_view: FloatArray
     """View of :attr:`sample_array` with shape
-    ``(num_channels, block_size, sample_array.shape[1] // block_size)
+    ``(num_channels, block_size, sample_array.shape[1] // block_size)``
     """
 
     gate_view: FloatArray
@@ -222,6 +250,10 @@ class Sampler:
     ``(num_channels, gate_size, sample_array.shape[1] // gate_size)``
     """
 
+    filter: FilterGroup
+    """A :class:`~.filters.FilterGroup` with both stages of the pre-filter
+    defined in :term:`BS 1770`
+    """
     def __init__(self, block_size: int, num_channels: int):
         self.num_channels = num_channels
 
@@ -259,10 +291,12 @@ class Sampler:
 
     @property
     def num_blocks(self) -> int:
+        """Alias for :attr:`BufferShape.num_blocks`"""
         return self.bfr_shape.num_blocks
 
     @property
     def total_samples(self) -> int:
+        """Alias for :attr:`BufferShape.total_samples`"""
         return self.bfr_shape.total_samples
 
     @property
@@ -277,9 +311,15 @@ class Sampler:
 
     @property
     def num_gate_blocks(self) -> int:
+        """Alias for :attr:`BufferShape.num_gate_blocks`"""
         return self.bfr_shape.num_gate_blocks
 
     def write(self, samples: FloatArray, apply_filter: bool = True) -> None:
+        """Store input data into the internal buffer, optionally appling the
+        :attr:`pre-filter <filter>`
+
+        The input data must be of shape ``(num_channels, block_size)``
+        """
         assert samples.shape == (self.num_channels, self.block_size)
         if apply_filter:
             samples = self.filter(samples)
@@ -290,12 +330,20 @@ class Sampler:
         self.samples_available += samples.shape[1]
 
     def can_write(self) -> bool:
+        """Whether there is enough room on the internal buffer for at least
+        one call to :meth:`write`
+        """
         return self.samples_available <= self.total_samples - self.block_size
 
     def can_read(self) -> bool:
+        """Whether there are enough samples in the internal buffer for at least
+        one call to :meth:`read`
+        """
         return self.samples_available >= self.gate_size
 
     def read(self) -> FloatArray:
+        """Get the samples for one :term:`gating block`
+        """
         sl = self.gate_slice
         r: FloatArray = sl.slice(self.gate_view, axis=1)
         sl.increment(self.gate_view, axis=1)
@@ -303,6 +351,8 @@ class Sampler:
         return r
 
     def clear(self) -> None:
+        """Clear all samples and reset internal tracking variables
+        """
         self.sample_array[...] = 0
         self.samples_available = 0
         self.write_slice.index = 0

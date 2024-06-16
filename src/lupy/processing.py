@@ -44,6 +44,21 @@ def from_lk_log10(
 
 
 class BlockProcessor:
+    """Process audio samples and store the resulting loudness data
+    """
+
+    num_channels: int
+    """Number of audio channels"""
+
+    gate_size: int
+    """The length of one :term:`gating block` in samples"""
+
+    integrated_lkfs: Floating
+    """The current :term:`Integrated Loudness`"""
+
+    lra: float
+    """The current :term:`Loudness Range`"""
+
     sample_rate = 48000
     MAX_BLOCKS = 36000 # <- 14400 seconds (4 hours) / .4 (400 milliseconds)
     _channel_weights = np.array([1, 1, 1, 1.41, 1.41])
@@ -99,11 +114,14 @@ class BlockProcessor:
 
     @property
     def block_data(self) -> MeterArray:
+        """A structured array of measurement values with
+        dtype :obj:`~.types.MeterDtype`
+        """
         return self._block_data[:self.block_index]
 
     @property
     def momentary_lkfs(self) -> Float1dArray:
-        """Short-term loudness for each 100ms block, averaged over 400ms
+        """:term:`Momentary Loudness` for each 100ms block, averaged over 400ms
         (not gated)
         """
         # return self._momentary_lkfs[:self.block_index]
@@ -111,7 +129,7 @@ class BlockProcessor:
 
     @property
     def short_term_lkfs(self) -> Float1dArray:
-        """Short-term loudness for each 100ms block, averaged over 3 seconds
+        """:term:`Short-Term Loudness` for each 100ms block, averaged over 3 seconds
         (not gated)
         """
         return self.block_data['s']
@@ -127,6 +145,9 @@ class BlockProcessor:
 
     @property
     def t(self) -> Float1dArray:
+        """The measurement time for each element in :attr:`short_term_lkfs`
+        and :attr:`momentary_lkfs`
+        """
         return self.block_data['t']
         # return self._t[:self.block_index]
 
@@ -138,6 +159,8 @@ class BlockProcessor:
         return self._Zij[:,:self.block_index]
 
     def reset(self) -> None:
+        """Reset all measurement data
+        """
         self.block_data['m'][:] = 0
         self.block_data['s'][:] = 0
         self._Zij[:] = 0
@@ -272,6 +295,10 @@ class BlockProcessor:
         self.lra = lo_hi[1] - lo_hi[0]
 
     def process_block(self, samples: Float2dArray):
+        """Process one :term:`gating block`
+
+        Input data must be of shape ``(num_channels, gate_size)``
+        """
         assert samples.shape == (self.num_channels, self.gate_size)
 
         tg = 1 / self.gate_size
