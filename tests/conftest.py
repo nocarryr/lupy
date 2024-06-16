@@ -76,15 +76,21 @@ def front_channels(request) -> tuple[int, int]:
 def all_channels(request) -> tuple[int, int]:
     return request.param
 
-@pytest.fixture(params=cases_by_name['3341'].values())
+@pytest.fixture(
+    params=cases_by_name['3341'].values(),
+    ids=list(cases_by_name['3341'].keys())
+)
 def tech_3341_compliance_case(request) -> ComplianceBase:
     return request.param
 
-@pytest.fixture(params=cases_by_name['3342'].values())
+@pytest.fixture(
+    params=cases_by_name['3342'].values(),
+    ids=list(cases_by_name['3342'].keys())
+)
 def tech_3342_compliance_case(request) -> ComplianceBase:
     return request.param
 
-@pytest.fixture(params=all_cases.values())
+@pytest.fixture(params=all_cases.values(), ids=list(all_cases.keys()))
 def compliance_case(request) -> ComplianceBase:
     return request.param
 
