@@ -1,15 +1,12 @@
 from __future__ import annotations
 
 from typing import Callable, NamedTuple, ClassVar, Literal
-from pathlib import Path
 import numpy as np
 from scipy import signal
 import pytest
 
 from lupy.types import FloatArray
 
-HERE = Path(__file__).resolve().parent
-DATA_DIR = HERE / 'data'
 
 nan = np.nan
 rng = np.random.default_rng()
@@ -18,28 +15,16 @@ class ComplianceInput(NamedTuple):
     dBFS: tuple[float, float, float, float, float]
     duration: float
 
-    def generate(self, sample_rate: int, taper: bool = False) -> FloatArray:
+    def generate(self, sample_rate: int) -> FloatArray:
         N = int(round(sample_rate * self.duration))
-        # assert N % 1 == 0
-        # N = int(N)
         samples = np.zeros((5, N), dtype=np.float64)
         sig = gen_1k_sine(N, sample_rate, 1)
-        if taper:
-            taper_len = int(round(sample_rate / 1000)) * 2
-            taper_win = signal.windows.hann(taper_len*2)[taper_len:]
-            sig[-taper_win.size:] *= taper_win
-
-        # # taper_arr = np.ones(N, dtype=np.float64)
-        # taper_arr =
         for ch, sig_dB in enumerate(self.dBFS):
             if np.isnan(sig_dB):
                 continue
             amp = 10 ** (sig_dB / 20)
             _sig = sig * amp
             samples[ch,...] = _sig
-        # if taper:
-        #     samples[:,-taper_len:] *= taper_win[np.newaxis,:]
-        #     assert np.all(np.equal(samples[:,-1], 0))
         return samples
 
 
@@ -55,49 +40,19 @@ class ComplianceBase(NamedTuple):
     # target_lu: ClassVar = -23
     name: str
 
-    def generate_samples(self, sample_rate: int, allow_load: bool = False) -> FloatArray:
-        if allow_load:
-            result = self._load_samples(sample_rate)
-            if result is not None:
-                print('using existing sample data')
-                return result
-        print('generating samples')
-        taper = False#len(self.input) > 1
-        inputs = [inp.generate(sample_rate, taper=taper) for inp in self.input]
-
+    def generate_samples(self, sample_rate: int) -> FloatArray:
+        inputs = [inp.generate(sample_rate) for inp in self.input]
         N = sum([inp.shape[1] for inp in inputs])
-        # N += 5120
         result = np.zeros((5, N), dtype=np.float64)
         ix = 0
         for inp in inputs:
             assert np.all(np.equal(result[:,ix:ix+inp.shape[1]], 0))
             result[:,ix:ix+inp.shape[1]] = inp
             ix += inp.shape[1]
-        self._save_samples(sample_rate, result)
         return result
 
-    def _save_samples(self, sample_rate: int, samples: FloatArray) -> None:
-        if not DATA_DIR.exists():
-            DATA_DIR.mkdir()
-        filename = DATA_DIR / f'{self.__class__.__name__}.{self.name}.{sample_rate}.npz'
-        if filename.exists():
-            return
-        np.savez(str(filename), samples=samples)
-
-    def _load_samples(self, sample_rate: int) -> FloatArray|None:
-        filename = DATA_DIR / f'{self.__class__.__name__}.{self.name}.{sample_rate}.npz'
-        if not filename.exists():
-            return None
-        # data = np.load(str(filename))
-        with np.load(str(filename)) as data:
-            samples = data['samples']
-        return samples
 
 class Tech3341Compliance(ComplianceBase):
-    # input: list[ComplianceInput]
-    # result: ComplianceResult
-    # # target_lu: ClassVar = -23
-    # name: str
     pass
 
 class Tech3342Compliance(ComplianceBase):
