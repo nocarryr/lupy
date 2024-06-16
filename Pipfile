@@ -12,6 +12,8 @@ matplotlib = "*"
 jupyterlab = "*"
 pytest = "*"
 pytest-xdist = "*"
+sphinx = "*"
+furo = "*"
 
 [requires]
 python_version = "3.12"
