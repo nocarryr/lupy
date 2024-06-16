@@ -5,10 +5,39 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "lupy"
 version = "0.0.1"
+authors = [
+    {name = "Matthew Reid", email = "matt@nomadic-recording.com"}
+]
+description = "Python library for Audio Loudness measurements"
+readme = "README.rst"
+license = { file = "LICENSE" }
+keywords = [
+    "audio", "loudness", "r128", "ebur128",
+    "bs1770", "bs1771", "tech3341", "tech3342"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Multimedia :: Sound/Audio :: Analysis",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
 dependencies = [
     "numpy",
     "scipy",
 ]
+
+[project.urls]
+Homepage = "https://github.com/nocarryr/lupy"
 
 
 [tool.setuptools.packages.find]
