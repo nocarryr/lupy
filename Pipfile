@@ -12,6 +12,7 @@ matplotlib = "*"
 jupyterlab = "*"
 pytest = "*"
 nptyping = "*"
+pytest-xdist = "*"
 
 [requires]
 python_version = "3.12"
