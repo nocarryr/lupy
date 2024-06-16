@@ -1,3 +1,4 @@
+from __future__ import annotations
 
 from .sampling import Sampler
 from .processing import BlockProcessor

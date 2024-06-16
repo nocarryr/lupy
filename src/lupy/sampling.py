@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TypeVar, NamedTuple
 from fractions import Fraction
 
