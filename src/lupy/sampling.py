@@ -6,7 +6,7 @@ from fractions import Fraction
 import numpy as np
 
 from .types import *
-from .filters import FilterGroup
+from .filters import FilterGroup, HS_COEFF, HP_COEFF
 
 T = TypeVar('T')
 
@@ -249,7 +249,7 @@ class Sampler:
         )
 
         self.samples_available = 0
-        self.filter = FilterGroup(num_channels=self.num_channels)
+        self.filter = FilterGroup(HS_COEFF, HP_COEFF, num_channels=self.num_channels)
 
     @property
     def block_size(self) -> int:

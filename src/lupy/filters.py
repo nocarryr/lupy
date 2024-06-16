@@ -75,12 +75,12 @@ class Filter:
 
 class FilterGroup:
     num_channels: int
-    def __init__(self, num_channels: int = 1):
+    def __init__(self, *coeff: Coeff, num_channels: int = 1):
         self.num_channels = num_channels
-        self.pre_filter = Filter(HS_COEFF, num_channels)
-        self.lp_filter = Filter(HP_COEFF, num_channels)
-
+        self._filters = [Filter(c, num_channels) for c in coeff]
 
     def __call__(self, x: FloatArray) -> FloatArray:
-        y = self.pre_filter(x)
-        return self.lp_filter(y)
+        y = x
+        for filt in self._filters:
+            y = filt(y)
+        return y
