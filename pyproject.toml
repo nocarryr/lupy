@@ -40,6 +40,10 @@ dependencies = [
 Homepage = "https://github.com/nocarryr/lupy"
 
 
+[project.optional-dependencies]
+tests = ["pytest", "pytest-xdist"]
+
+
 [tool.setuptools.packages.find]
 where = ["src"]
 exclude = ["tests*"]
