@@ -116,7 +116,8 @@ def test_integrated_lkfs_neg18(block_size):
 
     assert round(processor.integrated_lkfs, 2) == -18
 
-def test_tech_3341_compliance(tech_3341_compliance_case):
+
+def test_compliance_cases(compliance_case):
     block_size = 128
     num_channels = 5
     sampler = Sampler(block_size=block_size, num_channels=num_channels)
@@ -125,7 +126,7 @@ def test_tech_3341_compliance(tech_3341_compliance_case):
         num_channels=num_channels, gate_size=sampler.gate_size
     )
     print('generating samples...')
-    src_data = tech_3341_compliance_case.generate_samples(int(sampler.sample_rate))
+    src_data = compliance_case.generate_samples(int(sampler.sample_rate))
     N = src_data.shape[1]
     # assert N % block_size == 0
     # num_blocks = N // block_size
@@ -149,61 +150,10 @@ def test_tech_3341_compliance(tech_3341_compliance_case):
     print(f'{integrated=}, {momentary=}, {short_term=}')
     print(f'{processor._rel_threshold=}')
 
-    integrated_target = tech_3341_compliance_case.result.integrated
-    momentary_target = tech_3341_compliance_case.result.momentary
-    short_term_target = tech_3341_compliance_case.result.short_term
-    lra_target = tech_3341_compliance_case.result.lra
-
-    if momentary_target is not None:
-        lufs, lu, tol = momentary_target
-        assert lufs - tol <= momentary <= lufs + tol
-    if short_term_target is not None:
-        lufs, lu, tol = short_term_target
-        assert lufs - tol <= short_term <= lufs + tol
-    if integrated_target is not None:
-        lufs, lu, tol = integrated_target
-        assert lufs - tol <= integrated <= lufs + tol
-    if lra_target is not None:
-        lra_lu, tol = lra_target
-        assert lra_lu - tol <= processor.lra <= lra_lu + tol
-
-def test_tech_3342_compliance(tech_3342_compliance_case):
-    block_size = 128
-    num_channels = 5
-    sampler = Sampler(block_size=block_size, num_channels=num_channels)
-
-    processor = BlockProcessor(
-        num_channels=num_channels, gate_size=sampler.gate_size
-    )
-    print('generating samples...')
-    src_data = tech_3342_compliance_case.generate_samples(int(sampler.sample_rate))
-    N = src_data.shape[1]
-    # assert N % block_size == 0
-    # num_blocks = N // block_size
-    remain = N % block_size
-    if remain > 0:
-        src_data = src_data[:,:N-remain]
-    num_blocks = N // block_size
-
-    src_data = np.reshape(src_data, (num_channels, num_blocks, block_size))
-
-    print(f'processing {N} samples...')
-
-    # for block_index in iter_process(sampler, processor, src_data):
-    #     # print(f'{block_index=}, {processor.integrated_lkfs=}, {sampler.samples_available=}')
-    #     pass
-    process_all(sampler, processor, src_data)
-
-    print(f'{processor.t[-1]=}')
-    integrated = processor.integrated_lkfs
-    momentary, short_term = processor.momentary_lkfs[-1], processor.short_term_lkfs[-1]
-    print(f'{integrated=}, {momentary=}, {short_term=}')
-    print(f'{processor._rel_threshold=}')
-
-    integrated_target = tech_3342_compliance_case.result.integrated
-    momentary_target = tech_3342_compliance_case.result.momentary
-    short_term_target = tech_3342_compliance_case.result.short_term
-    lra_target = tech_3342_compliance_case.result.lra
+    integrated_target = compliance_case.result.integrated
+    momentary_target = compliance_case.result.momentary
+    short_term_target = compliance_case.result.short_term
+    lra_target = compliance_case.result.lra
 
     if momentary_target is not None:
         lufs, lu, tol = momentary_target
