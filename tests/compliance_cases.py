@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import NamedTuple, Literal
 import itertools
 import numpy as np
