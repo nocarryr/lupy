@@ -83,6 +83,16 @@ class Meter:
             _do_process()
 
     @property
+    def integrated_lkfs(self) -> Floating:
+        """The current :term:`Integrated Loudness`"""
+        return self.processor.integrated_lkfs
+
+    @property
+    def lra(self) -> float:
+        """The current :term:`Loudness Range`"""
+        return self.processor.lra
+
+    @property
     def block_data(self) -> MeterArray:
         """A structured array of measurement values with
         dtype :obj:`~.types.MeterDtype`
