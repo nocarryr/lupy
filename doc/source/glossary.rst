@@ -38,6 +38,12 @@ Glossary
 
         This algorithm is described in `EBU Tech 3342`_
 
+    True Peak
+        The maximum (positive or negative) value of a waveform in the continuous
+        time domain as opposed to the "sample peaks" typically measured in discrete time.
+        This is calculated by oversampling the signal and applying an
+        interpolating filter as described in `ITU-R BS.1770`_.
+
     BS 1770
         `ITU-R BS.1770`_ is the recommendation specifying methods of filtering,
         windowing and gating for loudness measurements.

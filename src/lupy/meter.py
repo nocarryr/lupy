@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .sampling import Sampler
-from .processing import BlockProcessor
+from .processing import BlockProcessor, TruePeakProcessor
 from .types import *
 
 __all__ = ('Meter',)
@@ -19,8 +19,14 @@ class Meter:
     sampler: Sampler
     """The :class:`Sampler` instance to buffer input data"""
 
+    true_peak_sampler: Sampler
+    """Sample buffer to hold un-filtered samples for :attr:`true_peak_processor`"""
+
     processor: BlockProcessor
     """The :class:`BlockProcessor` to perform the calulations"""
+
+    true_peak_processor: TruePeakProcessor
+    """The :class:`TruePeakProcessor`"""
 
     sample_rate: int = 48000
     def __init__(self, block_size: int, num_channels: int) -> None:
@@ -30,9 +36,17 @@ class Meter:
             block_size=block_size,
             num_channels=num_channels,
         )
+        self.true_peak_sampler = Sampler(
+            block_size=block_size,
+            num_channels=num_channels,
+        )
+        assert self.sampler.bfr_shape == self.true_peak_sampler.bfr_shape
         self.processor = BlockProcessor(
             num_channels=num_channels,
             gate_size=self.sampler.gate_size,
+        )
+        self.true_peak_processor = TruePeakProcessor(
+            num_channels=num_channels,
         )
 
     def can_write(self) -> bool:
@@ -58,6 +72,7 @@ class Meter:
         The input data must be of shape ``(num_channels, block_size)``
         """
         self.sampler.write(samples)
+        self.true_peak_sampler.write(samples, apply_filter=False)
         if process and self.can_process():
             self.process(process_all=process_all)
 
@@ -75,7 +90,9 @@ class Meter:
         """
         def _do_process():
             samples = self.sampler.read()
-            self.processor.process_block(samples)
+            self.processor(samples)
+            tp_samples = self.true_peak_sampler.read()
+            self.true_peak_processor(tp_samples)
         if process_all:
             while self.can_process():
                 _do_process()
@@ -119,3 +136,13 @@ class Meter:
         and :attr:`momentary_lkfs`
         """
         return self.processor.t
+
+    @property
+    def true_peak_max(self) -> Floating:
+        """Maximum :term:`True Peak` value detected"""
+        return self.true_peak_processor.max_peak
+
+    @property
+    def true_peak_current(self) -> Float1dArray:
+        """:term:`True Peak` values per channel from the last processing period"""
+        return self.true_peak_processor.current_peaks
