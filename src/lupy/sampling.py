@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from typing import TypeVar, NamedTuple, Self
+from typing import TypeVar, NamedTuple
+try:
+    from typing_extensions import Self
+except ImportError:
+    from typing import Self
 from fractions import Fraction
 import threading
 
