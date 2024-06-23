@@ -8,6 +8,11 @@ __all__ = ('Meter',)
 
 class Meter:
     """
+
+    Arguments:
+        block_size: Number of input samples per call to :meth:`write`
+        num_channels: Number of audio channels
+        sampler_class: The class to use for the :attr:`sampler`
     """
 
     block_size: int
@@ -23,10 +28,15 @@ class Meter:
     """The :class:`BlockProcessor` to perform the calulations"""
 
     sample_rate: int = 48000
-    def __init__(self, block_size: int, num_channels: int) -> None:
+    def __init__(
+        self,
+        block_size: int,
+        num_channels: int,
+        sampler_class: type[Sampler] = Sampler
+    ) -> None:
         self.block_size = block_size
         self.num_channels = num_channels
-        self.sampler = Sampler(
+        self.sampler = sampler_class(
             block_size=block_size,
             num_channels=num_channels,
         )

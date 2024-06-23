@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from typing import TypeVar, NamedTuple
+from typing import TypeVar, NamedTuple, Self
 from fractions import Fraction
+import threading
 
+from lupy.types import FloatArray
 import numpy as np
 
 from .types import *
@@ -10,7 +12,7 @@ from .filters import FilterGroup, HS_COEFF, HP_COEFF
 
 T = TypeVar('T')
 
-__all__ = ('Sampler',)
+__all__ = ('Sampler', 'ThreadSafeSampler')
 
 
 class BufferShape(NamedTuple):
@@ -324,6 +326,9 @@ class Sampler:
         if apply_filter:
             samples = self.filter(samples)
 
+        self._write(samples)
+
+    def _write(self, samples: FloatArray) -> None:
         sl = self.write_slice
         self.write_view[:,sl.index,:] = samples
         sl.index += 1
@@ -344,6 +349,9 @@ class Sampler:
     def read(self) -> FloatArray:
         """Get the samples for one :term:`gating block`
         """
+        return self._read()
+
+    def _read(self) -> FloatArray:
         sl = self.gate_slice
         r: FloatArray = sl.slice(self.gate_view, axis=1)
         sl.increment(self.gate_view, axis=1)
@@ -353,7 +361,51 @@ class Sampler:
     def clear(self) -> None:
         """Clear all samples and reset internal tracking variables
         """
+        self._clear()
+
+    def _clear(self) -> None:
         self.sample_array[...] = 0
         self.samples_available = 0
         self.write_slice.index = 0
         self.gate_slice.index = 0
+
+
+class ThreadSafeSampler(Sampler):
+    """A :class:`Sampler` subclass for use with threaded reads and writes
+    """
+    def __init__(self, block_size: int, num_channels: int):
+        super().__init__(block_size, num_channels)
+        self._lock = threading.RLock()
+
+    def acquire(self, blocking: bool = True, timeout: float = -1) -> bool:
+        """Acquire the underlying lock
+
+        See :meth:`threading.Lock.acquire` for argument details
+        """
+        return self._lock.acquire(blocking, timeout)
+
+    def release(self) -> None:
+        """Release the underlying lock
+
+        See :meth:`threading.Lock.release` for argument details
+        """
+        self._lock.release()
+
+    def _write(self, samples: FloatArray) -> None:
+        with self:
+            super()._write(samples)
+
+    def _read(self) -> FloatArray:
+        with self:
+            return super()._read()
+
+    def _clear(self) -> None:
+        with self:
+            super()._clear()
+
+    def __enter__(self) -> Self:
+        self.acquire()
+        return self
+
+    def __exit__(self, *args) -> None:
+        self.release()
