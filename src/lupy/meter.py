@@ -34,6 +34,13 @@ class Meter:
             num_channels=num_channels,
             gate_size=self.sampler.gate_size,
         )
+        self._paused = False
+
+    @property
+    def paused(self) -> bool:
+        """``True`` if processing is currently paused
+        """
+        return self._paused
 
     def can_write(self) -> bool:
         """Whether there is enough room on the internal buffer for at least
@@ -45,6 +52,8 @@ class Meter:
         """Whether there are enough samples in the internal buffer for at least
         one call to :meth:`process`
         """
+        if self.paused:
+            return False
         return self.sampler.can_read()
 
     def write(
@@ -57,6 +66,8 @@ class Meter:
 
         The input data must be of shape ``(num_channels, block_size)``
         """
+        if self.paused:
+            return
         self.sampler.write(samples)
         if process and self.can_process():
             self.process(process_all=process_all)
@@ -81,6 +92,25 @@ class Meter:
                 _do_process()
         else:
             _do_process()
+
+    def reset(self) -> None:
+        """Reset all values for :attr:`processor` and clear any buffered input
+        samples
+        """
+        self.sampler.clear()
+        self.processor.reset()
+
+    def set_paused(self, paused: bool) -> None:
+        """Pause or unpause processing
+
+        When paused, the current state of the :attr:`processor` is preserved
+        and any input provided to the :meth:`write` method will be discarded.
+        """
+        if paused is self.paused:
+            return
+        self._paused = paused
+        if paused:
+            self.sampler.clear()
 
     @property
     def integrated_lkfs(self) -> Floating:
