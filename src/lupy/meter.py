@@ -46,7 +46,7 @@ class Meter:
             block_size=block_size,
             num_channels=num_channels,
         )
-        self.true_peak_sampler = Sampler(
+        self.true_peak_sampler = sampler_class(
             block_size=block_size,
             num_channels=num_channels,
         )
