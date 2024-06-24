@@ -109,10 +109,11 @@ class Meter:
                 Otherwise, only one call to each will be performed.
 
         """
+        gate_size = self.sampler.gate_size
         def _do_process():
             samples = self.sampler.read()
             self.processor(samples)
-            tp_samples = self.true_peak_sampler.read()
+            tp_samples = self.true_peak_sampler.read()[:,:gate_size]
             self.true_peak_processor(tp_samples)
         if process_all:
             while self.can_process():
