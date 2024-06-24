@@ -126,6 +126,7 @@ class Meter:
         """
         self.sampler.clear()
         self.processor.reset()
+        self.true_peak_processor.reset()
 
     def set_paused(self, paused: bool) -> None:
         """Pause or unpause processing
@@ -138,6 +139,7 @@ class Meter:
         self._paused = paused
         if paused:
             self.sampler.clear()
+            self.true_peak_sampler.clear()
 
     @property
     def integrated_lkfs(self) -> Floating:
