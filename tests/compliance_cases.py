@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import NamedTuple, Literal
 import itertools
 import numpy as np
+from scipy import signal
 
 from lupy.types import FloatArray
 
@@ -10,35 +11,59 @@ from lupy.types import FloatArray
 nan = np.nan
 
 
-def gen_1k_sine(count: int, sample_rate: int, amp: float = 1):
-    fc = 997
+def gen_1k_sine(
+    count: int,
+    sample_rate: int,
+    amp: float = 1,
+    fc: float = 997,
+    phase_deg: float = 0
+):
     t = np.arange(count) / sample_rate
-    return amp * np.sin(2 * np.pi * fc * t)
+    ph = np.deg2rad(phase_deg)
+    return amp * np.sin(2 * np.pi * fc * t + ph)
 
 
 
 class ComplianceInput(NamedTuple):
     dBFS: tuple[float, float, float, float, float]
     duration: float
+    fc: float = 997 / 48000
+    phase: tuple[float, float, float, float, float]|None = None
+    taper_dur: float|None = None
 
     def generate(self, sample_rate: int) -> FloatArray:
         N = int(round(sample_rate * self.duration))
         samples = np.zeros((5, N), dtype=np.float64)
-        sig = gen_1k_sine(N, sample_rate, 1)
+        fc = self.fc * sample_rate
+        sig = gen_1k_sine(N, sample_rate, 1, fc=fc)
+        taper_len, taper_win = None, None
+        if self.taper_dur is not None:
+            taper_len = int(self.taper_dur * sample_rate)
+            taper_win = signal.windows.hann(taper_len * 2).reshape((2, taper_len))
+
         for ch, sig_dB in enumerate(self.dBFS):
             if np.isnan(sig_dB):
                 continue
             amp = 10 ** (sig_dB / 20)
-            _sig = sig * amp
+            if self.phase is not None and not np.isnan(self.phase[ch]):
+                _sig = gen_1k_sine(N, sample_rate, amp, fc, self.phase[ch])
+            else:
+                _sig = sig * amp
+            if taper_win is not None:
+                taper_len = taper_win.shape[1]
+                _sig[:taper_len] *= taper_win[0]
+                _sig[-taper_len:] *= taper_win[1]
             samples[ch,...] = _sig
         return samples
 
 
 class ComplianceResult(NamedTuple):
-    momentary: tuple[float, float, float]|None  # (LUFS, LU, Tolerance)
-    short_term: tuple[float, float, float]|None # (LUFS, LU, Tolerance)
-    integrated: tuple[float, float, float]|None # (LUFS, LU, Tolerance)
-    lra: tuple[float, float]|None               # (LRA, Tolerance)
+    momentary: tuple[float, float, float]|None          # (LUFS, LU, Tolerance)
+    short_term: tuple[float, float, float]|None         # (LUFS, LU, Tolerance)
+    integrated: tuple[float, float, float]|None         # (LUFS, LU, Tolerance)
+    lra: tuple[float, float]|None                       # (LRA, Tolerance)
+    true_peak: tuple[float, float, float]|None = None   # (TP, NegTol, PosTol)
+
 
 class ComplianceBase(NamedTuple):
     input: list[ComplianceInput]
@@ -163,6 +188,100 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
             short_term=(-23, 0, .1),
             integrated=None,
             lra=None,
+        ),
+    ),
+    Tech3341Compliance(
+        name='case15',
+        input=[
+            ComplianceInput(
+                dBFS=(20*np.log10(.5), nan, 20*np.log10(.5), nan, nan),
+                duration=1,
+                fc=0.25,
+                taper_dur=.1,
+            ),
+        ],
+        result=ComplianceResult(
+            momentary=None,
+            short_term=None,
+            integrated=None,
+            lra=None,
+            true_peak=(-6, .4, .2),
+        ),
+    ),
+    Tech3341Compliance(
+        name='case16',
+        input=[
+            ComplianceInput(
+                dBFS=(20*np.log10(.5), nan, 20*np.log10(.5), nan, nan),
+                duration=1,
+                fc=0.25,
+                taper_dur=.1,
+                phase=(0, nan, 45, nan, nan),
+            ),
+        ],
+        result=ComplianceResult(
+            momentary=None,
+            short_term=None,
+            integrated=None,
+            lra=None,
+            true_peak=(-6, .4, .2),
+        ),
+    ),
+    Tech3341Compliance(
+        name='case17',
+        input=[
+            ComplianceInput(
+                dBFS=(20*np.log10(.5), nan, 20*np.log10(.5), nan, nan),
+                duration=1,
+                fc=0.25,
+                taper_dur=.1,
+                phase=(0, nan, 60, nan, nan),
+            ),
+        ],
+        result=ComplianceResult(
+            momentary=None,
+            short_term=None,
+            integrated=None,
+            lra=None,
+            true_peak=(-6, .4, .2),
+        ),
+    ),
+    Tech3341Compliance(
+        name='case18',
+        input=[
+            ComplianceInput(
+                dBFS=(20*np.log10(.5), nan, 20*np.log10(.5), nan, nan),
+                duration=1,
+                fc=0.25,
+                taper_dur=.1,
+                phase=(0, nan, 67.5, nan, nan),
+            ),
+        ],
+        result=ComplianceResult(
+            momentary=None,
+            short_term=None,
+            integrated=None,
+            lra=None,
+            true_peak=(-6, .4, .2),
+        ),
+    ),
+    Tech3341Compliance(
+        name='case19',
+        input=[
+            ComplianceInput(
+                dBFS=(20*np.log10(1.41), nan, 20*np.log10(1.41), nan, nan),
+                duration=1,
+                fc=0.25,
+                taper_dur=.1,
+                phase=(0, nan, 45, nan, nan),
+            ),
+        ],
+        result=ComplianceResult(
+            momentary=None,
+            short_term=None,
+            integrated=None,
+            lra=None,
+            true_peak=(3, .4, .2),
         ),
     ),
 ]

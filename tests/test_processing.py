@@ -143,6 +143,7 @@ def test_compliance_cases(compliance_case):
     momentary_target = compliance_case.result.momentary
     short_term_target = compliance_case.result.short_term
     lra_target = compliance_case.result.lra
+    tp_target = compliance_case.result.true_peak
 
     if momentary_target is not None:
         lufs, lu, tol = momentary_target
@@ -156,3 +157,7 @@ def test_compliance_cases(compliance_case):
     if lra_target is not None:
         lra_lu, tol = lra_target
         assert lra_lu - tol <= meter.lra <= lra_lu + tol
+    if tp_target is not None:
+        tp, neg_tol, pos_tol = tp_target
+        tp_min, tp_max = tp - neg_tol, tp + pos_tol
+        assert tp_min <= meter.true_peak_max <= tp_max

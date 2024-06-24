@@ -1,34 +1,38 @@
 from __future__ import annotations
 
 from typing import overload, cast
+from abc import ABC, abstractmethod
 
 import numpy as np
 # import numpy.ma as ma
 
 
 from .types import *
-from .filters import Filter, MOMENTARY_HP_COEFF
+from .filters import Filter, TruePeakFilter, MOMENTARY_HP_COEFF
 
-__all__ = ('BlockProcessor',)
+__all__ = ('BlockProcessor', 'TruePeakProcessor')
 
 SILENCE_DB: Floating = np.float64(-200.)
 EPSILON: Floating = np.float64(1e-20)
 
 
 
+
+
 @overload
-def lk_log10(x: FloatArray, offset: float = -0.691) -> FloatArray: ...
+def lk_log10(x: FloatArray, offset: float = -0.691, base: int = 10) -> FloatArray: ...
 @overload
-def lk_log10(x: np.floating, offset: float = -0.691) -> np.floating: ...
+def lk_log10(x: np.floating, offset: float = -0.691, base: int = 10) -> np.floating: ...
 def lk_log10(
     x: FloatArray|np.floating,
-    offset: float = -0.691
+    offset: float = -0.691,
+    base: int = 10
 ) -> FloatArray|np.floating:
     if isinstance(x, np.ndarray):
         x[np.less_equal(x, 0)] = EPSILON
     elif x <= 0:
         x = EPSILON
-    r = offset + 10 * np.log10(x)
+    r = offset + base * np.log10(x)
     return r
 
 @overload
@@ -41,14 +45,35 @@ def from_lk_log10(
 ) -> FloatArray|np.floating:
     return 10 ** ((x + offset) / 10)
 
-
-
-class BlockProcessor:
-    """Process audio samples and store the resulting loudness data
+class BaseProcessor(ABC):
     """
-
+    """
     num_channels: int
     """Number of audio channels"""
+
+    sample_rate = 48000
+
+    def __init__(self, num_channels: int) -> None:
+        self.num_channels = num_channels
+
+    @abstractmethod
+    def __call__(self, samples: Float2dArray) -> None:
+        """Process one :term:`gating block`
+
+        Input data must be of shape ``(num_channels, gate_size)``
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def reset(self) -> None:
+        """Reset all measurement data
+        """
+        raise NotImplementedError
+
+
+class BlockProcessor(BaseProcessor):
+    """Process audio samples and store the resulting loudness data
+    """
 
     gate_size: int
     """The length of one :term:`gating block` in samples"""
@@ -59,11 +84,10 @@ class BlockProcessor:
     lra: float
     """The current :term:`Loudness Range`"""
 
-    sample_rate = 48000
     MAX_BLOCKS = 36000 # <- 14400 seconds (4 hours) / .4 (400 milliseconds)
     _channel_weights = np.array([1, 1, 1, 1.41, 1.41])
     def __init__(self, num_channels: int, gate_size: int):
-        self.num_channels = num_channels
+        super().__init__(num_channels=num_channels)
         self.gate_size = gate_size
         self.pad_size = gate_size // 4
         self.weights = self._channel_weights[:self.num_channels]
@@ -170,6 +194,9 @@ class BlockProcessor:
         self._rel_threshold = SILENCE_DB
         self.block_index = 0
         self.num_blocks = 0
+
+    def __call__(self, samples: Float2dArray) -> None:
+        self.process_block(samples)
 
     def __len__(self) -> int:
         return self.num_blocks
@@ -395,3 +422,36 @@ class BlockProcessor:
 
     #     # Not sure if this is right or not
     #     # return lk_log10(filtered.sum())
+
+
+class TruePeakProcessor(BaseProcessor):
+    """Process audio samples to extract their :term:`True Peak` values
+    """
+    max_peak: Floating
+    """Maximum :term:`True Peak` value detected"""
+
+    current_peaks: Float1dArray
+    """:term:`True Peak` values per channel from the last processing period"""
+
+    def __init__(self, num_channels: int) -> None:
+        super().__init__(num_channels=num_channels)
+        self.resample_filt = TruePeakFilter(num_channels=num_channels)
+        self.max_peak = SILENCE_DB
+        self.current_peaks: Float1dArray = np.zeros(self.num_channels, dtype=np.float64)
+        self.current_peaks[:] = SILENCE_DB
+
+    def __call__(self, samples: Float2dArray) -> None:
+        self.process(samples)
+
+    def reset(self) -> None:
+        self.max_peak = SILENCE_DB
+        self.current_peaks[:] = SILENCE_DB
+
+    def process(self, samples: Float2dArray):
+        tp_vals = self.resample_filt(samples)
+        tp_vals = lk_log10(tp_vals, offset=0, base=20)
+        cur_peaks = tp_vals.max(axis=1)
+        max_peak = cur_peaks.max()
+        if max_peak > self.max_peak:
+            self.max_peak = max_peak
+        self.current_peaks[:] = cur_peaks
