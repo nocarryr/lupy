@@ -107,7 +107,7 @@ class TruePeakFilter(BaseFilter[Float1dArray]):
         self,
         coeff: Float1dArray = TP_WIN,
         num_channels: int = 1,
-        upsample_factor: int = 1
+        upsample_factor: int = 4
     ) -> None:
         super().__init__(coeff=coeff, num_channels=num_channels)
         self.upsample_factor = upsample_factor
@@ -116,7 +116,7 @@ class TruePeakFilter(BaseFilter[Float1dArray]):
         return signal.resample_poly(
             x,
             self.upsample_factor,
-            self.upsample_factor,
+            1,
             axis=1,
             window=TP_WIN
         )
