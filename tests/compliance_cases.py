@@ -67,7 +67,13 @@ class ComplianceSource(NamedTuple):
     is_float: bool = False
 
     def generate(self, sample_rate: int) -> FloatArray:
-        fs, samples = wavfile.read(self.filename)
+        if self.filename.suffix == '.npz':
+            with np.load(self.filename) as data:
+                samples = data['samples']
+                _fs_arr = data['sample_rate']
+                fs = _fs_arr[0]
+        else:
+            fs, samples = wavfile.read(self.filename)
         samples = np.asarray(samples, dtype=np.float64)
         assert fs == sample_rate
         if self.is_float:
@@ -326,7 +332,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
         name='case20',
         input=[
             ComplianceSource(
-                filename=EBU_ROOT / 'seq-3341-20-24bit.wav.wav',
+                filename=EBU_ROOT / 'seq-3341-20-24bit.wav.npz',
                 bit_depth=24,
             ),
         ],
@@ -342,7 +348,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
         name='case21',
         input=[
             ComplianceSource(
-                filename=EBU_ROOT / 'seq-3341-21-24bit.wav.wav',
+                filename=EBU_ROOT / 'seq-3341-21-24bit.wav.npz',
                 bit_depth=24,
             ),
         ],
@@ -358,7 +364,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
         name='case22',
         input=[
             ComplianceSource(
-                filename=EBU_ROOT / 'seq-3341-22-24bit.wav.wav',
+                filename=EBU_ROOT / 'seq-3341-22-24bit.wav.npz',
                 bit_depth=24,
             ),
         ],
@@ -374,7 +380,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
         name='case23',
         input=[
             ComplianceSource(
-                filename=EBU_ROOT / 'seq-3341-23-24bit.wav.wav',
+                filename=EBU_ROOT / 'seq-3341-23-24bit.wav.npz',
                 bit_depth=24,
             ),
         ],
