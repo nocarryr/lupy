@@ -43,6 +43,7 @@ Homepage = "https://github.com/nocarryr/lupy"
 
 [project.optional-dependencies]
 tests = ["pytest", "pytest-xdist"]
+docs = ["sphinx", "furo"]
 
 
 [tool.setuptools.packages.find]
