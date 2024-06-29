@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 from typing import NamedTuple, Literal
+from pathlib import Path
 import itertools
 import numpy as np
 from scipy import signal
+from scipy.io import wavfile
 
 from lupy.types import FloatArray
 
+HERE = Path(__file__).parent
+DATA = HERE / 'data'
+EBU_ROOT = DATA / 'ebu-loudness-test-setv05'
 
 nan = np.nan
 
@@ -56,6 +61,39 @@ class ComplianceInput(NamedTuple):
             samples[ch,...] = _sig
         return samples
 
+class ComplianceSource(NamedTuple):
+    filename: Path
+    bit_depth: Literal[16, 24, 32]
+    is_float: bool = False
+
+    def generate(self, sample_rate: int) -> FloatArray:
+        fs, samples = wavfile.read(self.filename)
+        samples = np.asarray(samples, dtype=np.float64)
+        assert fs == sample_rate
+        if self.is_float:
+            assert self.bit_depth == 32
+            samples = samples
+        elif self.bit_depth == 24:
+            # 24-bit PCM is stored in the MSB of int32
+            samples /= 1 << 31
+        else:
+            samples /= 1 << (self.bit_depth-1)
+
+        # Temp array to match channels to their expected indices
+        _samples = np.zeros((samples.shape[0], 5), dtype=np.float64)
+        if samples.shape[1] == 2:
+            _samples[:,0] = samples[:,0]
+            _samples[:,2] = samples[:,1]
+        else:
+            _samples[:,0] = samples[:,0]
+            _samples[:,1] = samples[:,2]
+            _samples[:,2] = samples[:,1]
+            if samples.shape[1] > 3:
+                _samples[:,3:] = samples[:,3:]
+
+        # Swap from ``(n_samp, n_chan)`` to ``(n_chan, n_samp)``
+        return np.swapaxes(_samples, 0, 1)
+
 
 class ComplianceResult(NamedTuple):
     momentary: tuple[float, float, float]|None          # (LUFS, LU, Tolerance)
@@ -66,7 +104,7 @@ class ComplianceResult(NamedTuple):
 
 
 class ComplianceBase(NamedTuple):
-    input: list[ComplianceInput]
+    input: list[ComplianceInput|ComplianceSource]
     result: ComplianceResult
     # target_lu: ClassVar = -23
     name: str
@@ -282,6 +320,70 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
             integrated=None,
             lra=None,
             true_peak=(3, .4, .2),
+        ),
+    ),
+    Tech3341Compliance(
+        name='case20',
+        input=[
+            ComplianceSource(
+                filename=EBU_ROOT / 'seq-3341-20-24bit.wav.wav',
+                bit_depth=24,
+            ),
+        ],
+        result=ComplianceResult(
+            momentary=None,
+            short_term=None,
+            integrated=None,
+            lra=None,
+            true_peak=(0, .4, .2),
+        ),
+    ),
+    Tech3341Compliance(
+        name='case21',
+        input=[
+            ComplianceSource(
+                filename=EBU_ROOT / 'seq-3341-21-24bit.wav.wav',
+                bit_depth=24,
+            ),
+        ],
+        result=ComplianceResult(
+            momentary=None,
+            short_term=None,
+            integrated=None,
+            lra=None,
+            true_peak=(0, .4, .2),
+        ),
+    ),
+    Tech3341Compliance(
+        name='case22',
+        input=[
+            ComplianceSource(
+                filename=EBU_ROOT / 'seq-3341-22-24bit.wav.wav',
+                bit_depth=24,
+            ),
+        ],
+        result=ComplianceResult(
+            momentary=None,
+            short_term=None,
+            integrated=None,
+            lra=None,
+            true_peak=(0, .4, .2),
+        ),
+    ),
+    Tech3341Compliance(
+        name='case23',
+        input=[
+            ComplianceSource(
+                filename=EBU_ROOT / 'seq-3341-23-24bit.wav.wav',
+                bit_depth=24,
+            ),
+        ],
+        result=ComplianceResult(
+            momentary=None,
+            short_term=None,
+            integrated=None,
+            lra=None,
+            true_peak=(0, .4, .2),
         ),
     ),
 ]
