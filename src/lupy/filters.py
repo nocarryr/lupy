@@ -72,7 +72,7 @@ def calc_tp_fir_win(upsample_factor: int) -> Float1dArray:
     half_len = 10 * max_rate
     window = cast(str, ('kaiser', 5.0))
     h = signal.firwin(
-        2 * half_len + 1,
+        half_len + 1,       # len == 41 with upsample factor of 4
         f_c,
         window=window
     )
