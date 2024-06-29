@@ -449,7 +449,7 @@ class TruePeakProcessor(BaseProcessor):
 
     def process(self, samples: Float2dArray):
         tp_vals = self.resample_filt(samples)
-        tp_vals = lk_log10(tp_vals, offset=0, base=20)
+        tp_vals = lk_log10(np.abs(tp_vals), offset=0, base=20)
         cur_peaks = tp_vals.max(axis=1)
         max_peak = cur_peaks.max()
         if max_peak > self.max_peak:
