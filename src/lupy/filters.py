@@ -1,7 +1,8 @@
 from __future__ import annotations
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, cast
 
 from dataclasses import dataclass
+import math
 
 import numpy as np
 from scipy import signal
@@ -72,6 +73,30 @@ TP_WIN: Float1dArray = np.array([
     0.0332031250000, -0.0196533203125, 0.0109863281250, 0.0017089843750,
 ])
 
+# Taken from:
+# https://github.com/scipy/scipy/blob/87c46641a8b3b5b47b81de44c07b840468f7ebe7/scipy/signal/_signaltools.py#L3363-L3384
+#
+def calc_tp_fir_win(upsample_factor: int) -> Float1dArray:
+    """Calculate an appropriate low-pass FIR filter for over-sampling
+
+    Methods match that of :func:`scipy.signal.resample_poly`
+    """
+
+    up, down = upsample_factor, 1
+    g_ = math.gcd(up, down)
+    up //= g_
+    down //= g_
+    max_rate = max(up, down)
+    f_c = 1 / max_rate
+    half_len = 10 * max_rate
+    window = cast(str, ('kaiser', 5.0))
+    h = signal.firwin(
+        2 * half_len + 1,
+        f_c,
+        window=window
+    )
+    return h.astype(np.float64)
+
 
 class BaseFilter(Generic[T]):
     """
@@ -105,10 +130,10 @@ class TruePeakFilter(BaseFilter[Float1dArray]):
     """Upsampling factor (currently only 4 is supported)"""
     def __init__(
         self,
-        coeff: Float1dArray = TP_WIN,
         num_channels: int = 1,
         upsample_factor: int = 4
     ) -> None:
+        coeff = calc_tp_fir_win(upsample_factor)
         super().__init__(coeff=coeff, num_channels=num_channels)
         self.upsample_factor = upsample_factor
 
@@ -118,6 +143,7 @@ class TruePeakFilter(BaseFilter[Float1dArray]):
             self.upsample_factor,
             1,
             axis=1,
+            window=self.coeff,
         )
 
 
