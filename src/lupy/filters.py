@@ -118,7 +118,6 @@ class TruePeakFilter(BaseFilter[Float1dArray]):
             self.upsample_factor,
             1,
             axis=1,
-            window=TP_WIN
         )
 
 
