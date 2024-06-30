@@ -39,6 +39,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/nocarryr/lupy"
+Documentation = "https://lupy-nocarryr.readthedocs.io/"
 
 
 [project.optional-dependencies]
