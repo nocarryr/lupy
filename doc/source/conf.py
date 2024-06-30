@@ -5,8 +5,11 @@
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
+import os
+import sys
 
-project = 'lupy'
+sys.path.append(os.path.abspath("./_ext"))
+
 copyright = '2024, Matthew Reid'
 author = 'Matthew Reid'
 
@@ -19,6 +22,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.intersphinx',
     'sphinx.ext.extlinks',
+    'project_meta',
 ]
 
 
