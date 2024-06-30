@@ -62,6 +62,7 @@ Contents
    :maxdepth: 2
    :caption: Contents:
 
+   usage
    reference/index.rst
    glossary
 
