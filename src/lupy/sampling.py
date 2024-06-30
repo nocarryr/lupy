@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from typing import TypeVar, NamedTuple
-try:
+import sys
+if sys.version_info < (3, 11):
     from typing_extensions import Self
-except ImportError:
+else:
     from typing import Self
 from fractions import Fraction
 import threading
