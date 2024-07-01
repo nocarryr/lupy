@@ -126,6 +126,7 @@ class Meter:
         samples
         """
         self.sampler.clear()
+        self.true_peak_sampler.clear()
         self.processor.reset()
         self.true_peak_processor.reset()
 
