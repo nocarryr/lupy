@@ -109,17 +109,18 @@ class Meter:
                 Otherwise, only one call to each will be performed.
 
         """
-        gate_size = self.sampler.gate_size
-        def _do_process():
-            samples = self.sampler.read()
-            self.processor(samples)
-            tp_samples = self.true_peak_sampler.read()[:,:gate_size]
-            self.true_peak_processor(tp_samples)
         if process_all:
             while self.can_process():
-                _do_process()
+                self._process()
         else:
-            _do_process()
+            self._process()
+
+    def _process(self) -> None:
+        gate_size = self.sampler.gate_size
+        samples = self.sampler.read()
+        self.processor(samples)
+        tp_samples = self.true_peak_sampler.read()[:,:gate_size]
+        self.true_peak_processor(tp_samples)
 
     def reset(self) -> None:
         """Reset all values for :attr:`processor` and clear any buffered input
