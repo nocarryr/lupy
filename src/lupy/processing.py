@@ -51,10 +51,12 @@ class BaseProcessor(ABC):
     num_channels: int
     """Number of audio channels"""
 
-    sample_rate = 48000
+    sample_rate: int
+    """The sample rate of the audio data"""
 
-    def __init__(self, num_channels: int) -> None:
+    def __init__(self, num_channels: int, sample_rate: int = 48000) -> None:
         self.num_channels = num_channels
+        self.sample_rate = sample_rate
 
     @abstractmethod
     def __call__(self, samples: Float2dArray) -> None:
@@ -86,8 +88,13 @@ class BlockProcessor(BaseProcessor):
 
     MAX_BLOCKS = 144000 # <- 14400 seconds (4 hours) / .1 (100 milliseconds)
     _channel_weights = np.array([1, 1, 1, 1.41, 1.41])
-    def __init__(self, num_channels: int, gate_size: int):
-        super().__init__(num_channels=num_channels)
+    def __init__(
+        self,
+        num_channels: int,
+        gate_size: int,
+        sample_rate: int = 48000
+    ) -> None:
+        super().__init__(num_channels=num_channels, sample_rate=sample_rate)
         self.gate_size = gate_size
         self.pad_size = gate_size // 4
         self.weights = self._channel_weights[:self.num_channels]
@@ -433,8 +440,8 @@ class TruePeakProcessor(BaseProcessor):
     current_peaks: Float1dArray
     """:term:`True Peak` values per channel from the last processing period"""
 
-    def __init__(self, num_channels: int) -> None:
-        super().__init__(num_channels=num_channels)
+    def __init__(self, num_channels: int, sample_rate: int = 48000) -> None:
+        super().__init__(num_channels=num_channels, sample_rate=sample_rate)
         self.resample_filt = TruePeakFilter(num_channels=num_channels)
         self.max_peak = SILENCE_DB
         self.current_peaks: Float1dArray = np.zeros(self.num_channels, dtype=np.float64)

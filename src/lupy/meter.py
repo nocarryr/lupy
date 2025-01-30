@@ -33,30 +33,37 @@ class Meter:
     true_peak_processor: TruePeakProcessor
     """The :class:`TruePeakProcessor`"""
 
-    sample_rate: int = 48000
+    sample_rate: int
+    """The sample rate of the audio data"""
     def __init__(
         self,
         block_size: int,
         num_channels: int,
-        sampler_class: type[Sampler] = Sampler
+        sampler_class: type[Sampler] = Sampler,
+        sample_rate: int = 48000
     ) -> None:
         self.block_size = block_size
         self.num_channels = num_channels
+        self.sample_rate = sample_rate
         self.sampler = sampler_class(
             block_size=block_size,
             num_channels=num_channels,
+            sample_rate=sample_rate,
         )
         self.true_peak_sampler = sampler_class(
             block_size=block_size,
             num_channels=num_channels,
+            sample_rate=sample_rate,
         )
         assert self.sampler.bfr_shape == self.true_peak_sampler.bfr_shape
         self.processor = BlockProcessor(
             num_channels=num_channels,
             gate_size=self.sampler.gate_size,
+            sample_rate=sample_rate,
         )
         self.true_peak_processor = TruePeakProcessor(
             num_channels=num_channels,
+            sample_rate=sample_rate,
         )
         self._paused = False
 

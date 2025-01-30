@@ -239,7 +239,8 @@ class Sampler:
     and read out in windowed segments as needed for :term:`gating block`
     calculations.
     """
-    sample_rate = Fraction(48000, 1)
+    sample_rate: Fraction
+    """The sample rate of the input data"""
 
     num_channels: int
     """Number of channels"""
@@ -261,7 +262,8 @@ class Sampler:
     """A :class:`~.filters.FilterGroup` with both stages of the pre-filter
     defined in :term:`BS 1770`
     """
-    def __init__(self, block_size: int, num_channels: int):
+    def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
+        self.sample_rate = Fraction(sample_rate, 1)
         self.num_channels = num_channels
 
         bfr_shape = self.bfr_shape = calc_buffer_length(
@@ -288,7 +290,10 @@ class Sampler:
         )
 
         self.samples_available = 0
-        self.filter = FilterGroup(HS_COEFF, HP_COEFF, num_channels=self.num_channels)
+        coeff = [HS_COEFF, HP_COEFF]
+        if sample_rate != 48000:
+            coeff = [c.as_sample_rate(int(sample_rate)) for c in coeff]
+        self.filter = FilterGroup(*coeff, num_channels=self.num_channels)
 
     @property
     def block_size(self) -> int:
@@ -378,8 +383,8 @@ class Sampler:
 class ThreadSafeSampler(Sampler):
     """A :class:`Sampler` subclass for use with threaded reads and writes
     """
-    def __init__(self, block_size: int, num_channels: int):
-        super().__init__(block_size, num_channels)
+    def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
+        super().__init__(block_size, num_channels, sample_rate)
         self._lock = threading.RLock()
 
     def acquire(self, blocking: bool = True, timeout: float = -1) -> bool:
