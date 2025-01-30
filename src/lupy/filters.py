@@ -1,5 +1,10 @@
 from __future__ import annotations
 from typing import TypeVar, Generic, cast
+import sys
+if sys.version_info < (3, 11):
+    from typing_extensions import Self
+else:
+    from typing import Self
 
 from dataclasses import dataclass
 import math
@@ -18,8 +23,9 @@ T = TypeVar('T')
 class Coeff:
     """Digital filter coefficients
     """
-    b: FloatArray   #: Numerator of the filter
-    a: FloatArray   #: Denominator of the filter
+    b: FloatArray               #: Numerator of the filter
+    a: FloatArray               #: Denominator of the filter
+    sample_rate: int = 48000    #: Sample rate of the filter
     _sos: FloatArray|None = None
 
     @property
@@ -32,17 +38,49 @@ class Coeff:
             s = self._sos = signal.tf2sos(self.b, self.a)
         return s
 
+    def as_sample_rate(self, sample_rate: int) -> Self:
+        """Return a new :class:`Coeff` instance with the coefficients converted
+        to the specified sample rate
+        """
+        if sample_rate == self.sample_rate:
+            return self
+        # https://github.com/klangfreund/LUFSMeter/blob/783a59d78c31e52b3a50b52d9afaadf3118f7536/filters/SecondOrderIIRFilter.cpp#L47-L115
+        b, a = self.b, self.a
+        KoverQ = (2. - 2. * a[2]) / (a[2] - a[1] + 1.)
+        K = np.sqrt((a[1] + a[2] + 1.) / (a[2] - a[1] + 1.))
+        Q = K / KoverQ
+        arctanK = np.atan(K)
+        VB = (b[0] - b[2])/(1. - a[2])
+        VH = (b[0] - b[1] + b[2])/(a[2] - a[1] + 1.)
+        VL = (b[0] + b[1] + b[2])/(a[1] + a[2] + 1.)
+
+        K = np.tan(arctanK * self.sample_rate / sample_rate)
+        commonFactor = 1. / (1. + K/Q + K*K)
+        b0 = (VH + VB*K/Q + VL*K*K)*commonFactor
+        b1 = 2.*(VL*K*K - VH)*commonFactor
+        b2 = (VH - VB*K/Q + VL*K*K)*commonFactor
+        a1 = 2.*(K*K - 1.)*commonFactor
+        a2 = (1. - K/Q + K*K)*commonFactor
+
+        return self.__class__(
+            b=np.array([b0, b1, b2]),
+            a=np.array([1., a1, a2]),
+            sample_rate=sample_rate,
+        )
+
 
 
 HS_COEFF = Coeff(
     b = np.array([1.53512485958697, -2.69169618940638, 1.19839281085285]),
     a = np.array([1.0, -1.69065929318241, 0.73248077421585]),
+    sample_rate=48000,
 )
 """Stage 1 (high-shelf) of the pre-filter defined in :term:`BS 1770` table 1"""
 
 HP_COEFF = Coeff(
     b = np.array([1.0, -2.0, 1.0]),
     a = np.array([1.0, -1.99004745483398, 0.99007225036621]),
+    sample_rate=48000,
 )
 """Stage 2 (high-pass) of the pre-filter defined in :term:`BS 1770` table 2"""
 
