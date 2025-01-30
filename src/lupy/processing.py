@@ -84,7 +84,7 @@ class BlockProcessor(BaseProcessor):
     lra: float
     """The current :term:`Loudness Range`"""
 
-    MAX_BLOCKS = 36000 # <- 14400 seconds (4 hours) / .4 (400 milliseconds)
+    MAX_BLOCKS = 144000 # <- 14400 seconds (4 hours) / .1 (100 milliseconds)
     _channel_weights = np.array([1, 1, 1, 1.41, 1.41])
     def __init__(self, num_channels: int, gate_size: int):
         super().__init__(num_channels=num_channels)
