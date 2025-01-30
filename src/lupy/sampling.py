@@ -207,7 +207,8 @@ def calc_buffer_length(sample_rate: int, block_size: int) -> BufferShape:
     gate_size = int(sample_rate * gate_len)
     pad_size = int(sample_rate * pad_len)
 
-    max_fr = find_even_fractions(pad_len, block_len)
+    max_iter = 100 if sample_rate == 48000 else 10000
+    max_fr = find_even_fractions(pad_len, block_len, max_iter=max_iter)
 
     bfr_len = sample_rate * max_fr
     while bfr_len <= gate_size:
