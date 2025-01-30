@@ -75,7 +75,6 @@ class ComplianceSource(NamedTuple):
         else:
             fs, samples = wavfile.read(self.filename)
         samples = np.asarray(samples, dtype=np.float64)
-        assert fs == sample_rate
         if self.is_float:
             assert self.bit_depth == 32
             samples = samples
@@ -84,6 +83,9 @@ class ComplianceSource(NamedTuple):
             samples /= 1 << 31
         else:
             samples /= 1 << (self.bit_depth-1)
+
+        if fs != sample_rate:
+            samples = signal.resample_poly(samples, sample_rate, fs)
 
         # Temp array to match channels to their expected indices
         _samples = np.zeros((samples.shape[0], 5), dtype=np.float64)

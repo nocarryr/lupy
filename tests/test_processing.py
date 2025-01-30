@@ -100,9 +100,9 @@ def process_all(meter: Meter, src_data: FloatArray):
         pass
 
 
-def test_integrated_lkfs(block_size, all_channels, is_silent, reset_process):
+def test_integrated_lkfs(sample_rate, block_size, all_channels, is_silent, reset_process):
     num_channels, sine_channel = all_channels
-    meter = Meter(block_size=block_size, num_channels=num_channels)
+    meter = Meter(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
 
     N, Fs = meter.sampler.total_samples, int(meter.sample_rate)
     num_blocks, gate_size = meter.sampler.num_blocks, meter.sampler.gate_size
@@ -135,9 +135,9 @@ def test_integrated_lkfs(block_size, all_channels, is_silent, reset_process):
 
 # https://tech.ebu.ch/docs/tech/tech3341.pdf Section 2.9
 # Stereo 1k (997 Hz) sine at -18 dBFS should read -18 LUFS
-def test_integrated_lkfs_neg18(block_size):
+def test_integrated_lkfs_neg18(sample_rate, block_size):
     num_channels = 2
-    meter = Meter(block_size=block_size, num_channels=num_channels)
+    meter = Meter(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
 
     N, Fs = meter.sampler.total_samples, int(meter.sample_rate)
     num_blocks, gate_size = meter.sampler.num_blocks, meter.sampler.gate_size
@@ -155,10 +155,10 @@ def test_integrated_lkfs_neg18(block_size):
     assert round(meter.integrated_lkfs, 2) == -18
 
 
-def test_compliance_cases(compliance_case):
+def test_compliance_cases(sample_rate, compliance_case):
     block_size = 128
     num_channels = 5
-    meter = Meter(block_size=block_size, num_channels=num_channels)
+    meter = Meter(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
 
     print('generating samples...')
     src_data = compliance_case.generate_samples(int(meter.sample_rate))

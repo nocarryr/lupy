@@ -95,6 +95,6 @@ def compliance_case(request) -> ComplianceBase:
     return request.param
 
 
-@pytest.fixture(params=[48000])
+@pytest.fixture(params=[48000, 44100])
 def sample_rate(request) -> int:
     return request.param
