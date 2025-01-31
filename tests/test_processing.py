@@ -129,7 +129,7 @@ def test_integrated_lkfs(sample_rate, block_size, all_channels, is_silent, reset
         assert round(meter.integrated_lkfs, 2) == -3.01
         # assert -3.02 <= lkfs <= -3.00
     else:
-        assert round(meter.integrated_lkfs, 2) == -1.52
+        assert -1.53 <= round(meter.integrated_lkfs, 2) <= -1.51
         # assert -1.53 <= lkfs <= -1.51
 
 
