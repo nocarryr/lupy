@@ -125,7 +125,7 @@ def test_integrated_lkfs(sample_rate, block_size, all_channels, is_silent, reset
     print(f'{N=}, {N / gate_size}, {len(meter.processor)=}')
 
     if is_silent:
-        assert meter.integrated_lkfs <= 120
+        assert meter.integrated_lkfs <= -120
     elif sine_channel < 3:
         assert round(meter.integrated_lkfs, 2) == -3.01
         # assert -3.02 <= lkfs <= -3.00
