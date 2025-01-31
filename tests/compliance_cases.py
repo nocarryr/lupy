@@ -32,14 +32,17 @@ def gen_1k_sine(
 class ComplianceInput(NamedTuple):
     dBFS: tuple[float, float, float, float, float]
     duration: float
-    fc: float = 997 / 48000
+    fc: float|None = None
     phase: tuple[float, float, float, float, float]|None = None
     taper_dur: float|None = None
 
     def generate(self, sample_rate: int) -> FloatArray:
         N = int(round(sample_rate * self.duration))
         samples = np.zeros((5, N), dtype=np.float64)
-        fc = self.fc * sample_rate
+        fc_normalized = self.fc
+        if fc_normalized is None:
+            fc_normalized = 997 / sample_rate
+        fc = fc_normalized * sample_rate
         sig = gen_1k_sine(N, sample_rate, 1, fc=fc)
         taper_len, taper_win = None, None
         if self.taper_dur is not None:
