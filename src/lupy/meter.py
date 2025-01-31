@@ -13,6 +13,7 @@ class Meter:
         block_size: Number of input samples per call to :meth:`write`
         num_channels: Number of audio channels
         sampler_class: The class to use for the :attr:`sampler`
+        sample_rate: The sample rate of the audio data
     """
 
     block_size: int
@@ -22,16 +23,16 @@ class Meter:
     """Number of audio channels"""
 
     sampler: Sampler
-    """The :class:`Sampler` instance to buffer input data"""
+    """The :class:`~.sampling.Sampler` instance to buffer input data"""
 
     true_peak_sampler: Sampler
     """Sample buffer to hold un-filtered samples for :attr:`true_peak_processor`"""
 
     processor: BlockProcessor
-    """The :class:`BlockProcessor` to perform the calulations"""
+    """The :class:`~.processing.BlockProcessor` to perform the calulations"""
 
     true_peak_processor: TruePeakProcessor
-    """The :class:`TruePeakProcessor`"""
+    """The :class:`~.processing.TruePeakProcessor`"""
 
     sample_rate: int
     """The sample rate of the audio data"""
