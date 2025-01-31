@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from typing import Callable
+import os
 import numpy as np
 import pytest
 
 from lupy.types import FloatArray
 from compliance_cases import ComplianceBase, cases_by_name, all_cases
 
+IS_CI = 'CI' in os.environ
 
 nan = np.nan
 rng = np.random.default_rng()

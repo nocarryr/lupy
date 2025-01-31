@@ -8,7 +8,7 @@ import numpy as np
 from lupy import Meter
 from lupy.types import FloatArray
 
-from conftest import gen_1k_sine
+from conftest import gen_1k_sine, IS_CI
 
 
 class DurationContext:
@@ -22,8 +22,9 @@ class DurationContext:
 
     max_duration_ratio = 35
     """Highest ratio (percent) of :attr:`duration` to :attr:`source_duration`"""
-    def __init__(self, source_duration: float) -> None:
+    def __init__(self, source_duration: float, max_duration_ratio: int = 35) -> None:
         self.source_duration = source_duration
+        self.max_duration_ratio = max_duration_ratio
         self.start: float|None = None
         self.end: float|None = None
 
@@ -178,7 +179,11 @@ def test_compliance_cases(sample_rate, compliance_case):
     # for block_index in iter_process(sampler, processor, src_data):
     #     # print(f'{block_index=}, {processor.integrated_lkfs=}, {sampler.samples_available=}')
     #     pass
-    with DurationContext(src_duration) as dur_ctx:
+
+    duration_ratio = DurationContext.max_duration_ratio
+    if IS_CI and sample_rate > 48000:
+        duration_ratio *= 2
+    with DurationContext(src_duration, max_duration_ratio=duration_ratio) as dur_ctx:
         process_all(meter, src_data)
 
     print(f'{meter.t[-1]=}')
