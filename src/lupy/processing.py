@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from typing import overload, cast
+from typing import overload
+import sys
+if sys.version_info < (3, 11):
+    from typing_extensions import Self
+else:
+    from typing import Self
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -14,6 +19,86 @@ __all__ = ('BlockProcessor', 'TruePeakProcessor')
 SILENCE_DB: Floating = np.float64(-200.)
 EPSILON: Floating = np.float64(1e-20)
 
+
+
+class RunningSum:
+    """Helper class to calculate the running sum of a series of values
+    """
+    __slots__ = ('_value', '_count', '_mean')
+    def __init__(self) -> None:
+        self._value: Floating = np.float64(0)
+        self._count: int = 0
+        self._mean: Floating|None = None
+
+    @property
+    def value(self) -> Floating:
+        """The current running sum
+        """
+        return self._value
+    @value.setter
+    def value(self, value: Floating) -> None:
+        if value == self._value:
+            return
+        self._value = value
+        self._mean = None
+
+    @property
+    def count(self) -> int:
+        """The number of values in the running sum
+        """
+        return self._count
+    @count.setter
+    def count(self, count: int) -> None:
+        if count == self._count:
+            return
+        self._count = count
+        self._mean = None
+
+    @property
+    def mean(self) -> Floating:
+        """The mean of the running sum
+        """
+        m = self._mean
+        if m is None:
+            m = self._mean = self._value / self._count
+        return m
+
+    def add(self, value: Floating) -> None:
+        """Add a data point to the running sum
+        """
+        self.value += value
+        self.count += 1
+
+    def clear(self) -> None:
+        """Reset :attr:`value` and :attr:`count` to zero
+        """
+        self.value = np.float64(0)
+        self.count = 0
+
+    def __iadd__(self, value: Floating) -> Self:
+        self.add(value)
+        return self
+
+    def __eq__(self, other: Floating) -> bool:
+        return bool(self.value == other)
+
+    def __gt__(self, other: Floating) -> bool:
+        return bool(self.value > other)
+
+    def __ge__(self, other: Floating) -> bool:
+        return bool(self.value >= other)
+
+    def __lt__(self, other: Floating) -> bool:
+        return bool(self.value < other)
+
+    def __le__(self, other: Floating) -> bool:
+        return bool(self.value <= other)
+
+    def __repr__(self) -> str:
+        return f'<{self.__class__.__name__}: {self}>'
+
+    def __str__(self) -> str:
+        return f'value={float(self.value)}, count={self.count}'
 
 
 
@@ -118,6 +203,8 @@ class BlockProcessor(BaseProcessor):
         self._blocks_above_rel_thesh: BoolArray = np.zeros(
             self.MAX_BLOCKS, dtype=bool
         )
+        self._above_abs_running_sum = RunningSum()
+        self._above_rel_running_sum = RunningSum()
         self._rel_threshold: Floating = np.float64(SILENCE_DB)
         self._momentary_lkfs: Float1dArray = self._block_data['m']
         self._short_term_lkfs: Float1dArray = self._block_data['s']
@@ -171,6 +258,8 @@ class BlockProcessor(BaseProcessor):
         self._quarter_block_weighted_sums[:] = 0
         self._block_loudness[:] = 0
         self._rel_threshold = SILENCE_DB
+        self._above_rel_running_sum.clear()
+        self._above_abs_running_sum.clear()
         self.block_index = 0
         self.num_blocks = 0
 
@@ -180,35 +269,33 @@ class BlockProcessor(BaseProcessor):
     def __len__(self) -> int:
         return self.num_blocks
 
-    def _calc_relative_threshold(self) -> bool:
-        ix = self._blocks_above_abs_thresh[:self.block_index+1]
+    def _calc_gating(self) -> None:
         block_lk = self._block_loudness[:self.block_index+1]
         block_wsums = self._block_weighted_sums[:self.block_index+1]
+        cur_block_lk = block_lk[-1]
+        cur_block_wsum = block_wsums[-1]
+        above_abs = cur_block_lk >= -70
 
-        J_g: Float1dArray = block_wsums[ix]
-        if not J_g.size:
+        if above_abs:
+            self._above_abs_running_sum += cur_block_wsum
+
+        if self._above_abs_running_sum == 0:
             rel_threshold = SILENCE_DB
         else:
-            rel_threshold = lk_log10(np.mean(J_g)) - 10
-        changed = rel_threshold == self._rel_threshold
+            rel_threshold = lk_log10(self._above_abs_running_sum.mean) - 10
         self._rel_threshold = rel_threshold
-        self._blocks_above_rel_thesh[:self.block_index+1] = np.greater_equal(
-            block_lk, self._rel_threshold
-        )
-        return changed
 
-    def _calc_integrated(self, rel_changed: bool):
-        abs_ix = self._blocks_above_abs_thresh[:self.block_index+1]
-        rel_ix = self._blocks_above_rel_thesh[:self.block_index+1]
-        block_wsums = self._block_weighted_sums[:self.block_index+1]
-
-        ix = np.logical_and(abs_ix, rel_ix)
-
-        J_g = block_wsums[ix]
-        if not J_g.size:
+        rs = self._above_rel_running_sum
+        x = block_wsums[np.logical_and(
+            np.greater_equal(block_lk, rel_threshold),
+            np.greater_equal(block_lk, -70)
+        )]
+        rs.value = x.sum()
+        rs.count = x.size
+        if not rs.count:
             self.integrated_lkfs = SILENCE_DB
         else:
-            self.integrated_lkfs = lk_log10(np.mean(J_g))
+            self.integrated_lkfs = lk_log10(rs.mean)
 
     def _calc_momentary(self):
         block_index = self.block_index
@@ -297,12 +384,9 @@ class BlockProcessor(BaseProcessor):
         Zij = self._Zij[:,:self.block_index+1]
         assert Zij.shape == (self.num_channels, self.block_index+1)
 
-        above_abs = block_loudness >= -70
-        self._blocks_above_abs_thresh[self.block_index] = above_abs
-        rel_changed = self._calc_relative_threshold()
+        self._calc_gating()
 
         self._process_quarter_block(samples)
-        self._calc_integrated(rel_changed)
         self._calc_momentary()
         self._calc_short_term()
         self._calc_lra()
