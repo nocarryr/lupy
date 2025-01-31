@@ -10,8 +10,9 @@ Glossary
         in the `EBU R128`_ Loudness Recommendation.
 
     gating block
-        A sliding window of 400 milliseconds with an overlap of 75%
-        used to take loudness measurements.
+        A sliding window of 400 milliseconds in duration with an overlap of 75%
+        used to take loudness measurements.  With the overlap factored in,
+        a new gating block will occur every 100 milliseconds.
 
     Integrated Loudness
         :term:`Loudness` measurement of an entire "program" generated using

@@ -166,11 +166,11 @@ Array Values
 ^^^^^^^^^^^^
 
 These attributes contain arrays of the measurement
-values from each processing iteration (every 10 ms).
+values from each processing iteration (every 100 ms).
 
 When accessed, the arrays will contain the most
 recent data point in their last element. In other words,
-when a new 10ms chunk of input has been processed, the
+when a new 100ms chunk of input has been processed, the
 arrays will be one element larger (when accessed).
 
 The time (in seconds) for each can be accessed from
