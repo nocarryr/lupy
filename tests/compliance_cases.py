@@ -120,15 +120,19 @@ class ComplianceBase(NamedTuple):
     # target_lu: ClassVar = -23
     name: str
 
-    def generate_samples(self, sample_rate: int) -> FloatArray:
+    def generate_samples(self, sample_rate: int, block_size: int|None = None) -> FloatArray:
         inputs = [inp.generate(sample_rate) for inp in self.input]
-        N = sum([inp.shape[1] for inp in inputs])
+        N = sum(inp.shape[1] for inp in inputs)
         result = np.zeros((5, N), dtype=np.float64)
         ix = 0
         for inp in inputs:
             assert np.all(np.equal(result[:,ix:ix+inp.shape[1]], 0))
             result[:,ix:ix+inp.shape[1]] = inp
             ix += inp.shape[1]
+        if block_size is not None:
+            remain = N % block_size
+            if remain > 0:
+                result = result[:,:N-remain]
         return result
 
 

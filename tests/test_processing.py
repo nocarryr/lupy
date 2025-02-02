@@ -162,14 +162,10 @@ def test_compliance_cases(sample_rate, compliance_case):
     meter = Meter(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
 
     print('generating samples...')
-    src_data = compliance_case.generate_samples(int(meter.sample_rate))
+    src_data = compliance_case.generate_samples(int(meter.sample_rate), block_size=block_size)
     N = src_data.shape[1]
+    assert N % block_size == 0
     src_duration = N / meter.sample_rate
-    # assert N % block_size == 0
-    # num_blocks = N // block_size
-    remain = N % block_size
-    if remain > 0:
-        src_data = src_data[:,:N-remain]
     num_blocks = N // block_size
 
     src_data = np.reshape(src_data, (num_channels, num_blocks, block_size))
