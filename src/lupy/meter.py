@@ -105,6 +105,26 @@ class Meter:
         if process and self.can_process():
             self.process(process_all=process_all)
 
+    def write_all(self, samples: FloatArray) -> None:
+        """Write an arbitrary number of samples and process them
+
+        If the number of samples is not a multiple of :attr:`block_size`, the
+        samples will be truncated to the nearest multiple.
+        """
+        num_samples = samples.shape[1]
+        assert samples.shape[0] == self.num_channels
+        num_blocks = num_samples // self.block_size
+        if num_samples % self.block_size != 0:
+            num_samples = num_blocks * self.block_size
+            samples = samples[:,:num_samples]
+        block_samples = np.reshape(samples, (self.num_channels, num_blocks, self.block_size))
+
+        write_index = 0
+        while write_index < num_blocks:
+            while self.can_write() and write_index < num_blocks:
+                self.write(block_samples[:,write_index,:])
+                write_index += 1
+
     def process(self, process_all: bool = True) -> None:
         """Process the samples for at least one :term:`gating block`
 

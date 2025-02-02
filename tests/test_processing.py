@@ -61,9 +61,6 @@ class DurationContext:
 def is_silent(request) -> bool:
     return request.param
 
-@pytest.fixture(params=[False])
-def reset_process(request) -> bool:
-    return request.param
 
 def build_samples(
     num_samples: int,
@@ -78,49 +75,24 @@ def build_samples(
         samples[np.array(sine_channels),...] = sig
     return samples
 
-def iter_process(meter: Meter, src_data: FloatArray, process_all: bool = False):
-    assert src_data.ndim == 3
 
-    num_channels, num_blocks, block_size = src_data.shape
-    assert num_channels == meter.num_channels
-    assert block_size == meter.block_size
-
-    write_index = 0
-
-    while write_index < num_blocks:
-        while meter.can_write() and write_index < num_blocks:
-            block_index = meter.processor.block_index
-            meter.write(src_data[:,write_index,:], process=True, process_all=process_all)
-            write_index += 1
-            if meter.processor.block_index > block_index:
-                yield from range(block_index, meter.processor.block_index)
-
-
-def process_all(meter: Meter, src_data: FloatArray):
-    for _ in iter_process(meter, src_data, process_all=True):
-        pass
-
-
-def test_integrated_lkfs(sample_rate, block_size, all_channels, is_silent, reset_process):
+def test_integrated_lkfs(sample_rate, block_size, all_channels, is_silent):
     num_channels, sine_channel = all_channels
     meter = Meter(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
 
     N, Fs = meter.sampler.total_samples, int(meter.sample_rate)
     num_blocks, gate_size = meter.sampler.num_blocks, meter.sampler.gate_size
 
-    _sine_channels = None if is_silent else [sine_channel]
-    src_data = build_samples(N, num_channels, Fs, _sine_channels, 1)
-    src_data = src_data.reshape((num_channels, num_blocks, block_size))
+    src_data = build_samples(N, num_channels, Fs, [sine_channel], 1)
+    assert src_data.shape == (num_channels, N)
 
-    if reset_process:
-        for block_index in iter_process(meter, src_data):
-            if block_index >= num_blocks // 2:
-                break
-        meter.processor.reset()
+    if is_silent:
+        meter.write_all(src_data)
+        assert meter.integrated_lkfs > -120
+        meter.reset()
+        src_data[...] = 0
 
-    for block_index in iter_process(meter, src_data):
-        print(f'{block_index=}, {meter.processor._rel_threshold=}, {meter.integrated_lkfs=}')
-
+    meter.write_all(src_data)
 
     print(f'{N=}, {N / gate_size}, {len(meter.processor)=}')
 
@@ -146,10 +118,7 @@ def test_integrated_lkfs_neg18(sample_rate, block_size):
     sine_channels = [0, 1]
     amp = 10 ** (-18/20)
     src_data = build_samples(N, num_channels, Fs, sine_channels, amp)
-    src_data = src_data.reshape((num_channels, num_blocks, block_size))
-
-    for block_index in iter_process(meter, src_data):
-        print(f'{block_index=}, {meter.processor._rel_threshold=}, {meter.integrated_lkfs=}')
+    meter.write_all(src_data)
 
     print(f'{N=}, {N / gate_size}, {len(meter.processor)=}')
 
@@ -166,9 +135,6 @@ def test_compliance_cases(sample_rate, compliance_case):
     N = src_data.shape[1]
     assert N % block_size == 0
     src_duration = N / meter.sample_rate
-    num_blocks = N // block_size
-
-    src_data = np.reshape(src_data, (num_channels, num_blocks, block_size))
 
     print(f'processing {N} samples...')
 
@@ -180,7 +146,7 @@ def test_compliance_cases(sample_rate, compliance_case):
     if IS_CI and sample_rate > 48000:
         duration_ratio *= 2
     with DurationContext(src_duration, max_duration_ratio=duration_ratio) as dur_ctx:
-        process_all(meter, src_data)
+        meter.write_all(src_data)
 
     print(f'{meter.t[-1]=}')
     integrated = meter.integrated_lkfs
