@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import numpy as np
+
 from .sampling import Sampler
 from .processing import BlockProcessor, TruePeakProcessor
 from .types import *
