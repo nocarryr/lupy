@@ -379,6 +379,7 @@ class Sampler:
         self.samples_available = 0
         self.write_slice.index = 0
         self.gate_slice.index = 0
+        self.filter.reset()
 
 
 class ThreadSafeSampler(Sampler):

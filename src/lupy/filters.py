@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import TypeVar, Generic, cast
+from abc import ABC, abstractmethod
 import sys
 if sys.version_info < (3, 11):
     from typing_extensions import Self
@@ -117,7 +118,7 @@ def calc_tp_fir_win(upsample_factor: int) -> Float1dArray:
     return h.astype(np.float64)
 
 
-class BaseFilter(Generic[T]):
+class BaseFilter(Generic[T], ABC):
     """
     """
 
@@ -131,6 +132,7 @@ class BaseFilter(Generic[T]):
         self.coeff = coeff
         self.num_channels = num_channels
 
+    @abstractmethod
     def __call__(self, x: Float2dArray) -> Float2dArray:
         """Apply the filter defined by :attr:`coeff` and return the result
 
@@ -140,6 +142,11 @@ class BaseFilter(Generic[T]):
 
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def reset(self) -> None:
+        """Reset any internal filter conditions
+        """
 
 
 class TruePeakFilter(BaseFilter[Float1dArray]):
@@ -164,6 +171,9 @@ class TruePeakFilter(BaseFilter[Float1dArray]):
             axis=1,
             window=self.coeff,
         )
+
+    def reset(self) -> None:
+        pass
 
 
 class Filter(BaseFilter[Coeff]):
@@ -201,6 +211,10 @@ class Filter(BaseFilter[Coeff]):
     def __call__(self, x: Float2dArray) -> Float2dArray:
         return self._sos(x)
 
+    def reset(self) -> None:
+        self.sos_zi[...] = 0
+
+
 
 class FilterGroup:
     """Apply multiple :class:`filters <Filter>` in series
@@ -231,3 +245,9 @@ class FilterGroup:
         for filt in self._filters:
             y = filt(y)
         return y
+
+    def reset(self) -> None:
+        """Reset the filter conditions for each filter in the group
+        """
+        for filt in self._filters:
+            filt.reset()
