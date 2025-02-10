@@ -260,6 +260,8 @@ class BlockProcessor(BaseProcessor):
         self._rel_threshold = SILENCE_DB
         self._above_rel_running_sum.clear()
         self._above_abs_running_sum.clear()
+        self.integrated_lkfs = SILENCE_DB
+        self.lra = 0
         self.block_index = 0
         self.num_blocks = 0
 
