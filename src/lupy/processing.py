@@ -79,20 +79,20 @@ class RunningSum:
         self.add(value)
         return self
 
-    def __eq__(self, other: Floating) -> bool:
-        return bool(self.value == other)
+    def __eq__(self, other: Floating) -> bool|np.bool:
+        return self.value == other
 
-    def __gt__(self, other: Floating) -> bool:
-        return bool(self.value > other)
+    def __gt__(self, other: Floating) -> bool|np.bool:
+        return self.value > other
 
-    def __ge__(self, other: Floating) -> bool:
-        return bool(self.value >= other)
+    def __ge__(self, other: Floating) -> bool|np.bool:
+        return self.value >= other
 
-    def __lt__(self, other: Floating) -> bool:
-        return bool(self.value < other)
+    def __lt__(self, other: Floating) -> bool|np.bool:
+        return self.value < other
 
-    def __le__(self, other: Floating) -> bool:
-        return bool(self.value <= other)
+    def __le__(self, other: Floating) -> bool|np.bool:
+        return self.value <= other
 
     def __repr__(self) -> str:
         return f'<{self.__class__.__name__}: {self}>'
