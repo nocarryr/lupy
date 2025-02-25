@@ -53,15 +53,14 @@ def find_even_fractions(fr1: Fraction, fr2: Fraction, max_iter: int = 100):
     while i < max_iter:
         if fr1 == fr2:
             return fr1
+        j = 0
         if fr1 < fr2:
-            j = 0
             while fr1 < fr2:
                 fr1 = fr1 + orig_fr1
                 j += 1
                 if j >= max_iter:
                     raise ValueError(f'max iter: {fr1=}, {fr2=}')
         else:
-            j = 0
             while fr2 < fr1:
                 fr2 = fr2 + orig_fr2
                 j += 1
