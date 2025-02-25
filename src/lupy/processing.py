@@ -383,8 +383,6 @@ class BlockProcessor(BaseProcessor):
         self._block_loudness[self.block_index] = block_loudness
 
         self._Zij[:,self.block_index] = _Zij
-        Zij = self._Zij[:,:self.block_index+1]
-        assert Zij.shape == (self.num_channels, self.block_index+1)
 
         self._calc_gating()
 
