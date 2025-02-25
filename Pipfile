@@ -4,16 +4,12 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-lupy = {file = ".", editable = true}
+lupy = {extras = ["tests", "docs"], file = ".", editable = true}
 
 [dev-packages]
 ipython = "*"
 matplotlib = "*"
 jupyterlab = "*"
-pytest = "*"
-pytest-xdist = "*"
-sphinx = "*"
-furo = "*"
 
 [requires]
 python_version = "3.12"
