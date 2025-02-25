@@ -799,9 +799,9 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "ipython", specifier = ">=8.32.0" },
-    { name = "jupyterlab", specifier = ">=4.3.5" },
-    { name = "matplotlib", specifier = ">=3.10.0" },
+    { name = "ipython" },
+    { name = "jupyterlab" },
+    { name = "matplotlib" },
 ]
 
 [[package]]

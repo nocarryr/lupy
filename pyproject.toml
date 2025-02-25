@@ -58,7 +58,7 @@ testpaths = ["tests"]
 
 [dependency-groups]
 dev = [
-    "ipython>=8.32.0",
-    "jupyterlab>=4.3.5",
-    "matplotlib>=3.10.0",
+    "ipython",
+    "jupyterlab",
+    "matplotlib",
 ]
