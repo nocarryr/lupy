@@ -43,7 +43,7 @@ Documentation = "https://lupy-nocarryr.readthedocs.io/"
 
 
 [project.optional-dependencies]
-tests = ["pytest", "pytest-xdist"]
+tests = ["pytest", "pytest-xdist", "pytest-codspeed"]
 docs = ["sphinx", "furo"]
 
 

@@ -188,3 +188,21 @@ def test_compliance_cases(sample_rate, compliance_case):
         assert tp_min <= meter.true_peak_max <= tp_max
 
     dur_ctx.check_duration()
+
+
+@pytest.mark.benchmark(group='meter')
+def test_meter_benchmark(sample_rate, random_samples, benchmark):
+    block_size = 1024
+    num_channels = 2
+    meter = Meter(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
+
+    N = sample_rate * 1
+    if N % block_size != 0:
+        N += block_size - (N % block_size)
+    assert N % block_size == 0
+    src_data = random_samples(num_channels, N)
+
+    def bench():
+        meter.write_all(src_data)
+        meter.reset()
+    benchmark(bench)
