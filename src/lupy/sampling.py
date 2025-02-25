@@ -292,7 +292,7 @@ class Sampler:
         self.samples_available = 0
         coeff = [HS_COEFF, HP_COEFF]
         if sample_rate != 48000:
-            coeff = [c.as_sample_rate(int(sample_rate)) for c in coeff]
+            coeff = [c.as_sample_rate(sample_rate) for c in coeff]
         self.filter = FilterGroup(*coeff, num_channels=self.num_channels)
 
     @property
