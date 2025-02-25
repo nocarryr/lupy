@@ -4,7 +4,7 @@ import numpy as np
 from scipy import signal
 import pytest
 
-from lupy.filters import HS_COEFF, HP_COEFF
+from lupy.filters import HS_COEFF, HP_COEFF, FilterGroup
 
 
 @pytest.mark.parametrize('coeff', [HS_COEFF, HP_COEFF])
