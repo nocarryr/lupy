@@ -55,3 +55,10 @@ exclude = ["tests*"]
 [tool.pytest.ini_options]
 addopts = "-n auto"
 testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "ipython",
+    "jupyterlab",
+    "matplotlib",
+]
