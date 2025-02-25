@@ -374,7 +374,6 @@ class Sampler:
         self._clear()
 
     def _clear(self) -> None:
-        self.sample_array[...] = 0
         self.samples_available = 0
         self.write_slice.index = 0
         self.gate_slice.index = 0
