@@ -47,30 +47,6 @@ class BufferShape(NamedTuple):
 
 
 
-def find_even_fractions(fr1: Fraction, fr2: Fraction, max_iter: int = 100):
-    orig_fr1, orig_fr2 = fr1, fr2
-    i = 0
-    while i < max_iter:
-        if fr1 == fr2:
-            return fr1
-        j = 0
-        if fr1 < fr2:
-            while fr1 < fr2:
-                fr1 = fr1 + orig_fr1
-                j += 1
-                if j >= max_iter:
-                    raise ValueError(f'max iter: {fr1=}, {fr2=}')
-        else:
-            while fr2 < fr1:
-                fr2 = fr2 + orig_fr2
-                j += 1
-                if j >= max_iter:
-                    raise ValueError(f'max iter: {fr1=}, {fr2=}')
-
-        i += 1
-    raise ValueError(f'no match found: {i=}, {fr1=}, {fr2=}')
-
-
 class Slice:
     step: int
     """Length of each sliced array chunk
@@ -191,14 +167,12 @@ def calc_buffer_length(sample_rate: int, block_size: int) -> BufferShape:
     :attr:`~BufferShape.pad_size`, allowing for input and output views of the
     same array through :func:`reshaping <numpy.reshape>`
     """
-    one_sample = Fraction(1, sample_rate)
     fs = Fraction(sample_rate, 1)
     overlap = Fraction(3, 4)
     step = 1 - overlap
     step_samp = fs * step
     assert step_samp % 1 == 0
 
-    block_len = one_sample * block_size
     gate_len = Fraction(4, 10)
     pad_len = Fraction(1, 10)
     assert (sample_rate * gate_len) % 1 == 0
@@ -206,10 +180,7 @@ def calc_buffer_length(sample_rate: int, block_size: int) -> BufferShape:
     gate_size = int(sample_rate * gate_len)
     pad_size = int(sample_rate * pad_len)
 
-    max_iter = 100 if sample_rate == 48000 else 10000
-    max_fr = find_even_fractions(pad_len, block_len, max_iter=max_iter)
-
-    bfr_len = sample_rate * max_fr
+    bfr_len = math.lcm(pad_size, block_size)
     while bfr_len <= gate_size:
         bfr_len *= 2
 
