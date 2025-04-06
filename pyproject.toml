@@ -53,7 +53,7 @@ exclude = ["tests*"]
 
 
 [tool.pytest.ini_options]
-addopts = "-n auto"
+addopts = "-n auto --dist=worksteal"
 testpaths = ["tests"]
 
 [dependency-groups]
