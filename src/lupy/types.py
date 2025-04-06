@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from typing import TypeVar, TypeAlias, Any
+from typing import TypeVar, Any
+import sys
+if sys.version_info < (3, 11):
+    from typing_extensions import TypeAlias
+else:
+    from typing import TypeAlias
 
 import numpy as np
 import numpy.typing as npt

@@ -34,7 +34,7 @@ classifiers = [
 dependencies = [
     "numpy",
     "scipy",
-    "typing-extensions; python_version<'3.11'"
+    "typing-extensions; python_version<'3.13'"
 ]
 
 [project.urls]

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Literal, Any, overload
 import sys
-if sys.version_info < (3, 11):
+if sys.version_info < (3, 13):
     from typing_extensions import TypeIs
 else:
     from typing import TypeIs
