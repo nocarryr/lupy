@@ -7,6 +7,7 @@ if sys.version_info < (3, 11):
 else:
     from typing import Self
 from fractions import Fraction
+import math
 import threading
 
 import numpy as np
