@@ -9,3 +9,4 @@ Reference
     sampling
     filters
     types
+    typeutils

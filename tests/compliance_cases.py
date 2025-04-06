@@ -7,7 +7,8 @@ import numpy as np
 from scipy import signal
 from scipy.io import wavfile
 
-from lupy.types import FloatArray
+from lupy.types import Float1dArray, Float2dArray
+from lupy.typeutils import is_2d_array, ensure_2d_array
 
 HERE = Path(__file__).parent
 DATA = HERE / 'data'
@@ -22,7 +23,7 @@ def gen_1k_sine(
     amp: float = 1,
     fc: float = 997,
     phase_deg: float = 0
-):
+) -> Float1dArray:
     t = np.arange(count) / sample_rate
     ph = np.deg2rad(phase_deg)
     return amp * np.sin(2 * np.pi * fc * t + ph)
@@ -36,7 +37,7 @@ class ComplianceInput(NamedTuple):
     phase: tuple[float, float, float, float, float]|None = None
     taper_dur: float|None = None
 
-    def generate(self, sample_rate: int) -> FloatArray:
+    def generate(self, sample_rate: int) -> Float2dArray:
         N = int(round(sample_rate * self.duration))
         samples = np.zeros((5, N), dtype=np.float64)
         fc_normalized = self.fc
@@ -69,7 +70,7 @@ class ComplianceSource(NamedTuple):
     bit_depth: Literal[16, 24, 32]
     is_float: bool = False
 
-    def generate(self, sample_rate: int) -> FloatArray:
+    def generate(self, sample_rate: int) -> Float2dArray:
         if self.filename.suffix == '.npz':
             with np.load(self.filename) as data:
                 samples = data['samples']
@@ -78,6 +79,7 @@ class ComplianceSource(NamedTuple):
         else:
             fs, samples = wavfile.read(self.filename)
         samples = np.asarray(samples, dtype=np.float64)
+        assert is_2d_array(samples)
         if self.is_float:
             assert self.bit_depth == 32
             samples = samples
@@ -103,7 +105,7 @@ class ComplianceSource(NamedTuple):
                 _samples[:,3:] = samples[:,3:]
 
         # Swap from ``(n_samp, n_chan)`` to ``(n_chan, n_samp)``
-        return np.swapaxes(_samples, 0, 1)
+        return ensure_2d_array(np.swapaxes(_samples, 0, 1))
 
 
 class ComplianceResult(NamedTuple):
@@ -120,7 +122,7 @@ class ComplianceBase(NamedTuple):
     # target_lu: ClassVar = -23
     name: str
 
-    def generate_samples(self, sample_rate: int, block_size: int|None = None) -> FloatArray:
+    def generate_samples(self, sample_rate: int, block_size: int|None = None) -> Float2dArray:
         inputs = [inp.generate(sample_rate) for inp in self.input]
         N = sum(inp.shape[1] for inp in inputs)
         result = np.zeros((5, N), dtype=np.float64)
@@ -133,7 +135,7 @@ class ComplianceBase(NamedTuple):
             remain = N % block_size
             if remain > 0:
                 result = result[:,:N-remain]
-        return result
+        return ensure_2d_array(result)
 
 
 class Tech3341Compliance(ComplianceBase):

@@ -12,6 +12,7 @@ import numpy as np
 
 
 from .types import *
+from .typeutils import ensure_nd_array, ensure_meter_array
 from .filters import TruePeakFilter
 
 __all__ = ('BlockProcessor', 'TruePeakProcessor')
@@ -172,6 +173,13 @@ class BlockProcessor(BaseProcessor):
 
     MAX_BLOCKS = 144000 # <- 14400 seconds (4 hours) / .1 (100 milliseconds)
     _channel_weights = np.array([1, 1, 1, 1.41, 1.41])
+    _block_data: MeterArray
+    _Zij: Float2dArray
+    _block_weighted_sums: Float1dArray
+    _quarter_block_weighted_sums: Float1dArray
+    _block_loudness: Float1dArray
+    _blocks_above_abs_thresh: Any1dArray[np.dtype[np.bool_]]
+    _blocks_above_rel_thresh: Any1dArray[np.dtype[np.bool_]]
     def __init__(
         self,
         num_channels: int,
@@ -183,24 +191,24 @@ class BlockProcessor(BaseProcessor):
         self.pad_size = gate_size // 4
         self.weights = self._channel_weights[:self.num_channels]
         block_data = np.zeros(self.MAX_BLOCKS, dtype=MeterDtype)
-        self._block_data: MeterArray = block_data.view(np.recarray)
+        self._block_data = ensure_meter_array(block_data)
 
-        self._Zij: Float2dArray = np.zeros(
+        self._Zij = np.zeros(
             (self.num_channels, self.MAX_BLOCKS),
             dtype=np.float64,
         )
-        self._block_weighted_sums: FloatArray = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
+        self._block_weighted_sums = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
         self._quarter_block_weighted_sums = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
 
-        self._block_loudness: FloatArray = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
-        self._t: Float1dArray = self._block_data['t']
+        self._block_loudness = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
+        self._t = self._block_data['t']
         self._t[:] = np.arange(self.MAX_BLOCKS) / self.sample_rate * (self.gate_size / 4)
 
 
-        self._blocks_above_abs_thresh: BoolArray = np.zeros(
+        self._blocks_above_abs_thresh = np.zeros(
             self.MAX_BLOCKS, dtype=bool
         )
-        self._blocks_above_rel_thesh: BoolArray = np.zeros(
+        self._blocks_above_rel_thresh = np.zeros(
             self.MAX_BLOCKS, dtype=bool
         )
         self._above_abs_running_sum = RunningSum()
@@ -242,18 +250,19 @@ class BlockProcessor(BaseProcessor):
         return self.block_data['t']
 
     @property
-    def Zij(self) -> Float1dArray:
+    def Zij(self) -> Float2dArray:
         """Mean-squared values per channel in each 400ms block
         (not weighted)
         """
-        return self._Zij[:,:self.block_index]
+        zij = self._Zij[:,:self.block_index]
+        return ensure_nd_array(zij, 2)
 
     def reset(self) -> None:
         """Reset all measurement data
         """
         self.block_data['m'][:] = 0
         self.block_data['s'][:] = 0
-        self._Zij[:] = 0
+        self._Zij[...] = 0
         self._block_weighted_sums[:] = 0
         self._quarter_block_weighted_sums[:] = 0
         self._block_loudness[:] = 0

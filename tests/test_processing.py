@@ -6,7 +6,7 @@ import pytest
 import numpy as np
 
 from lupy import Meter
-from lupy.types import FloatArray
+from lupy.types import Float2dArray
 
 from conftest import gen_1k_sine, IS_CI
 
@@ -68,7 +68,7 @@ def build_samples(
     sample_rate: int,
     sine_channels: Iterable[int]|None,
     sine_amp: float = 1,
-) -> FloatArray:
+) -> Float2dArray:
     samples = np.zeros((num_channels, num_samples), dtype=np.float64)
     if sine_channels is not None:
         sig = gen_1k_sine(num_samples, sample_rate, sine_amp)
