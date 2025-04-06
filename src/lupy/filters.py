@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TypeVar, Generic, cast
+from typing import TypeVar, Generic, Literal, cast
 from abc import ABC, abstractmethod
 import sys
 if sys.version_info < (3, 11):
@@ -13,9 +13,11 @@ import math
 import numpy as np
 from scipy import signal
 
-from lupy.types import FloatArray
 
 from .types import *
+from .typeutils import (
+    ensure_1d_array, ensure_2d_array, is_3d_array,
+)
 
 T = TypeVar('T')
 
@@ -24,19 +26,19 @@ T = TypeVar('T')
 class Coeff:
     """Digital filter coefficients
     """
-    b: FloatArray               #: Numerator of the filter
-    a: FloatArray               #: Denominator of the filter
+    b: Float1dArray             #: Numerator of the filter
+    a: Float1dArray             #: Denominator of the filter
     sample_rate: int = 48000    #: Sample rate of the filter
-    _sos: FloatArray|None = None
+    _sos: Float2dArray|None = None
 
     @property
-    def sos(self) -> FloatArray:
+    def sos(self) -> Float2dArray:
         """Array of second-order sections calculated from the filter's transfer
         function form
         """
         s = self._sos
         if s is None:
-            s = self._sos = signal.tf2sos(self.b, self.a)
+            s = self._sos = ensure_2d_array(signal.tf2sos(self.b, self.a))
         return s
 
     def as_sample_rate(self, sample_rate: int) -> Self:
@@ -64,23 +66,31 @@ class Coeff:
         a2 = (1. - K/Q + K*K)*commonFactor
 
         return self.__class__(
-            b=np.array([b0, b1, b2]),
-            a=np.array([1., a1, a2]),
+            b=ensure_1d_array(np.array([b0, b1, b2])),
+            a=ensure_1d_array(np.array([1., a1, a2])),
             sample_rate=sample_rate,
         )
 
 
 
 HS_COEFF = Coeff(
-    b = np.array([1.53512485958697, -2.69169618940638, 1.19839281085285]),
-    a = np.array([1.0, -1.69065929318241, 0.73248077421585]),
+    b = ensure_1d_array(
+        np.array([1.53512485958697, -2.69169618940638, 1.19839281085285])
+    ),
+    a = ensure_1d_array(
+        np.array([1.0, -1.69065929318241, 0.73248077421585]),
+    ),
     sample_rate=48000,
 )
 """Stage 1 (high-shelf) of the pre-filter defined in :term:`BS 1770` table 1"""
 
 HP_COEFF = Coeff(
-    b = np.array([1.0, -2.0, 1.0]),
-    a = np.array([1.0, -1.99004745483398, 0.99007225036621]),
+    b = ensure_1d_array(
+        np.array([1.0, -2.0, 1.0])
+    ),
+    a = ensure_1d_array(
+        np.array([1.0, -1.99004745483398, 0.99007225036621])
+    ),
     sample_rate=48000,
 )
 """Stage 2 (high-pass) of the pre-filter defined in :term:`BS 1770` table 2"""
@@ -88,8 +98,12 @@ HP_COEFF = Coeff(
 # BS-1771 coefficients for decimated 320 samples/s
 # (128 samples per 400ms block)
 MOMENTARY_HP_COEFF = Coeff(
-    b = np.array([1.0, 1.0]),
-    a = np.array([1.0, -0.9921767002])
+    b = ensure_1d_array(
+        np.array([1.0, 1.0])
+    ),
+    a = ensure_1d_array(
+        np.array([1.0, -0.9921767002])
+    )
 )
 
 
@@ -115,7 +129,20 @@ def calc_tp_fir_win(upsample_factor: int) -> Float1dArray:
         f_c,
         window=window
     )
-    return h.astype(np.float64)
+    h = h.astype(np.float64)
+    return ensure_1d_array(h)
+
+
+def _check_filt_input(x: Float1dArray|Float2dArray) -> Float2dArray:
+    """Ensure the input array is 2-dimensional, reshaping if necessary
+
+    This is used for filters with possibly a single channel input.
+    """
+    if x.ndim == 1:
+        assert x.shape[0] > 0
+        return np.reshape(x, (1, x.shape[0]))
+    assert x.shape[0] > 0
+    return ensure_2d_array(x)
 
 
 class BaseFilter(Generic[T], ABC):
@@ -133,7 +160,7 @@ class BaseFilter(Generic[T], ABC):
         self.num_channels = num_channels
 
     @abstractmethod
-    def __call__(self, x: Float2dArray) -> Float2dArray:
+    def __call__(self, x: Float1dArray|Float2dArray) -> Float2dArray:
         """Apply the filter defined by :attr:`coeff` and return the result
 
         Arguments:
@@ -147,6 +174,11 @@ class BaseFilter(Generic[T], ABC):
     def reset(self) -> None:
         """Reset any internal filter conditions
         """
+
+    def _check_arr_dims(self, x: Float1dArray|Float2dArray) -> Float2dArray:
+        if x.ndim == 1:
+            assert self.num_channels == 1
+        return _check_filt_input(x)
 
 
 class TruePeakFilter(BaseFilter[Float1dArray]):
@@ -163,17 +195,28 @@ class TruePeakFilter(BaseFilter[Float1dArray]):
         super().__init__(coeff=coeff, num_channels=num_channels)
         self.upsample_factor = upsample_factor
 
-    def __call__(self, x: Float2dArray) -> Float2dArray:
-        return signal.resample_poly(
+    def __call__(self, x: Float1dArray|Float2dArray) -> Float2dArray:
+        x = self._check_arr_dims(x)
+        r = signal.resample_poly(
             x,
             self.upsample_factor,
             1,
             axis=1,
             window=self.coeff,
         )
+        return ensure_2d_array(r)
 
     def reset(self) -> None:
         pass
+
+_SosZI = np.ndarray[tuple[int, int, Literal[2]], np.dtype[np.float64]]
+
+def _check_sos_zi(zi: AnyArray, num_channels: int) -> _SosZI:
+    assert is_3d_array(zi)
+    assert zi.shape[1] == num_channels
+    assert zi.shape[2] == 2
+    assert zi.dtype == np.float64
+    return cast(_SosZI, zi)
 
 
 class Filter(BaseFilter[Coeff]):
@@ -182,31 +225,23 @@ class Filter(BaseFilter[Coeff]):
     The filter (defined by :attr:`coeff`) is applied by calling a :class:`Filter`
     instance directly.
     """
-    sos_zi: FloatArray
+    sos_zi: _SosZI
     """The filter conditions"""
 
     def __init__(self, coeff: Coeff, num_channels: int = 1) -> None:
         super().__init__(coeff=coeff, num_channels=num_channels)
         zi = signal.sosfilt_zi(coeff.sos)
         zi[...] = 0
-        self.sos_zi = np.repeat(np.expand_dims(zi, axis=1), num_channels, axis=1)
+        sos_zi = np.repeat(np.expand_dims(zi, axis=1), num_channels, axis=1)
+        self.sos_zi = _check_sos_zi(sos_zi, num_channels)
 
-    def _sos(self, x: Float2dArray) -> Float2dArray:
+    def _sos(self, x: Float1dArray|Float2dArray) -> Float2dArray:
         zi = self.sos_zi
+        x = self._check_arr_dims(x)
 
-        n_dim = x.ndim
-        if n_dim == 1:
-            assert self.num_channels == 1
-            x = np.reshape(x, (1, *x.shape))
-            axis = 1
-        else:
-            assert n_dim == 2
-            assert x.shape[0] == self.num_channels
-            axis = 1
-
-        y, zi = signal.sosfilt(self.coeff.sos, x, axis=axis, zi=zi)
-        self.sos_zi = zi
-        return y
+        y, zi = signal.sosfilt(self.coeff.sos, x, axis=1, zi=zi)
+        self.sos_zi = _check_sos_zi(zi, self.num_channels)
+        return ensure_2d_array(y)
 
     def __call__(self, x: Float2dArray) -> Float2dArray:
         return self._sos(x)
@@ -233,7 +268,7 @@ class FilterGroup:
         self.num_channels = num_channels
         self._filters = [Filter(c, num_channels) for c in coeff]
 
-    def __call__(self, x: Float2dArray) -> Float2dArray:
+    def __call__(self, x: Float1dArray|Float2dArray) -> Float2dArray:
         """Apply the filters in series and return the result
 
         Arguments:
@@ -241,6 +276,9 @@ class FilterGroup:
                 length of the input data for each channel
 
         """
+        if x.ndim == 1:
+            assert self.num_channels == 1
+        x = _check_filt_input(x)
         y = x
         for filt in self._filters:
             y = filt(y)

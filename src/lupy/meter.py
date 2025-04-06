@@ -5,6 +5,7 @@ import numpy as np
 from .sampling import Sampler
 from .processing import BlockProcessor, TruePeakProcessor
 from .types import *
+from .typeutils import is_2d_array, ensure_2d_array
 
 __all__ = ('Meter',)
 
@@ -92,7 +93,7 @@ class Meter:
 
     def write(
         self,
-        samples: FloatArray,
+        samples: Float2dArray,
         process: bool = True,
         process_all: bool = True
     ) -> None:
@@ -107,7 +108,7 @@ class Meter:
         if process and self.can_process():
             self.process(process_all=process_all)
 
-    def write_all(self, samples: FloatArray) -> None:
+    def write_all(self, samples: Float2dArray) -> None:
         """Write an arbitrary number of samples and process them
 
         If the number of samples is not a multiple of :attr:`block_size`, the
@@ -118,13 +119,14 @@ class Meter:
         num_blocks = num_samples // self.block_size
         if num_samples % self.block_size != 0:
             num_samples = num_blocks * self.block_size
-            samples = samples[:,:num_samples]
-        block_samples = np.reshape(samples, (self.num_channels, num_blocks, self.block_size))
+            samples = ensure_2d_array(samples[:,:num_samples])
+        block_samples: Float3dArray = np.reshape(samples, (self.num_channels, num_blocks, self.block_size))
 
         write_index = 0
         while write_index < num_blocks:
             while self.can_write() and write_index < num_blocks:
-                self.write(block_samples[:,write_index,:])
+                _block_samples = ensure_2d_array(block_samples[:,write_index,:])
+                self.write(_block_samples)
                 write_index += 1
 
     def process(self, process_all: bool = True) -> None:
@@ -150,6 +152,7 @@ class Meter:
         samples = self.sampler.read()
         self.processor(samples)
         tp_samples = self.true_peak_sampler.read()[:,:gate_size]
+        assert is_2d_array(tp_samples)
         self.true_peak_processor(tp_samples)
 
     def reset(self) -> None:

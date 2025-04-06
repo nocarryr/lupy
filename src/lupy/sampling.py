@@ -9,10 +9,10 @@ else:
 from fractions import Fraction
 import threading
 
-from lupy.types import FloatArray
 import numpy as np
 
 from .types import *
+from .typeutils import ensure_2d_array
 from .filters import FilterGroup, HS_COEFF, HP_COEFF
 
 T = TypeVar('T')
@@ -245,15 +245,15 @@ class Sampler:
     num_channels: int
     """Number of channels"""
 
-    sample_array: FloatArray
+    sample_array: Float2dArray
     """Flat array to store samples waiting to process"""
 
-    write_view: FloatArray
+    write_view: Float3dArray
     """View of :attr:`sample_array` with shape
     ``(num_channels, block_size, sample_array.shape[1] // block_size)``
     """
 
-    gate_view: FloatArray
+    gate_view: Float2dArray
     """Sliding window view of :attr:`sample_array` with 75% overlap and shape
     ``(num_channels, gate_size, sample_array.shape[1] // gate_size)``
     """
@@ -326,7 +326,7 @@ class Sampler:
         """Alias for :attr:`BufferShape.num_gate_blocks`"""
         return self.bfr_shape.num_gate_blocks
 
-    def write(self, samples: FloatArray, apply_filter: bool = True) -> None:
+    def write(self, samples: Float2dArray, apply_filter: bool = True) -> None:
         """Store input data into the internal buffer, optionally appling the
         :attr:`pre-filter <filter>`
 
@@ -338,7 +338,7 @@ class Sampler:
 
         self._write(samples)
 
-    def _write(self, samples: FloatArray) -> None:
+    def _write(self, samples: Float2dArray) -> None:
         sl = self.write_slice
         self.write_view[:,sl.index,:] = samples
         sl.index += 1
@@ -356,17 +356,17 @@ class Sampler:
         """
         return self.samples_available >= self.gate_size
 
-    def read(self) -> FloatArray:
+    def read(self) -> Float2dArray:
         """Get the samples for one :term:`gating block`
         """
         return self._read()
 
-    def _read(self) -> FloatArray:
+    def _read(self) -> Float2dArray:
         sl = self.gate_slice
         r: FloatArray = sl.slice(self.gate_view, axis=1)
         sl.increment(self.gate_view, axis=1)
         self.samples_available -= self.pad_size
-        return r
+        return ensure_2d_array(r)
 
     def clear(self) -> None:
         """Clear all samples and reset internal tracking variables
@@ -401,11 +401,11 @@ class ThreadSafeSampler(Sampler):
         """
         self._lock.release()
 
-    def _write(self, samples: FloatArray) -> None:
+    def _write(self, samples: Float2dArray) -> None:
         with self:
             super()._write(samples)
 
-    def _read(self) -> FloatArray:
+    def _read(self) -> Float2dArray:
         with self:
             return super()._read()
 
