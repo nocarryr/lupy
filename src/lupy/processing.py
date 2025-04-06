@@ -179,7 +179,7 @@ class BlockProcessor(BaseProcessor):
     _quarter_block_weighted_sums: Float1dArray
     _block_loudness: Float1dArray
     _blocks_above_abs_thresh: Any1dArray[np.dtype[np.bool_]]
-    _blocks_above_rel_thesh: Any1dArray[np.dtype[np.bool_]]
+    _blocks_above_rel_thresh: Any1dArray[np.dtype[np.bool_]]
     def __init__(
         self,
         num_channels: int,
@@ -208,7 +208,7 @@ class BlockProcessor(BaseProcessor):
         self._blocks_above_abs_thresh = np.zeros(
             self.MAX_BLOCKS, dtype=bool
         )
-        self._blocks_above_rel_thesh = np.zeros(
+        self._blocks_above_rel_thresh = np.zeros(
             self.MAX_BLOCKS, dtype=bool
         )
         self._above_abs_running_sum = RunningSum()
