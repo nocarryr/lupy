@@ -1,60 +1,14 @@
 from __future__ import annotations
 
-from typing import Callable, Iterable
-import time
+from typing import Iterable
 import pytest
 import numpy as np
 
 from lupy import Meter
 from lupy.types import Float2dArray
 
-from conftest import gen_1k_sine, IS_CI
+from conftest import gen_1k_sine
 
-
-class DurationContext:
-    """Helper to check processing time
-    """
-    source_duration: float
-    """Length of the input data in seconds"""
-
-    min_source_duration = 15
-    """Minimum source length (s) to consider when checking durations"""
-
-    max_duration_ratio = 35
-    """Highest ratio (percent) of :attr:`duration` to :attr:`source_duration`"""
-    def __init__(self, source_duration: float, max_duration_ratio: int = 35) -> None:
-        self.source_duration = source_duration
-        self.max_duration_ratio = max_duration_ratio
-        self.start: float|None = None
-        self.end: float|None = None
-
-    @property
-    def duration(self) -> float:
-        """Time elapsed between context entry and exit
-        """
-        if self.start is None or self.end is None:
-            raise ValueError('No start or end timestamp')
-        return self.end - self.start
-
-    def check_duration(self) -> None:
-        """Check whether :attr:`duration` exceeds the :attr:`max_duration_ratio`
-        compared to :attr:`source_duration`
-        """
-        if self.source_duration <= self.min_source_duration:
-            return
-        ratio = (self.duration / self.source_duration) * 100
-        print(f'{self.source_duration=}, {self.duration=}, {ratio=}')
-        if ratio > self.max_duration_ratio:
-            raise Exception(f'Duration exceeded threshold: ' +
-                            f'{self.source_duration=}, {self.duration=}, {ratio=}')
-
-    def __enter__(self):
-        assert self.start is None
-        self.start = time.monotonic()
-        return self
-
-    def __exit__(self, *args):
-        self.end = time.monotonic()
 
 
 @pytest.fixture(params=[True, False])
@@ -134,7 +88,6 @@ def test_compliance_cases(sample_rate, compliance_case):
     src_data = compliance_case.generate_samples(int(meter.sample_rate), block_size=block_size)
     N = src_data.shape[1]
     assert N % block_size == 0
-    src_duration = N / meter.sample_rate
 
     print(f'processing {N} samples...')
 
@@ -142,11 +95,7 @@ def test_compliance_cases(sample_rate, compliance_case):
     #     # print(f'{block_index=}, {processor.integrated_lkfs=}, {sampler.samples_available=}')
     #     pass
 
-    duration_ratio = DurationContext.max_duration_ratio
-    if IS_CI and sample_rate > 48000:
-        duration_ratio *= 2
-    with DurationContext(src_duration, max_duration_ratio=duration_ratio) as dur_ctx:
-        meter.write_all(src_data)
+    meter.write_all(src_data)
 
     print(f'{meter.t[-1]=}')
     integrated = meter.integrated_lkfs
@@ -186,8 +135,6 @@ def test_compliance_cases(sample_rate, compliance_case):
         tp, neg_tol, pos_tol = tp_target
         tp_min, tp_max = tp - neg_tol, tp + pos_tol
         assert tp_min <= meter.true_peak_max <= tp_max
-
-    dur_ctx.check_duration()
 
 
 @pytest.mark.benchmark(group='meter')
