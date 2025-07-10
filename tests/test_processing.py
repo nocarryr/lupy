@@ -109,24 +109,14 @@ def test_compliance_cases(sample_rate, compliance_case):
     lra_target = compliance_case.result.lra
     tp_target = compliance_case.result.true_peak
 
-    # Allow for extra tolerance at 44.1k since these cases were likely designed
-    # for 48k (although it's not explicitly stated)
-    tol_padding_44100 = 0.1
-
     if momentary_target is not None:
         lufs, lu, tol = momentary_target
-        if sample_rate == 44100:
-            tol += tol_padding_44100
         assert lufs - tol <= momentary <= lufs + tol
     if short_term_target is not None:
         lufs, lu, tol = short_term_target
-        if sample_rate == 44100:
-            tol += tol_padding_44100
         assert lufs - tol <= short_term <= lufs + tol
     if integrated_target is not None:
         lufs, lu, tol = integrated_target
-        if sample_rate == 44100:
-            tol += tol_padding_44100
         assert lufs - tol <= integrated <= lufs + tol
     if lra_target is not None:
         lra_lu, tol = lra_target
