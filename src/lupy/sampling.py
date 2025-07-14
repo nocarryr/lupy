@@ -348,7 +348,7 @@ class Sampler(BaseSampler):
         return calc_buffer_length(int(self.sample_rate), self.block_size)
 
     def write(self, samples: Float2dArray, apply_filter: bool = True) -> None:
-        """Store input data into the internal buffer, optionally appling the
+        """Store input data into the internal buffer, optionally applying the
         :attr:`pre-filter <filter>`
 
         The input data must be of shape ``(num_channels, block_size)``
