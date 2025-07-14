@@ -382,6 +382,15 @@ class Sampler(BaseSampler):
 
 
 class TruePeakSampler(BaseSampler):
+    """A :class:`Sampler` subclass for use with true peak sampling
+
+    This sampler writes in the same way as :class:`Sampler`, but reads
+    are not overlapping and are always 100ms in length.
+
+    This is not a requirement for :term:`True Peak` sampling, but was chosen
+    so that reads are aligned with that of the :class:`Sampler` class.
+
+    """
     gate_view: Float3dArray
     """A non-sliding view of :attr:`sample_array` with shape
     ``(num_channels, num_gate_blocks, gate_size)`` (where ``gate_size`` is 400ms)
