@@ -458,7 +458,9 @@ class TruePeakSampler(BaseSampler):
         self.gate_slice.index = 0
 
 
-class _LockContext:
+class LockContext:
+    """A mixin for context manager support using a :class:`threading.RLock`
+    """
     _lock: threading.RLock
 
     def acquire(self, blocking: bool = True, timeout: float = -1) -> bool:
@@ -483,7 +485,7 @@ class _LockContext:
         self.release()
 
 
-class ThreadSafeSampler(Sampler, _LockContext):
+class ThreadSafeSampler(Sampler, LockContext):
     """A :class:`Sampler` subclass for use with threaded reads and writes
     """
     def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
@@ -502,7 +504,7 @@ class ThreadSafeSampler(Sampler, _LockContext):
         with self:
             super()._clear()
 
-class ThreadSafeTruePeakSampler(TruePeakSampler, _LockContext):
+class ThreadSafeTruePeakSampler(TruePeakSampler, LockContext):
     """A :class:`TruePeakSampler` subclass for use with threaded reads and writes
     """
     def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
