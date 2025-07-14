@@ -256,21 +256,6 @@ class BaseSampler(ABC):
         """Alias for :attr:`BufferShape.total_samples`"""
         return self.bfr_shape.total_samples
 
-    @property
-    def gate_size(self) -> int:
-        """Length of one gated block in samples (400ms)"""
-        return self.bfr_shape.gate_size
-
-    @property
-    def pad_size(self) -> int:
-        """Overlap amount per gated block in samples (100ms)"""
-        return self.bfr_shape.pad_size
-
-    @property
-    def num_gate_blocks(self) -> int:
-        """Alias for :attr:`BufferShape.num_gate_blocks`"""
-        return self.bfr_shape.num_gate_blocks
-
     @abstractmethod
     def _calc_buffer_shape(self) -> BufferShape:
         """Calculate the :class:`BufferShape` for this sampler"""
@@ -345,6 +330,21 @@ class Sampler(BaseSampler):
             coeff = [c.as_sample_rate(sample_rate) for c in coeff]
         self.filter = FilterGroup(*coeff, num_channels=self.num_channels)
 
+    @property
+    def gate_size(self) -> int:
+        """Length of one gated block in samples (400ms)"""
+        return self.bfr_shape.gate_size
+
+    @property
+    def pad_size(self) -> int:
+        """Overlap amount per gated block in samples (100ms)"""
+        return self.bfr_shape.pad_size
+
+    @property
+    def num_gate_blocks(self) -> int:
+        """Alias for :attr:`BufferShape.num_gate_blocks`"""
+        return self.bfr_shape.num_gate_blocks
+
     def _calc_buffer_shape(self) -> BufferShape:
         return calc_buffer_length(int(self.sample_rate), self.block_size)
 
@@ -396,15 +396,21 @@ class TruePeakSampler(BaseSampler):
     """
     gate_view: Float3dArray
     """A non-sliding view of :attr:`sample_array` with shape
-    ``(num_channels, num_gate_blocks, gate_size)`` (where ``gate_size`` is 400ms)
+    ``(num_channels, num_gate_blocks, gate_size)``
     """
     def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
         super().__init__(block_size, num_channels, sample_rate)
+        num_gate_blocks = self.bfr_shape.num_gate_blocks
         self.gate_view = np.reshape(
             self.sample_array,
-            (num_channels, self.num_gate_blocks, self.gate_size)
+            (num_channels, num_gate_blocks, self.gate_size)
         )
-        self.gate_slice = Slice(self.gate_size, max_index=self.num_gate_blocks-1)
+        self.gate_slice = Slice(self.gate_size, max_index=num_gate_blocks-1)
+
+    @property
+    def gate_size(self) -> int:
+        """Length of one block of read samples (100ms)"""
+        return self.bfr_shape.gate_size
 
     def _calc_buffer_shape(self) -> BufferShape:
         fs = self.sample_rate
@@ -433,7 +439,9 @@ class TruePeakSampler(BaseSampler):
         return self.samples_available >= self.gate_size
 
     def read(self) -> Float2dArray:
-        """Get the samples for one :term:`gating block`
+        """Get next available samples.
+
+        The result will be of shape ``(num_channels, gate_size)``.
         """
         return self._read()
 
