@@ -19,7 +19,10 @@ from .filters import FilterGroup, HS_COEFF, HP_COEFF
 
 T = TypeVar('T')
 
-__all__ = ('Sampler', 'ThreadSafeSampler')
+__all__ = (
+    'Sampler', 'TruePeakSampler',
+    'ThreadSafeSampler', 'ThreadSafeTruePeakSampler',
+)
 
 
 class BufferShape(NamedTuple):
