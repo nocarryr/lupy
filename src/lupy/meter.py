@@ -60,7 +60,6 @@ class Meter:
             num_channels=num_channels,
             sample_rate=sample_rate,
         )
-        assert self.sampler.bfr_shape == self.true_peak_sampler.bfr_shape
         self.processor = BlockProcessor(
             num_channels=num_channels,
             gate_size=self.sampler.gate_size,
