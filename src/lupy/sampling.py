@@ -437,12 +437,9 @@ class TruePeakSampler(BaseSampler):
         super()._clear()
         self.gate_slice.index = 0
 
-class ThreadSafeSampler(Sampler):
-    """A :class:`Sampler` subclass for use with threaded reads and writes
-    """
-    def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
-        super().__init__(block_size, num_channels, sample_rate)
-        self._lock = threading.RLock()
+
+class _LockContext:
+    _lock: threading.RLock
 
     def acquire(self, blocking: bool = True, timeout: float = -1) -> bool:
         """Acquire the underlying lock
@@ -458,6 +455,21 @@ class ThreadSafeSampler(Sampler):
         """
         self._lock.release()
 
+    def __enter__(self) -> Self:
+        self.acquire()
+        return self
+
+    def __exit__(self, *args) -> None:
+        self.release()
+
+
+class ThreadSafeSampler(Sampler, _LockContext):
+    """A :class:`Sampler` subclass for use with threaded reads and writes
+    """
+    def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
+        super().__init__(block_size, num_channels, sample_rate)
+        self._lock = threading.RLock()
+
     def _write(self, samples: Float2dArray) -> None:
         with self:
             super()._write(samples)
@@ -470,9 +482,21 @@ class ThreadSafeSampler(Sampler):
         with self:
             super()._clear()
 
-    def __enter__(self) -> Self:
-        self.acquire()
-        return self
+class ThreadSafeTruePeakSampler(TruePeakSampler, _LockContext):
+    """A :class:`TruePeakSampler` subclass for use with threaded reads and writes
+    """
+    def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
+        super().__init__(block_size, num_channels, sample_rate)
+        self._lock = threading.RLock()
 
-    def __exit__(self, *args) -> None:
-        self.release()
+    def _write(self, samples: Float2dArray) -> None:
+        with self:
+            super()._write(samples)
+
+    def _read(self) -> Float2dArray:
+        with self:
+            return super()._read()
+
+    def _clear(self) -> None:
+        with self:
+            super()._clear()
