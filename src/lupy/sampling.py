@@ -6,6 +6,7 @@ if sys.version_info < (3, 11):
     from typing_extensions import Self
 else:
     from typing import Self
+from abc import ABC, abstractmethod
 from fractions import Fraction
 import math
 import threading
@@ -206,13 +207,12 @@ def calc_buffer_length(sample_rate: int, block_size: int) -> BufferShape:
 
 
 
-class Sampler:
-    """Allows input data to be stored in chunks of a specified length
-    and read out in windowed segments as needed for :term:`gating block`
-    calculations.
-    """
+class BaseSampler(ABC):
     sample_rate: Fraction
     """The sample rate of the input data"""
+
+    block_size: int
+    """Sample length per call to :meth:`write`"""
 
     num_channels: int
     """Number of channels"""
@@ -224,54 +224,24 @@ class Sampler:
     """View of :attr:`sample_array` with shape
     ``(num_channels, block_size, sample_array.shape[1] // block_size)``
     """
-
-    gate_view: Float2dArray
-    """Sliding window view of :attr:`sample_array` with 75% overlap and shape
-    ``(num_channels, gate_size, sample_array.shape[1] // gate_size)``
-    """
-
-    filter: FilterGroup
-    """A :class:`~.filters.FilterGroup` with both stages of the pre-filter
-    defined in :term:`BS 1770`
-    """
     def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
+        self.block_size = block_size
         self.sample_rate = Fraction(sample_rate, 1)
         self.num_channels = num_channels
 
-        bfr_shape = self.bfr_shape = calc_buffer_length(
-            int(self.sample_rate), block_size,
-        )
-        bfr_len = bfr_shape.total_samples
+        self.bfr_shape = self._calc_buffer_shape()
+        bfr_len = self.bfr_shape.total_samples
 
         self.sample_array = np.zeros(
             (num_channels, bfr_len),
             dtype=np.float64,
         )
-
         self.write_view = np.reshape(
             self.sample_array,
             (num_channels, self.num_blocks, self.block_size)
         )
-        self.gate_view = self.sample_array.view()
-
         self.write_slice = Slice(self.block_size, max_index=self.num_blocks-1)
-        self.gate_slice = Slice(
-            step=self.gate_size,
-            overlap=self.pad_size,
-            max_index=self.num_gate_blocks,
-        )
-
         self.samples_available = 0
-        coeff = [HS_COEFF, HP_COEFF]
-        if sample_rate != 48000:
-            coeff = [c.as_sample_rate(sample_rate) for c in coeff]
-        self.filter = FilterGroup(*coeff, num_channels=self.num_channels)
-
-    @property
-    def block_size(self) -> int:
-        """Sample length per call to :meth:`write`
-        """
-        return self.bfr_shape.block_size
 
     @property
     def num_blocks(self) -> int:
@@ -298,6 +268,11 @@ class Sampler:
         """Alias for :attr:`BufferShape.num_gate_blocks`"""
         return self.bfr_shape.num_gate_blocks
 
+    @abstractmethod
+    def _calc_buffer_shape(self) -> BufferShape:
+        """Calculate the :class:`BufferShape` for this sampler"""
+        raise NotImplementedError
+
     def write(self, samples: Float2dArray, apply_filter: bool = True) -> None:
         """Store input data into the internal buffer, optionally appling the
         :attr:`pre-filter <filter>`
@@ -305,9 +280,6 @@ class Sampler:
         The input data must be of shape ``(num_channels, block_size)``
         """
         assert samples.shape == (self.num_channels, self.block_size)
-        if apply_filter:
-            samples = self.filter(samples)
-
         self._write(samples)
 
     def _write(self, samples: Float2dArray) -> None:
@@ -321,6 +293,69 @@ class Sampler:
         one call to :meth:`write`
         """
         return self.samples_available <= self.total_samples - self.block_size
+
+    @abstractmethod
+    def read(self) -> Float2dArray:
+        """Read samples from the internal buffer"""
+        raise NotImplementedError
+
+    @abstractmethod
+    def can_read(self) -> bool:
+        """Whether there are enough samples to read"""
+        raise NotImplementedError
+
+    def clear(self) -> None:
+        """Clear the internal buffer"""
+        self._clear()
+
+    def _clear(self) -> None:
+        self.samples_available = 0
+        self.write_slice.index = 0
+
+
+class Sampler(BaseSampler):
+    """Allows input data to be stored in chunks of a specified length
+    and read out in windowed segments as needed for :term:`gating block`
+    calculations.
+    """
+
+    gate_view: Float2dArray
+    """Sliding window view of :attr:`sample_array` with 75% overlap and shape
+    ``(num_channels, gate_size, sample_array.shape[1] // gate_size)``
+    """
+
+    filter: FilterGroup
+    """A :class:`~.filters.FilterGroup` with both stages of the pre-filter
+    defined in :term:`BS 1770`
+    """
+    def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
+        super().__init__(block_size, num_channels, sample_rate)
+        self.gate_view = self.sample_array.view()
+        self.gate_slice = Slice(
+            step=self.gate_size,
+            overlap=self.pad_size,
+            max_index=self.num_gate_blocks,
+        )
+
+        coeff = [HS_COEFF, HP_COEFF]
+        if sample_rate != 48000:
+            coeff = [c.as_sample_rate(sample_rate) for c in coeff]
+        self.filter = FilterGroup(*coeff, num_channels=self.num_channels)
+
+    def _calc_buffer_shape(self) -> BufferShape:
+        return calc_buffer_length(int(self.sample_rate), self.block_size)
+
+    def write(self, samples: Float2dArray, apply_filter: bool = True) -> None:
+        """Store input data into the internal buffer, optionally appling the
+        :attr:`pre-filter <filter>`
+
+        The input data must be of shape ``(num_channels, block_size)``
+        """
+        assert samples.shape == (self.num_channels, self.block_size)
+        if apply_filter:
+            samples = self.filter(samples)
+
+        super().write(samples)
 
     def can_read(self) -> bool:
         """Whether there are enough samples in the internal buffer for at least
@@ -340,14 +375,8 @@ class Sampler:
         self.samples_available -= self.pad_size
         return ensure_2d_array(r)
 
-    def clear(self) -> None:
-        """Clear all samples and reset internal tracking variables
-        """
-        self._clear()
-
     def _clear(self) -> None:
-        self.samples_available = 0
-        self.write_slice.index = 0
+        super()._clear()
         self.gate_slice.index = 0
         self.filter.reset()
 
