@@ -388,7 +388,7 @@ class TruePeakSampler(BaseSampler):
     """A :class:`Sampler` subclass for use with true peak sampling
 
     This sampler writes in the same way as :class:`Sampler`, but reads
-    are not overlapping and are always 100ms in length.
+    are not overlapping and are always 400ms in length.
 
     This is not a requirement for :term:`True Peak` sampling, but was chosen
     so that reads are aligned with that of the :class:`Sampler` class.
@@ -409,12 +409,12 @@ class TruePeakSampler(BaseSampler):
 
     @property
     def gate_size(self) -> int:
-        """Length of one block of read samples (100ms)"""
+        """Length of one block of read samples (400ms)"""
         return self.bfr_shape.gate_size
 
     def _calc_buffer_shape(self) -> BufferShape:
         fs = self.sample_rate
-        gate_time = Fraction(1, 10)
+        gate_time = Fraction(4, 10)
         assert (fs * gate_time) % 1 == 0
         gate_samples = int(fs * gate_time)
         bfr_len = math.lcm(self.block_size, gate_samples)
