@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .sampling import Sampler
+from .sampling import Sampler, TruePeakSampler
 from .processing import BlockProcessor, TruePeakProcessor
 from .types import *
 from .typeutils import is_2d_array, ensure_2d_array
@@ -28,7 +28,7 @@ class Meter:
     sampler: Sampler
     """The :class:`~.sampling.Sampler` instance to buffer input data"""
 
-    true_peak_sampler: Sampler
+    true_peak_sampler: TruePeakSampler
     """Sample buffer to hold un-filtered samples for :attr:`true_peak_processor`"""
 
     processor: BlockProcessor
@@ -44,6 +44,7 @@ class Meter:
         block_size: int,
         num_channels: int,
         sampler_class: type[Sampler] = Sampler,
+        tp_sampler_class: type[TruePeakSampler] = TruePeakSampler,
         sample_rate: int = 48000
     ) -> None:
         self.block_size = block_size
@@ -54,12 +55,11 @@ class Meter:
             num_channels=num_channels,
             sample_rate=sample_rate,
         )
-        self.true_peak_sampler = sampler_class(
+        self.true_peak_sampler = tp_sampler_class(
             block_size=block_size,
             num_channels=num_channels,
             sample_rate=sample_rate,
         )
-        assert self.sampler.bfr_shape == self.true_peak_sampler.bfr_shape
         self.processor = BlockProcessor(
             num_channels=num_channels,
             gate_size=self.sampler.gate_size,
@@ -81,7 +81,7 @@ class Meter:
         """Whether there is enough room on the internal buffer for at least
         one call to :meth:`write`
         """
-        return self.sampler.can_write()
+        return self.sampler.can_write() and self.true_peak_sampler.can_write()
 
     def can_process(self) -> bool:
         """Whether there are enough samples in the internal buffer for at least
@@ -89,7 +89,7 @@ class Meter:
         """
         if self.paused:
             return False
-        return self.sampler.can_read()
+        return self.sampler.can_read() or self.true_peak_sampler.can_read()
 
     def write(
         self,
@@ -148,12 +148,13 @@ class Meter:
             self._process()
 
     def _process(self) -> None:
-        gate_size = self.sampler.gate_size
-        samples = self.sampler.read()
-        self.processor(samples)
-        tp_samples = self.true_peak_sampler.read()[:,:gate_size]
-        assert is_2d_array(tp_samples)
-        self.true_peak_processor(tp_samples)
+        if self.sampler.can_read():
+            samples = self.sampler.read()
+            self.processor(samples)
+        if self.true_peak_sampler.can_read():
+            tp_samples = self.true_peak_sampler.read()
+            assert is_2d_array(tp_samples)
+            self.true_peak_processor(tp_samples)
 
     def reset(self) -> None:
         """Reset all values for :attr:`processor` and clear any buffered input
