@@ -381,6 +381,62 @@ class Sampler(BaseSampler):
         self.filter.reset()
 
 
+class TruePeakSampler(BaseSampler):
+    gate_view: Float3dArray
+    """A non-sliding view of :attr:`sample_array` with shape
+    ``(num_channels, num_gate_blocks, gate_size)`` (where ``gate_size`` is 400ms)
+    """
+    def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
+        super().__init__(block_size, num_channels, sample_rate)
+        self.gate_view = np.reshape(
+            self.sample_array,
+            (num_channels, self.num_gate_blocks, self.gate_size)
+        )
+        self.gate_slice = Slice(self.gate_size, max_index=self.num_gate_blocks-1)
+
+    def _calc_buffer_shape(self) -> BufferShape:
+        fs = self.sample_rate
+        gate_time = Fraction(4, 10)
+        assert (fs * gate_time) % 1 == 0
+        gate_samples = int(fs * gate_time)
+        bfr_len = math.lcm(self.block_size, gate_samples)
+        assert bfr_len > self.block_size
+        num_blocks = bfr_len // self.block_size
+        assert bfr_len % gate_samples == 0
+        num_gate_blocks = bfr_len // gate_samples
+        return BufferShape(
+            total_samples=bfr_len,
+            block_size=self.block_size,
+            num_blocks=num_blocks,
+            pad_size=0, # No overlap for true peak sampling
+            gate_size=gate_samples,
+            num_gate_blocks=num_gate_blocks,
+            gate_step_size=gate_samples,
+        )
+
+    def can_read(self) -> bool:
+        """Whether there are enough samples in the internal buffer for at least
+        one call to :meth:`read`
+        """
+        return self.samples_available >= self.gate_size
+
+    def read(self) -> Float2dArray:
+        """Get the samples for one :term:`gating block`
+        """
+        return self._read()
+
+    def _read(self) -> Float2dArray:
+        sl = self.gate_slice
+        r: FloatArray = self.gate_view[:, sl.index, :]
+        sl.index += 1
+        assert r.shape == (self.num_channels, self.gate_size)
+        self.samples_available -= self.gate_size
+        return ensure_2d_array(r)
+
+    def _clear(self) -> None:
+        super()._clear()
+        self.gate_slice.index = 0
+
 class ThreadSafeSampler(Sampler):
     """A :class:`Sampler` subclass for use with threaded reads and writes
     """
