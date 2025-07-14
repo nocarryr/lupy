@@ -307,8 +307,8 @@ class Sampler(BaseSampler):
     """
 
     gate_view: Float2dArray
-    """Sliding window view of :attr:`sample_array` with 75% overlap and shape
-    ``(num_channels, gate_size, sample_array.shape[1] // gate_size)``
+    """Sliding window view of :attr:`~BaseSampler.sample_array` with 75% overlap
+    and shape ``(num_channels, gate_size, sample_array.shape[1] // gate_size)``
     """
 
     filter: FilterGroup
@@ -394,7 +394,7 @@ class TruePeakSampler(BaseSampler):
 
     """
     gate_view: Float3dArray
-    """A non-sliding view of :attr:`sample_array` with shape
+    """A non-sliding view of :attr:`~BaseSampler.sample_array` with shape
     ``(num_channels, num_gate_blocks, gate_size)``
     """
     def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
