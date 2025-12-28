@@ -42,10 +42,6 @@ Homepage = "https://github.com/nocarryr/lupy"
 Documentation = "https://lupy-nocarryr.readthedocs.io/"
 
 
-[project.optional-dependencies]
-tests = ["pytest", "pytest-xdist", "pytest-codspeed"]
-docs = ["sphinx", "furo"]
-
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -57,7 +53,18 @@ addopts = "-n auto --dist=worksteal"
 testpaths = ["tests"]
 
 [dependency-groups]
+test = [
+    "pytest",
+    "pytest-xdist",
+    "pytest-codspeed",
+]
+doc = [
+    "sphinx",
+    "furo",
+]
 dev = [
+    {include-group = "test"},
+    {include-group = "doc"},
     "ipython",
     "jupyterlab",
     "matplotlib",

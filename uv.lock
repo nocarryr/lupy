@@ -921,42 +921,53 @@ dependencies = [
     { name = "scipy" },
 ]
 
-[package.optional-dependencies]
-docs = [
+[package.dev-dependencies]
+dev = [
+    { name = "furo" },
+    { name = "ipython" },
+    { name = "jupyterlab" },
+    { name = "matplotlib" },
+    { name = "pytest" },
+    { name = "pytest-codspeed" },
+    { name = "pytest-xdist" },
+    { name = "sphinx" },
+]
+doc = [
     { name = "furo" },
     { name = "sphinx" },
 ]
-tests = [
+test = [
     { name = "pytest" },
     { name = "pytest-codspeed" },
     { name = "pytest-xdist" },
 ]
 
-[package.dev-dependencies]
-dev = [
-    { name = "ipython" },
-    { name = "jupyterlab" },
-    { name = "matplotlib" },
-]
-
 [package.metadata]
 requires-dist = [
-    { name = "furo", marker = "extra == 'docs'" },
     { name = "numpy", specifier = "<=2.2.6" },
-    { name = "pytest", marker = "extra == 'tests'" },
-    { name = "pytest-codspeed", marker = "extra == 'tests'" },
-    { name = "pytest-xdist", marker = "extra == 'tests'" },
     { name = "scipy", specifier = "<=1.15.3" },
-    { name = "sphinx", marker = "extra == 'docs'" },
     { name = "typing-extensions", marker = "python_full_version < '3.13'" },
 ]
-provides-extras = ["tests", "docs"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "furo" },
     { name = "ipython" },
     { name = "jupyterlab" },
     { name = "matplotlib" },
+    { name = "pytest" },
+    { name = "pytest-codspeed" },
+    { name = "pytest-xdist" },
+    { name = "sphinx" },
+]
+doc = [
+    { name = "furo" },
+    { name = "sphinx" },
+]
+test = [
+    { name = "pytest" },
+    { name = "pytest-codspeed" },
+    { name = "pytest-xdist" },
 ]
 
 [[package]]
