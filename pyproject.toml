@@ -32,8 +32,8 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "numpy",
-    "scipy",
+    "numpy<=2.2.6",
+    "scipy<=1.15.3",
     "typing-extensions; python_version<'3.13'"
 ]
 
