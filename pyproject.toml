@@ -15,6 +15,7 @@ keywords = [
     "audio", "loudness", "r128", "ebur128",
     "bs1770", "bs1771", "tech3341", "tech3342"
 ]
+requires-python = ">=3.9"
 classifiers = [
     "Development Status :: 4 - Beta",
     "License :: OSI Approved :: MIT License",
