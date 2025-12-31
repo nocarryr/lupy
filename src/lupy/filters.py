@@ -15,6 +15,7 @@ from scipy import signal
 
 
 from .types import *
+from .signalutils.sosfilt import sosfilt
 from .typeutils import (
     ensure_1d_array, ensure_2d_array, is_3d_array,
 )
@@ -29,16 +30,19 @@ class Coeff:
     b: Float1dArray             #: Numerator of the filter
     a: Float1dArray             #: Denominator of the filter
     sample_rate: int = 48000    #: Sample rate of the filter
-    _sos: Float2dArray|None = None
+    _sos: SosCoeff|None = None
 
     @property
-    def sos(self) -> Float2dArray:
+    def sos(self) -> SosCoeff:
         """Array of second-order sections calculated from the filter's transfer
         function form
         """
         s = self._sos
         if s is None:
-            s = self._sos = ensure_2d_array(signal.tf2sos(self.b, self.a))
+            s = ensure_2d_array(signal.tf2sos(self.b, self.a))
+            assert s.shape[1] == 6
+            s = cast(SosCoeff, s)
+            self._sos = s
         return s
 
     def as_sample_rate(self, sample_rate: int) -> Self:
@@ -209,14 +213,13 @@ class TruePeakFilter(BaseFilter[Float1dArray]):
     def reset(self) -> None:
         pass
 
-_SosZI = np.ndarray[tuple[int, int, Literal[2]], np.dtype[np.float64]]
 
-def _check_sos_zi(zi: AnyArray, num_channels: int) -> _SosZI:
+def _check_sos_zi(zi: AnyArray, num_channels: int) -> SosZI:
     assert is_3d_array(zi)
     assert zi.shape[1] == num_channels
     assert zi.shape[2] == 2
     assert zi.dtype == np.float64
-    return cast(_SosZI, zi)
+    return cast(SosZI, zi)
 
 
 class Filter(BaseFilter[Coeff]):
@@ -225,7 +228,7 @@ class Filter(BaseFilter[Coeff]):
     The filter (defined by :attr:`coeff`) is applied by calling a :class:`Filter`
     instance directly.
     """
-    sos_zi: _SosZI
+    sos_zi: SosZI
     """The filter conditions"""
 
     def __init__(self, coeff: Coeff, num_channels: int = 1) -> None:
@@ -239,7 +242,7 @@ class Filter(BaseFilter[Coeff]):
         zi = self.sos_zi
         x = self._check_arr_dims(x)
 
-        y, zi = signal.sosfilt(self.coeff.sos, x, axis=1, zi=zi)
+        y, zi = sosfilt(self.coeff.sos, x, axis=1, zi=zi)
         self.sos_zi = _check_sos_zi(zi, self.num_channels)
         return ensure_2d_array(y)
 

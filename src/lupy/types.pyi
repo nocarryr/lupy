@@ -8,6 +8,13 @@ from numpy import dtype
 
 import numpy.typing as npt
 
+__all__ = (
+    'Floating', 'Complex', 'MeterDtype', 'MeterArray', 'SosCoeff', 'SosZI',
+    'AnyArray', 'BoolArray', 'IndexArray', 'FloatArray', 'ComplexArray',
+    'Float1dArray', 'Float2dArray', 'Float3dArray', 'AnyFloatArray',
+    'AnyNdArray', 'Any1dArray', 'Any2dArray', 'Any3dArray', 'ShapeT',
+)
+
 
 _AnyDtype: TypeAlias = dtype[Any]
 DType_co = TypeVar("DType_co", bound=dtype[Any], covariant=True)
@@ -50,6 +57,9 @@ AnyFloatArray = AnyNdArray[ShapeT, np.dtype[Floating]]
 Float1dArray = Any1dArray[np.dtype[Floating]]
 Float2dArray = Any2dArray[np.dtype[Floating]]
 Float3dArray = Any3dArray[np.dtype[Floating]]
+
+SosCoeff = np.ndarray[tuple[int, Literal[6]], np.dtype[np.float64]]
+SosZI = np.ndarray[tuple[int, int, Literal[2]], np.dtype[np.float64]]
 
 _MeterArrayFields = Literal['t', 'm', 's']
 

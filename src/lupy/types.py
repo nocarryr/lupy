@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypeVar, Any
+from typing import TypeVar, Literal, Any
 import sys
 if sys.version_info < (3, 11):
     from typing_extensions import TypeAlias
@@ -13,7 +13,7 @@ import numpy.typing as npt
 
 
 __all__ = (
-    'Floating', 'Complex', 'MeterDtype', 'MeterArray',
+    'Floating', 'Complex', 'MeterDtype', 'MeterArray', 'SosCoeff', 'SosZI',
     'AnyArray', 'BoolArray', 'IndexArray', 'FloatArray', 'ComplexArray',
     'Float1dArray', 'Float2dArray', 'Float3dArray', 'AnyFloatArray',
     'AnyNdArray', 'Any1dArray', 'Any2dArray', 'Any3dArray', 'ShapeT',
@@ -89,6 +89,12 @@ Float2dArray = Any2dArray[np.dtype[Floating]]
 """2D array of :class:`~numpy.floating`"""
 Float3dArray = Any3dArray[np.dtype[Floating]]
 """3D array of :class:`~numpy.floating`"""
+
+SosCoeff = np.ndarray[tuple[int, Literal[6]], np.dtype[np.float64]]
+"""Array representing second-order sections filter coefficients"""
+
+SosZI = np.ndarray[tuple[int, int, Literal[2]], np.dtype[np.float64]]
+"""Array representing initial conditions for second-order sections filtering"""
 
 
 class MeterArray(npt.NDArray[np.void]):
