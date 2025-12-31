@@ -49,8 +49,8 @@ def test_filter_benchmark(benchmark, random_samples, num_channels, bench_sample_
     benchmark(bench)
 
 @pytest.mark.benchmark(group='truepeak_filter')
-def test_truepeak_filter_benchmark(benchmark, random_samples, num_channels):
-    sample_rate = 48000
+def test_truepeak_filter_benchmark(benchmark, random_samples, num_channels, bench_sample_rate):
+    sample_rate = bench_sample_rate
     block_size = sample_rate // 100
     assert sample_rate % block_size == 0
 
