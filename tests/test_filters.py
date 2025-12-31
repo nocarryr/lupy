@@ -4,7 +4,7 @@ import numpy as np
 from scipy import signal
 import pytest
 
-from lupy.filters import HS_COEFF, HP_COEFF, FilterGroup
+from lupy.filters import HS_COEFF, HP_COEFF, FilterGroup, TruePeakFilter
 
 
 @pytest.mark.parametrize('coeff', [HS_COEFF, HP_COEFF])
@@ -39,5 +39,23 @@ def test_filter_benchmark(benchmark, random_samples, num_channels):
 
     def bench():
         filtered[...] = fg(samples)
+
+    benchmark(bench)
+
+@pytest.mark.benchmark(group='truepeak_filter')
+def test_truepeak_filter_benchmark(benchmark, random_samples, num_channels):
+    sample_rate = 48000
+    block_size = sample_rate // 100
+    assert sample_rate % block_size == 0
+
+    samples = random_samples(num_channels, block_size)
+    assert samples.shape == (num_channels, block_size)
+    tp_filter = TruePeakFilter(num_channels=num_channels)
+    num_output_samples = samples.shape[1] * tp_filter.upsample_factor
+
+    filtered = np.zeros((samples.shape[0], num_output_samples), dtype=np.float64)
+
+    def bench():
+        filtered[...] = tp_filter(samples)
 
     benchmark(bench)
