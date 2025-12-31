@@ -7,6 +7,12 @@ import pytest
 from lupy.filters import HS_COEFF, HP_COEFF, FilterGroup, TruePeakFilter
 
 
+
+@pytest.fixture(params=[48000])
+def bench_sample_rate(request) -> int:
+    return request.param
+
+
 @pytest.mark.parametrize('coeff', [HS_COEFF, HP_COEFF])
 def test_filter_requantize(coeff, sample_rate):
     orig_sample_rate = coeff.sample_rate
@@ -23,8 +29,8 @@ def test_filter_requantize(coeff, sample_rate):
 
 
 @pytest.mark.benchmark(group='filter')
-def test_filter_benchmark(benchmark, random_samples, num_channels):
-    sample_rate = 48000
+def test_filter_benchmark(benchmark, random_samples, num_channels, bench_sample_rate):
+    sample_rate = bench_sample_rate
     block_size = sample_rate // 100
     assert sample_rate % block_size == 0
 
