@@ -30,17 +30,17 @@ from ..typeutils import ensure_2d_array
 #         warnings.warn(msg, category=DeprecationWarning, stacklevel=3)
 
 
-def _validate_sos(sos: SosCoeff) -> tuple[SosCoeff, int]:
+def validate_sos(sos: Float2dArray) -> SosCoeff:
     """Helper to validate a SOS input"""
     # sos = np.atleast_2d(sos)
     if sos.ndim != 2:
         raise ValueError('sos array must be 2D')
-    n_sections, m = sos.shape
+    _, m = sos.shape
     if m != 6:
         raise ValueError('sos array must be shape (n_sections, 6)')
     if not (sos[:, 3] == 1).all():
         raise ValueError('sos[:, 3] should be all ones')
-    return sos, n_sections
+    return cast(SosCoeff, sos)
 
 
 # # https://github.com/scipy/scipy/blob/e29dcb65a2040f04819b426a04b60d44a8f69c04/scipy/signal/_signaltools.py#L4594-L4598
@@ -73,7 +73,7 @@ def sosfilt(sos: SosCoeff, x: Float2dArray, axis: int, zi: SosZI) -> tuple[Float
     # _reject_objects(zi, 'sosfilt')
 
     # x = _validate_x(x)
-    sos, n_sections = _validate_sos(sos)
+    n_sections = sos.shape[0]
     x_zi_shape = list(x.shape)
     x_zi_shape[axis] = 2
     x_zi_shape = tuple([n_sections] + x_zi_shape)

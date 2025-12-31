@@ -15,7 +15,7 @@ from scipy import signal
 
 
 from .types import *
-from .signalutils.sosfilt import sosfilt
+from .signalutils.sosfilt import sosfilt, validate_sos
 from .typeutils import (
     ensure_1d_array, ensure_2d_array, is_3d_array,
 )
@@ -41,7 +41,7 @@ class Coeff:
         if s is None:
             s = ensure_2d_array(signal.tf2sos(self.b, self.a))
             assert s.shape[1] == 6
-            s = cast(SosCoeff, s)
+            s = validate_sos(s)
             self._sos = s
         return s
 
