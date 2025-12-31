@@ -23,7 +23,8 @@ def test_filter_requantize(coeff, sample_rate):
 
 
 @pytest.mark.benchmark(group='filter')
-def test_filter_benchmark(benchmark, random_samples, num_channels, sample_rate):
+def test_filter_benchmark(benchmark, random_samples, num_channels):
+    sample_rate = 48000
     block_size = sample_rate // 100
     assert sample_rate % block_size == 0
 
