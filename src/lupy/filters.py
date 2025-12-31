@@ -16,6 +16,7 @@ from scipy import signal
 
 from .types import *
 from .signalutils.sosfilt import sosfilt, validate_sos
+from .signalutils.resample import ResamplePoly
 from .typeutils import (
     ensure_1d_array, ensure_2d_array, is_3d_array,
 )
@@ -198,17 +199,16 @@ class TruePeakFilter(BaseFilter[Float1dArray]):
         coeff = calc_tp_fir_win(upsample_factor)
         super().__init__(coeff=coeff, num_channels=num_channels)
         self.upsample_factor = upsample_factor
+        self.resampler = ResamplePoly(
+            up=upsample_factor,
+            down=1,
+            window=coeff,
+            num_channels=num_channels,
+        )
 
     def __call__(self, x: Float1dArray|Float2dArray) -> Float2dArray:
         x = self._check_arr_dims(x)
-        r = signal.resample_poly(
-            x,
-            self.upsample_factor,
-            1,
-            axis=1,
-            window=self.coeff,
-        )
-        return ensure_2d_array(r)
+        return self.resampler.apply(x)
 
     def reset(self) -> None:
         pass
