@@ -175,3 +175,66 @@ class ResamplePoly:
         )
         r = y[self.params.result_slice]
         return ensure_2d_array(r)
+
+
+
+#https://github.com/scipy/scipy/blob/e29dcb65a2040f04819b426a04b60d44a8f69c04/scipy/signal/_upfirdn.py#L45C1-L104C19
+def _pad_h(h, up):
+    """Store coefficients in a transposed, flipped arrangement.
+
+    For example, suppose upRate is 3, and the
+    input number of coefficients is 10, represented as h[0], ..., h[9].
+
+    Then the internal buffer will look like this::
+
+       h[9], h[6], h[3], h[0],   // flipped phase 0 coefs
+       0,    h[7], h[4], h[1],   // flipped phase 1 coefs (zero-padded)
+       0,    h[8], h[5], h[2],   // flipped phase 2 coefs (zero-padded)
+
+    """
+    h_padlen = len(h) + (-len(h) % up)
+    h_full = np.zeros(h_padlen, h.dtype)
+    h_full[:len(h)] = h
+    h_full = h_full.reshape(-1, up).T[:, ::-1].ravel()
+    return h_full
+
+
+def _check_mode(mode):
+    mode = mode.lower()
+    enum = mode_enum(mode)
+    return enum
+
+
+class _UpFIRDn:
+    """Helper for resampling."""
+
+    def __init__(self, h, x_dtype, up, down):
+        h = np.asarray(h)
+        if h.ndim != 1 or h.size == 0:
+            raise ValueError('h must be 1-D with non-zero length')
+        self._output_type = np.result_type(h.dtype, x_dtype, np.float32)
+        h = np.asarray(h, self._output_type)
+        self._up = int(up)
+        self._down = int(down)
+        if self._up < 1 or self._down < 1:
+            raise ValueError('Both up and down must be >= 1')
+        # This both transposes, and "flips" each phase for filtering
+        self._h_trans_flip = _pad_h(h, self._up)
+        self._h_trans_flip = np.ascontiguousarray(self._h_trans_flip)
+        self._h_len_orig = len(h)
+
+    def apply_filter(self, x, axis=-1, mode='constant', cval=0):
+        """Apply the prepared filter to the specified axis of N-D signal x."""
+        output_len = _output_len(self._h_len_orig, x.shape[axis],
+                                 self._up, self._down)
+        # Explicit use of np.int64 for output_shape dtype avoids OverflowError
+        # when allocating large array on platforms where intp is 32 bits.
+        output_shape = np.asarray(x.shape, dtype=np.int64)
+        output_shape[axis] = output_len
+        out = np.zeros(output_shape, dtype=self._output_type, order='C')
+        axis = axis % x.ndim
+        mode = _check_mode(mode)
+        _apply(np.asarray(x, self._output_type),
+               self._h_trans_flip, out,
+               self._up, self._down, axis, mode, cval)
+        return out
