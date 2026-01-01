@@ -24,7 +24,7 @@ class ResamplePolyParams(NamedTuple):
     """The padded FIR filter window"""
     result_slice: tuple[slice, ...]
     """Slice object to extract the valid output samples from
-    :meth:`scipy.signal._upfirdn._UpFIRDn.apply_filter`
+    :meth:`_UpFIRDn.apply_filter`
     """
 
 
