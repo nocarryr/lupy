@@ -3,7 +3,7 @@ from typing import NamedTuple
 import math
 
 import numpy as np
-from scipy.signal._upfirdn import _output_len, _UpFIRDn
+from scipy.signal._upfirdn_apply import _output_len, _apply, mode_enum
 
 from ..types import Float1dArray, Float2dArray
 from ..typeutils import ensure_2d_array
@@ -99,6 +99,8 @@ class ResamplePoly:
         self._down = down
         self._num_channels = num_channels
         self._num_input_samples = num_input_samples
+        self._in_dtype = np.dtype(np.float64)
+        self._out_dtype = np.dtype(np.float64)
         self._window = window
         self.params = calc_resample_poly_params(
             up,
@@ -114,9 +116,11 @@ class ResamplePoly:
         # (which is quite wasteful).
         self._upfirdn = _UpFIRDn(
             h=self.params.h,
-            x_dtype=np.float64,
+            x_dtype=self._in_dtype,
+            out_dtype=self._out_dtype,
             up=self.params.up,
             down=self.params.down,
+            input_shape=self.input_shape,
         )
 
     @property
@@ -144,15 +148,27 @@ class ResamplePoly:
         )
         self._upfirdn = _UpFIRDn(
             h=self.params.h,
-            x_dtype=np.float64,
+            x_dtype=self._in_dtype,
+            out_dtype=self._out_dtype,
             up=self.params.up,
             down=self.params.down,
+            input_shape=self.input_shape,
         )
 
     @property
     def num_output_samples(self) -> int:
         """Number of output samples"""
         return self.params.n_out
+
+    @property
+    def input_shape(self) -> tuple[int, int]:
+        """Expected input shape for :meth:`apply`"""
+        return (self.num_channels, self.num_input_samples)
+
+    @property
+    def output_shape(self) -> tuple[int, int]:
+        """Output shape for :meth:`apply`"""
+        return (self.num_channels, self.num_output_samples)
 
     def apply(self, x: Float2dArray) -> Float2dArray:
         """Resample the input array using polyphase filtering
@@ -166,13 +182,7 @@ class ResamplePoly:
         if num_samples != self._num_input_samples:
             self.num_input_samples = num_samples
 
-        axis = 1
-        y = self._upfirdn.apply_filter(
-            x,
-            axis=axis,
-            mode='constant',
-            cval=0
-        )
+        y = self._upfirdn.apply_filter(x)
         r = y[self.params.result_slice]
         return ensure_2d_array(r)
 
@@ -199,42 +209,50 @@ def _pad_h(h, up):
     return h_full
 
 
-def _check_mode(mode):
-    mode = mode.lower()
-    enum = mode_enum(mode)
-    return enum
 
 
 class _UpFIRDn:
     """Helper for resampling."""
+    mode = mode_enum('constant')
 
-    def __init__(self, h, x_dtype, up, down):
-        h = np.asarray(h)
+    def __init__(self, h, x_dtype, out_dtype, up, down, input_shape):
         if h.ndim != 1 or h.size == 0:
             raise ValueError('h must be 1-D with non-zero length')
-        self._output_type = np.result_type(h.dtype, x_dtype, np.float32)
-        h = np.asarray(h, self._output_type)
+        self._x_dtype = x_dtype
+        self._output_type = out_dtype
+        assert h.dtype == self._output_type
         self._up = int(up)
         self._down = int(down)
+        self._axis = 1
+        self._input_shape = input_shape
+        assert len(self._input_shape) == 2
+        self._input_len = int(self._input_shape[self._axis])
         if self._up < 1 or self._down < 1:
             raise ValueError('Both up and down must be >= 1')
         # This both transposes, and "flips" each phase for filtering
         self._h_trans_flip = _pad_h(h, self._up)
         self._h_trans_flip = np.ascontiguousarray(self._h_trans_flip)
         self._h_len_orig = len(h)
+        output_len = _output_len(
+            self._h_len_orig, self._input_len,
+            self._up, self._down
+        )
+        self._output_len = int(output_len)
+        self._output_shape = (
+            self._input_shape[0], self._output_len
+        )
+        self._out_array = np.zeros(self._output_shape, dtype=self._output_type, order='C')
 
-    def apply_filter(self, x, axis=-1, mode='constant', cval=0):
+    def apply_filter(self, x):
         """Apply the prepared filter to the specified axis of N-D signal x."""
-        output_len = _output_len(self._h_len_orig, x.shape[axis],
-                                 self._up, self._down)
-        # Explicit use of np.int64 for output_shape dtype avoids OverflowError
-        # when allocating large array on platforms where intp is 32 bits.
-        output_shape = np.asarray(x.shape, dtype=np.int64)
-        output_shape[axis] = output_len
-        out = np.zeros(output_shape, dtype=self._output_type, order='C')
-        axis = axis % x.ndim
-        mode = _check_mode(mode)
-        _apply(np.asarray(x, self._output_type),
+        out = self._out_array
+        out[...] = 0
+        if x.dtype != self._output_type:
+            _x = np.asarray(x, self._output_type)
+        else:
+            _x = x
+
+        _apply(_x,
                self._h_trans_flip, out,
-               self._up, self._down, axis, mode, cval)
+               self._up, self._down, self._axis, self.mode, 0)
         return out
