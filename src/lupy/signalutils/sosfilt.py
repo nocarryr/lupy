@@ -19,7 +19,6 @@ from ..typeutils import ensure_2d_array
 #
 def validate_sos(sos: Float2dArray) -> SosCoeff:
     """Helper to validate a SOS input"""
-    # sos = np.atleast_2d(sos)
     if sos.ndim != 2:
         raise ValueError('sos array must be 2D')
     _, m = sos.shape

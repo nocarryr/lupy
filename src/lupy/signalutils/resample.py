@@ -79,7 +79,6 @@ def calc_resample_poly_params(
     assert window.ndim == 1
     half_len = (window.size - 1) // 2
     h = window * up
-    # h *= up
 
     n_pre_pad = (down - half_len % down)
     n_post_pad = 0
