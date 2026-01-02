@@ -10,3 +10,4 @@ Reference
     filters
     types
     typeutils
+    signalutils/index

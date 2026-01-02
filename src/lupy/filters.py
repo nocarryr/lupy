@@ -8,13 +8,14 @@ else:
     from typing import Self
 
 from dataclasses import dataclass
-import math
 
 import numpy as np
 from scipy import signal
 
 
 from .types import *
+from .signalutils.sosfilt import sosfilt, validate_sos
+from .signalutils.resample import ResamplePoly, calc_tp_fir_win
 from .typeutils import (
     ensure_1d_array, ensure_2d_array, is_3d_array,
 )
@@ -29,16 +30,19 @@ class Coeff:
     b: Float1dArray             #: Numerator of the filter
     a: Float1dArray             #: Denominator of the filter
     sample_rate: int = 48000    #: Sample rate of the filter
-    _sos: Float2dArray|None = None
+    _sos: SosCoeff|None = None
 
     @property
-    def sos(self) -> Float2dArray:
+    def sos(self) -> SosCoeff:
         """Array of second-order sections calculated from the filter's transfer
         function form
         """
         s = self._sos
         if s is None:
-            s = self._sos = ensure_2d_array(signal.tf2sos(self.b, self.a))
+            s = ensure_2d_array(signal.tf2sos(self.b, self.a))
+            assert s.shape[1] == 6
+            s = validate_sos(s)
+            self._sos = s
         return s
 
     def as_sample_rate(self, sample_rate: int) -> Self:
@@ -107,30 +111,6 @@ MOMENTARY_HP_COEFF = Coeff(
 )
 
 
-# Taken from:
-# https://github.com/scipy/scipy/blob/87c46641a8b3b5b47b81de44c07b840468f7ebe7/scipy/signal/_signaltools.py#L3363-L3384
-#
-def calc_tp_fir_win(upsample_factor: int) -> Float1dArray:
-    """Calculate an appropriate low-pass FIR filter for over-sampling
-
-    Methods match that of :func:`scipy.signal.resample_poly`
-    """
-
-    up, down = upsample_factor, 1
-    g_ = math.gcd(up, down)
-    up //= g_
-    down //= g_
-    max_rate = max(up, down)
-    f_c = 1 / max_rate
-    half_len = 10 * max_rate
-    window = cast(str, ('kaiser', 5.0))
-    h = signal.firwin(
-        half_len + 1,       # len == 41 with upsample factor of 4
-        f_c,
-        window=window
-    )
-    h = h.astype(np.float64)
-    return ensure_1d_array(h)
 
 
 def _check_filt_input(x: Float1dArray|Float2dArray) -> Float2dArray:
@@ -194,29 +174,27 @@ class TruePeakFilter(BaseFilter[Float1dArray]):
         coeff = calc_tp_fir_win(upsample_factor)
         super().__init__(coeff=coeff, num_channels=num_channels)
         self.upsample_factor = upsample_factor
+        self.resampler = ResamplePoly(
+            up=upsample_factor,
+            down=1,
+            window=coeff,
+            num_channels=num_channels,
+        )
 
     def __call__(self, x: Float1dArray|Float2dArray) -> Float2dArray:
         x = self._check_arr_dims(x)
-        r = signal.resample_poly(
-            x,
-            self.upsample_factor,
-            1,
-            axis=1,
-            window=self.coeff,
-        )
-        return ensure_2d_array(r)
+        return self.resampler.apply(x)
 
     def reset(self) -> None:
         pass
 
-_SosZI = np.ndarray[tuple[int, int, Literal[2]], np.dtype[np.float64]]
 
-def _check_sos_zi(zi: AnyArray, num_channels: int) -> _SosZI:
+def _check_sos_zi(zi: AnyArray, num_channels: int) -> SosZI:
     assert is_3d_array(zi)
     assert zi.shape[1] == num_channels
     assert zi.shape[2] == 2
     assert zi.dtype == np.float64
-    return cast(_SosZI, zi)
+    return cast(SosZI, zi)
 
 
 class Filter(BaseFilter[Coeff]):
@@ -225,7 +203,7 @@ class Filter(BaseFilter[Coeff]):
     The filter (defined by :attr:`coeff`) is applied by calling a :class:`Filter`
     instance directly.
     """
-    sos_zi: _SosZI
+    sos_zi: SosZI
     """The filter conditions"""
 
     def __init__(self, coeff: Coeff, num_channels: int = 1) -> None:
@@ -239,7 +217,7 @@ class Filter(BaseFilter[Coeff]):
         zi = self.sos_zi
         x = self._check_arr_dims(x)
 
-        y, zi = signal.sosfilt(self.coeff.sos, x, axis=1, zi=zi)
+        y, zi = sosfilt(self.coeff.sos, x, axis=1, zi=zi)
         self.sos_zi = _check_sos_zi(zi, self.num_channels)
         return ensure_2d_array(y)
 

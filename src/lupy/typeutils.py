@@ -87,10 +87,29 @@ def ensure_nd_array(arr: AnyNdArray[Any, DType_co], ndim: int) -> AnyNdArray[Any
 
 
 
+def is_array_of_dtype(
+    arr: AnyNdArray[ShapeT, Any],
+    dtype: DType_co,
+) -> TypeIs[AnyNdArray[ShapeT, DType_co]]:
+    """Check if the given array's dtype matches the specified dtype
+    """
+    return arr.dtype == dtype
+
+
 def is_float_array(arr: AnyNdArray[ShapeT, Any]) -> TypeIs[AnyFloatArray[ShapeT]]:
     """Check if the given array's dtype is a floating-point type
     """
     return np.issubdtype(arr.dtype, np.floating)
+
+def is_float32_array(arr: AnyNdArray[ShapeT, Any]) -> TypeIs[AnyNdArray[ShapeT, np.dtype[np.float32]]]:
+    """Check if the given array's dtype is :obj:`numpy.float32`
+    """
+    return arr.dtype == np.float32
+
+def is_float64_array(arr: AnyNdArray[ShapeT, Any]) -> TypeIs[AnyNdArray[ShapeT, np.dtype[np.float64]]]:
+    """Check if the given array's dtype is :obj:`numpy.float64`
+    """
+    return arr.dtype == np.float64
 
 def is_index_array(arr: AnyNdArray[ShapeT, Any]) -> TypeIs[IndexArray[ShapeT]]:
     """Check if the given array's dtype is an integer type suitable for indexing
