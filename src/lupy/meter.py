@@ -130,7 +130,7 @@ class Meter:
         while write_index < num_blocks:
             while self.can_write() and write_index < num_blocks:
                 _block_samples = ensure_2d_array(block_samples[:,write_index,:])
-                _block_samples = cast(Float2dArray|Float2dArray32, _block_samples)
+                _block_samples = cast('Float2dArray|Float2dArray32', _block_samples)
                 self.write(_block_samples)
                 write_index += 1
 
