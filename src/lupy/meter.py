@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TypeVar, cast
+from typing import cast
 
 import numpy as np
 
@@ -11,7 +11,8 @@ from .typeutils import is_2d_array, ensure_2d_array
 __all__ = ('Meter',)
 
 
-FloatDtypeT = TypeVar('FloatDtypeT', np.dtype[np.float32], np.dtype[np.float64], covariant=True)
+FloatDtypeT = np.dtype[np.float32] | np.dtype[np.float64]
+
 
 class Meter:
     """
