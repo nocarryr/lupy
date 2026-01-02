@@ -61,10 +61,10 @@ def sosfilt(sos: SosCoeff, x: Float2dArray, zi: SosZI, axis: int = -1) -> tuple[
         coefficients and the last three providing the denominator
         coefficients.
     x : ndarray
-        An N-dimensional input array.
+        A 2-dimensional input array of dtype :obj:`~numpy.float64`.
     zi : ndarray
         Initial conditions for the cascaded filter delays.  It is a (at
-        least 2D) vector of shape ``(n_sections, ..., 2, ...)``, where
+        least 2D) array of shape ``(n_sections, ..., 2, ...)``, where
         ``..., 2, ...`` denotes the shape of `x`, but with ``x.shape[axis]``
         replaced by 2.
         Note that these initial conditions are *not* the same as the initial
