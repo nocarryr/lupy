@@ -25,17 +25,15 @@ class ResamplePolyParams(NamedTuple):
     h: Float1dArray
     """The padded FIR filter window"""
     result_slice: tuple[slice, ...]
-    """Slice object to extract the valid output samples from
-    :meth:`_UpFIRDn.apply_filter`
-    """
-
+    """Slice object to extract the valid output samples from the
+    polyphase upfirdn filtering step."""
 # Adapted from:
 # https://github.com/scipy/scipy/blob/87c46641a8b3b5b47b81de44c07b840468f7ebe7/scipy/signal/_signaltools.py#L3363-L3384
 #
 def calc_tp_fir_win(upsample_factor: int) -> Float1dArray:
     """Calculate an appropriate low-pass FIR filter for over-sampling
 
-    Methods match that of :func:`scipy.signal.resample_poly`
+    The method matches that of :func:`scipy.signal.resample_poly`
     """
 
     up, down = upsample_factor, 1
@@ -67,8 +65,8 @@ def calc_resample_poly_params(
 ) -> ResamplePolyParams:
     """Calculate parameters for polyphase resampling
 
-    Matches that of :func:`scipy.signal.resample_poly` but assumes window is
-    already provided.
+    The parameters match those of :func:`scipy.signal.resample_poly` but assume
+    that the window is already provided.
 
     Also assumes 2D input with the filter applied along the last axis.
     """
