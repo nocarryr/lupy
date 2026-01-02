@@ -35,17 +35,52 @@ def validate_sos(sos: Float2dArray) -> SosCoeff:
 # Adapted from:
 # https://github.com/scipy/scipy/blob/e29dcb65a2040f04819b426a04b60d44a8f69c04/scipy/signal/_signaltools.py#L4601-L4715
 #
-def sosfilt(sos: SosCoeff, x: Float2dArray, axis: int, zi: SosZI) -> tuple[Float2dArray, SosZI]:
-    """Filter data along one dimension using a digital filter defined by
-    second-order sections.
+def sosfilt(sos: SosCoeff, x: Float2dArray, zi: SosZI, axis: int = -1) -> tuple[Float2dArray, SosZI]:
+    """
+    Filter data along one dimension using cascaded second-order sections.
 
-    This is a stripped down version of :func:`scipy.signal.sosfilt` to reduce
-    overhead in repeated calls.
+    Filter a data sequence, `x`, using a digital IIR filter defined by
+    `sos`.
 
-    It removes input validation and assumes 2D input with filtering along the last axis.
+    .. note::
 
-    It also requires the initial conditions *zi* to be provided and returns
-    the final conditions.
+        This is a stripped down version of :func:`scipy.signal.sosfilt` to reduce
+        overhead in repeated calls.
+        It removes input validation and assumes 2D input of type
+        :obj:`~numpy.float64`.
+
+        It also requires the initial conditions *zi* to be provided and always
+        returns the final conditions *zf*.
+
+    Parameters
+    ----------
+    sos : ndarray
+        Array of second-order filter coefficients, must have shape
+        ``(n_sections, 6)``. Each row corresponds to a second-order
+        section, with the first three columns providing the numerator
+        coefficients and the last three providing the denominator
+        coefficients.
+    x : ndarray
+        An N-dimensional input array.
+    zi : ndarray
+        Initial conditions for the cascaded filter delays.  It is a (at
+        least 2D) vector of shape ``(n_sections, ..., 2, ...)``, where
+        ``..., 2, ...`` denotes the shape of `x`, but with ``x.shape[axis]``
+        replaced by 2.
+        Note that these initial conditions are *not* the same as the initial
+        conditions given by `lfiltic` or `lfilter_zi`.
+    axis : int, optional
+        The axis of the input data array along which to apply the
+        linear filter. The filter is applied to each subarray along
+        this axis.  Default is -1.
+
+    Returns
+    -------
+    y : ndarray
+        The output of the digital filter.
+    zf : ndarray
+        The final filter delay values.
+
     """
     n_sections = sos.shape[0]
     x_zi_shape = list(x.shape)
