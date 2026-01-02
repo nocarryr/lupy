@@ -8,7 +8,6 @@ else:
     from typing import Self
 
 from dataclasses import dataclass
-import math
 
 import numpy as np
 from scipy import signal
@@ -16,7 +15,7 @@ from scipy import signal
 
 from .types import *
 from .signalutils.sosfilt import sosfilt, validate_sos
-from .signalutils.resample import ResamplePoly
+from .signalutils.resample import ResamplePoly, calc_tp_fir_win
 from .typeutils import (
     ensure_1d_array, ensure_2d_array, is_3d_array,
 )
@@ -112,30 +111,6 @@ MOMENTARY_HP_COEFF = Coeff(
 )
 
 
-# Taken from:
-# https://github.com/scipy/scipy/blob/87c46641a8b3b5b47b81de44c07b840468f7ebe7/scipy/signal/_signaltools.py#L3363-L3384
-#
-def calc_tp_fir_win(upsample_factor: int) -> Float1dArray:
-    """Calculate an appropriate low-pass FIR filter for over-sampling
-
-    Methods match that of :func:`scipy.signal.resample_poly`
-    """
-
-    up, down = upsample_factor, 1
-    g_ = math.gcd(up, down)
-    up //= g_
-    down //= g_
-    max_rate = max(up, down)
-    f_c = 1 / max_rate
-    half_len = 10 * max_rate
-    window = cast(str, ('kaiser', 5.0))
-    h = signal.firwin(
-        half_len + 1,       # len == 41 with upsample factor of 4
-        f_c,
-        window=window
-    )
-    h = h.astype(np.float64)
-    return ensure_1d_array(h)
 
 
 def _check_filt_input(x: Float1dArray|Float2dArray) -> Float2dArray:

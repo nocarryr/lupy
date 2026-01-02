@@ -3,6 +3,7 @@ from typing import NamedTuple
 import math
 
 import numpy as np
+from scipy.signal import firwin
 from scipy.signal._upfirdn_apply import _output_len, _apply, mode_enum
 
 from ..types import Float1dArray, Float2dArray
@@ -26,6 +27,32 @@ class ResamplePolyParams(NamedTuple):
     """Slice object to extract the valid output samples from
     :meth:`_UpFIRDn.apply_filter`
     """
+
+# Adapted from:
+# https://github.com/scipy/scipy/blob/87c46641a8b3b5b47b81de44c07b840468f7ebe7/scipy/signal/_signaltools.py#L3363-L3384
+#
+def calc_tp_fir_win(upsample_factor: int) -> Float1dArray:
+    """Calculate an appropriate low-pass FIR filter for over-sampling
+
+    Methods match that of :func:`scipy.signal.resample_poly`
+    """
+
+    up, down = upsample_factor, 1
+    g_ = math.gcd(up, down)
+    up //= g_
+    down //= g_
+    max_rate = max(up, down)
+    f_c = 1 / max_rate
+    half_len = 10 * max_rate
+    window = cast(str, ('kaiser', 5.0))
+    h = firwin(
+        half_len + 1,       # len == 41 with upsample factor of 4
+        f_c,
+        window=window
+    )
+    h = h.astype(np.float64)
+    return ensure_1d_array(h)
+
 
 
 # https://github.com/scipy/scipy/blob/e29dcb65a2040f04819b426a04b60d44a8f69c04/scipy/signal/_signaltools.py#L3547-L3759
