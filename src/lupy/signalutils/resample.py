@@ -6,11 +6,9 @@ import numpy as np
 from scipy.signal import firwin
 from scipy.signal._upfirdn_apply import _output_len, _apply, mode_enum
 
-from ..types import Any1dArray, Any2dArray
+from ..types import Float1dArray, Float2dArray
 from ..typeutils import ensure_1d_array, ensure_2d_array
 
-Float641dArray = Any1dArray[np.dtype[np.float64]]
-Float642dArray = Any2dArray[np.dtype[np.float64]]
 
 
 class ResamplePolyParams(NamedTuple):
@@ -24,7 +22,7 @@ class ResamplePolyParams(NamedTuple):
     """Number of input samples"""
     n_out: int
     """Number of output samples"""
-    h: Float641dArray
+    h: Float1dArray
     """The padded FIR filter window"""
     result_slice: tuple[slice, ...]
     """Slice object to extract the valid output samples from
@@ -34,7 +32,7 @@ class ResamplePolyParams(NamedTuple):
 # Adapted from:
 # https://github.com/scipy/scipy/blob/87c46641a8b3b5b47b81de44c07b840468f7ebe7/scipy/signal/_signaltools.py#L3363-L3384
 #
-def calc_tp_fir_win(upsample_factor: int) -> Float641dArray:
+def calc_tp_fir_win(upsample_factor: int) -> Float1dArray:
     """Calculate an appropriate low-pass FIR filter for over-sampling
 
     Methods match that of :func:`scipy.signal.resample_poly`
@@ -65,7 +63,7 @@ def calc_resample_poly_params(
     up: int,
     down: int,
     n_samples: int,
-    window: Float641dArray
+    window: Float1dArray
 ) -> ResamplePolyParams:
     """Calculate parameters for polyphase resampling
 
@@ -125,7 +123,7 @@ class ResamplePoly:
         up: int,
         down: int,
         num_channels: int,
-        window: Float641dArray,
+        window: Float1dArray,
         num_input_samples: int = DEFAULT_INPUT_SAMPLES,
     ) -> None:
         self._up = up
@@ -197,7 +195,7 @@ class ResamplePoly:
         """Output shape for :meth:`apply`"""
         return (self.num_channels, self.num_output_samples)
 
-    def apply(self, x: Float642dArray) -> Float642dArray:
+    def apply(self, x: Float2dArray) -> Float2dArray:
         """Resample the input array using polyphase filtering
 
         The input array must be 2D with shape ``(num_channels, num_input_samples)``.
@@ -217,7 +215,7 @@ class ResamplePoly:
 # Adapted from:
 # https://github.com/scipy/scipy/blob/e29dcb65a2040f04819b426a04b60d44a8f69c04/scipy/signal/_upfirdn.py#L46-L63
 #
-def _pad_h(h: Float641dArray, up: int) -> Float641dArray:
+def _pad_h(h: Float1dArray, up: int) -> Float1dArray:
     """Store coefficients in a transposed, flipped arrangement.
 
     For example, suppose upRate is 3, and the
@@ -249,7 +247,7 @@ class _UpFIRDn:
 
     def __init__(
         self,
-        h: Float641dArray,
+        h: Float1dArray,
         up: int,
         down: int,
         input_shape: tuple[int, int]
@@ -278,7 +276,7 @@ class _UpFIRDn:
         )
         self._out_array = np.zeros(self._output_shape, dtype=self.dtype, order='C')
 
-    def apply_filter(self, x: Float642dArray) -> Float642dArray:
+    def apply_filter(self, x: Float2dArray) -> Float2dArray:
         """Apply the prepared filter to the specified axis of N-D signal x."""
         out = self._out_array
         out[...] = 0
