@@ -55,7 +55,9 @@ def calc_tp_fir_win(upsample_factor: int) -> Float1dArray:
 
 
 
+# Adapted from:
 # https://github.com/scipy/scipy/blob/e29dcb65a2040f04819b426a04b60d44a8f69c04/scipy/signal/_signaltools.py#L3547-L3759
+#
 def calc_resample_poly_params(
     up: int,
     down: int,
@@ -214,8 +216,9 @@ class ResamplePoly:
         return ensure_2d_array(r)
 
 
-
-#https://github.com/scipy/scipy/blob/e29dcb65a2040f04819b426a04b60d44a8f69c04/scipy/signal/_upfirdn.py#L45C1-L104C19
+# Adapted from:
+# https://github.com/scipy/scipy/blob/e29dcb65a2040f04819b426a04b60d44a8f69c04/scipy/signal/_upfirdn.py#L46-L63
+#
 def _pad_h(h, up):
     """Store coefficients in a transposed, flipped arrangement.
 
@@ -238,6 +241,9 @@ def _pad_h(h, up):
 
 
 
+# Adapted from:
+# https://github.com/scipy/scipy/blob/e29dcb65a2040f04819b426a04b60d44a8f69c04/scipy/signal/_upfirdn.py#L72-L104
+#
 class _UpFIRDn:
     """Helper for resampling."""
     mode = mode_enum('constant')
