@@ -14,7 +14,7 @@ import threading
 import numpy as np
 
 from .types import *
-from .typeutils import ensure_2d_array
+from .typeutils import ensure_2d_array, is_float64_array
 from .filters import FilterGroup, HS_COEFF, HP_COEFF
 
 T = TypeVar('T')
@@ -261,7 +261,7 @@ class BaseSampler(ABC):
         """Calculate the :class:`BufferShape` for this sampler"""
         raise NotImplementedError
 
-    def write(self, samples: Float2dArray, apply_filter: bool = True) -> None:
+    def write(self, samples: Float2dArray|Float2dArray32, apply_filter: bool = True) -> None:
         """Store input data into the internal buffer.
 
         The input data must be of shape ``(num_channels, block_size)``
@@ -269,7 +269,7 @@ class BaseSampler(ABC):
         assert samples.shape == (self.num_channels, self.block_size)
         self._write(samples)
 
-    def _write(self, samples: Float2dArray) -> None:
+    def _write(self, samples: Float2dArray|Float2dArray32) -> None:
         sl = self.write_slice
         self.write_view[:,sl.index,:] = samples
         sl.index += 1
@@ -347,7 +347,7 @@ class Sampler(BaseSampler):
     def _calc_buffer_shape(self) -> BufferShape:
         return calc_buffer_length(int(self.sample_rate), self.block_size)
 
-    def write(self, samples: Float2dArray, apply_filter: bool = True) -> None:
+    def write(self, samples: Float2dArray|Float2dArray32, apply_filter: bool = True) -> None:
         """Store input data into the internal buffer, optionally applying the
         :attr:`pre-filter <filter>`
 
@@ -355,6 +355,8 @@ class Sampler(BaseSampler):
         """
         assert samples.shape == (self.num_channels, self.block_size)
         if apply_filter:
+            if not is_float64_array(samples):
+                samples = samples.astype(np.float64)
             samples = self.filter(samples)
 
         super().write(samples)
@@ -491,7 +493,7 @@ class ThreadSafeSampler(Sampler, LockContext):
         super().__init__(block_size, num_channels, sample_rate)
         self._lock = threading.RLock()
 
-    def _write(self, samples: Float2dArray) -> None:
+    def _write(self, samples: Float2dArray|Float2dArray32) -> None:
         with self:
             super()._write(samples)
 
@@ -510,7 +512,7 @@ class ThreadSafeTruePeakSampler(TruePeakSampler, LockContext):
         super().__init__(block_size, num_channels, sample_rate)
         self._lock = threading.RLock()
 
-    def _write(self, samples: Float2dArray) -> None:
+    def _write(self, samples: Float2dArray|Float2dArray32) -> None:
         with self:
             super()._write(samples)
 

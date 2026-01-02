@@ -11,7 +11,7 @@ import numpy.typing as npt
 __all__ = (
     'Floating', 'Complex', 'MeterDtype', 'MeterArray', 'SosCoeff', 'SosZI',
     'AnyArray', 'BoolArray', 'IndexArray', 'FloatArray', 'ComplexArray',
-    'Float1dArray', 'Float2dArray', 'Float3dArray', 'AnyFloatArray',
+    'Float1dArray', 'Float2dArray', 'Float3dArray', 'Float2dArray32', 'AnyFloatArray',
     'AnyNdArray', 'Any1dArray', 'Any2dArray', 'Any3dArray', 'ShapeT',
 )
 
@@ -49,14 +49,16 @@ type Any3dArray[_Dt: (_AnyDtype)] = _3DArray[_Dt]
 
 BoolArray = AnyNdArray[ShapeT, np.dtype[np.bool_]]
 IndexArray = AnyNdArray[ShapeT, np.dtype[np.intp]]
-FloatArray = AnyNdArray[ShapeT, np.dtype[Floating]]
+FloatArray = AnyNdArray[ShapeT, np.dtype[np.float64]]
 ComplexArray = AnyNdArray[ShapeT, np.dtype[Complex]]
 
 AnyFloatArray = AnyNdArray[ShapeT, np.dtype[Floating]]
 
-Float1dArray = Any1dArray[np.dtype[Floating]]
-Float2dArray = Any2dArray[np.dtype[Floating]]
-Float3dArray = Any3dArray[np.dtype[Floating]]
+Float1dArray = Any1dArray[np.dtype[np.float64]]
+Float2dArray = Any2dArray[np.dtype[np.float64]]
+Float3dArray = Any3dArray[np.dtype[np.float64]]
+
+Float2dArray32 = Any2dArray[np.dtype[np.float32]]
 
 SosCoeff = np.ndarray[tuple[int, Literal[6]], np.dtype[np.float64]]
 SosZI = np.ndarray[tuple[int, int, Literal[2]], np.dtype[np.float64]]
