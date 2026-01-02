@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import cast
+from typing import Union, cast
 
 import numpy as np
 
@@ -11,7 +11,7 @@ from .typeutils import is_2d_array, ensure_2d_array
 __all__ = ('Meter',)
 
 
-FloatDtypeT = np.dtype[np.float32] | np.dtype[np.float64]
+FloatDtypeT = Union[np.dtype[np.float32], np.dtype[np.float64]]
 
 
 class Meter:
