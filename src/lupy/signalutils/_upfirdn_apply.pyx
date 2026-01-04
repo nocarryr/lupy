@@ -45,6 +45,16 @@ np.import_array()
 ctypedef double complex double_complex
 ctypedef float complex float_complex
 
+ctypedef int IsZeroPad_t
+ctypedef float IsNotZeroPad_t
+
+# This fused type is being used as a flag for the inner `_apply_impl`
+# to avoid unnecessary condition checks at runtime.
+ctypedef fused ZeroPad_ft:
+    IsZeroPad_t
+    IsNotZeroPad_t
+
+
 ctypedef fused DTYPE_t:
     # Eventually we could add "object", too, but then we'd lose the "nogil"
     # on the _apply_impl function.
@@ -302,6 +312,9 @@ def _apply(
     cdef DTYPE_t *out_ptr
     cdef int retval
     cdef np.intp_t len_out = out.shape[axis]
+    cdef bint zpad = (mode == MODE_CONSTANT and cval == 0)
+    cdef IsZeroPad_t zpad_flag = 0
+    cdef IsNotZeroPad_t not_zpad_flag = 1
 
     data_info.ndim = data.ndim
     data_info.strides = <np.intp_t *> data.strides
@@ -316,10 +329,19 @@ def _apply(
     out_ptr = <DTYPE_t*> out.data
 
     with nogil:
-        retval = _apply_axis_inner(data_ptr, data_info,
-                                   filter_ptr, len_h,
-                                   out_ptr, output_info,
-                                   up, down, axis, <MODE>mode, cval, len_out)
+        # Select the proper specialization for zero-padding
+        if zpad:
+            retval = _apply_axis_inner(data_ptr, data_info,
+                                       filter_ptr, len_h,
+                                       out_ptr, output_info,
+                                       up, down, axis, <MODE>mode, cval, len_out,
+                                       zpad_flag)
+        else:
+            retval = _apply_axis_inner(data_ptr, data_info,
+                                       filter_ptr, len_h,
+                                       out_ptr, output_info,
+                                       up, down, axis, <MODE>mode, cval, len_out,
+                                       not_zpad_flag)
     if retval == 1:
         raise ValueError("failure in _apply_axis_inner: data and output arrays"
                          " must have the same number of dimensions.")
@@ -346,7 +368,8 @@ cdef int _apply_axis_inner(
     const np.intp_t axis,
     const MODE mode,
     const DTYPE_t cval,
-    const np.intp_t len_out
+    const np.intp_t len_out,
+    ZeroPad_ft zpad
 ) noexcept nogil:
     cdef np.intp_t i
     cdef np.intp_t num_loops = 1
@@ -426,7 +449,7 @@ cdef int _apply_axis_inner(
         # call 1D upfirdn
         _apply_impl(data_row, data_info.shape[axis],
                     h_trans_flip, len_h, output_row, up, down, mode, cval,
-                    len_out)
+                    len_out, zpad)
 
         # Copy from temporary output if necessary
         if make_temp_output:
@@ -453,7 +476,8 @@ cdef void _apply_impl(
     const np.intp_t down,
     const MODE mode,
     const DTYPE_t cval,
-    const np.intp_t len_out
+    const np.intp_t len_out,
+    ZeroPad_ft zpad
 ) noexcept nogil:
     cdef np.intp_t h_per_phase = len_h // up
     cdef np.intp_t padded_len = len_x + h_per_phase - 1
@@ -463,9 +487,7 @@ cdef void _apply_impl(
     cdef np.intp_t t = 0
     cdef np.intp_t x_conv_idx = 0
     cdef DTYPE_t xval
-    cdef bint zpad
 
-    zpad = (mode == MODE_CONSTANT and cval == 0)
     if len_out == 0:
         return
 
@@ -473,7 +495,9 @@ cdef void _apply_impl(
         h_idx = t * h_per_phase
         x_conv_idx = x_idx - h_per_phase + 1
         if x_conv_idx < 0:
-            if zpad:
+            # This condition is not compiled in at runtime.
+            # It's only applied to the matching fused type specialization.
+            if ZeroPad_ft is IsZeroPad_t:
                 h_idx -= x_conv_idx
             else:
                 for x_conv_idx in range(x_conv_idx, 0):
@@ -499,9 +523,19 @@ cdef void _apply_impl(
         x_conv_idx = x_idx - h_per_phase + 1
         for x_conv_idx in range(x_conv_idx, x_idx + 1):
             if x_conv_idx >= len_x:
-                xval = _extend_right(x, x_conv_idx, len_x, mode, cval)
+                # This condition is not compiled in at runtime.
+                # It's only applied to the matching fused type specialization.
+                if ZeroPad_ft is IsZeroPad_t:
+                    xval = 0
+                else:
+                    xval = _extend_right(x, x_conv_idx, len_x, mode, cval)
             elif x_conv_idx < 0:
-                xval = _extend_left(x, x_conv_idx, len_x, mode, cval)
+                # This condition is not compiled in at runtime.
+                # It's only applied to the matching fused type specialization.
+                if ZeroPad_ft is IsZeroPad_t:
+                    xval = 0
+                else:
+                    xval = _extend_left(x, x_conv_idx, len_x, mode, cval)
             else:
                 xval = x[x_conv_idx]
             out[y_idx] += xval * h_trans_flip[h_idx]
