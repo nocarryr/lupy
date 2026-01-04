@@ -107,8 +107,13 @@ cpdef MODE mode_enum(mode):
 @cython.cdivision(True)  # faster modulo
 @cython.boundscheck(False)  # designed to stay within bounds
 @cython.wraparound(False)  # we don't use negative indexing
-cdef DTYPE_t _extend_left(DTYPE_t *x, np.intp_t idx, np.intp_t len_x,
-                          MODE mode, DTYPE_t cval) noexcept nogil:
+cdef DTYPE_t _extend_left(
+    const DTYPE_t *x,
+    np.intp_t idx,
+    const np.intp_t len_x,
+    const MODE mode,
+    const DTYPE_t cval
+) noexcept nogil:
     cdef DTYPE_t le = 0.
     cdef DTYPE_t lin_slope = 0.
 
@@ -173,8 +178,13 @@ cdef DTYPE_t _extend_left(DTYPE_t *x, np.intp_t idx, np.intp_t len_x,
 @cython.cdivision(True)  # faster modulo
 @cython.boundscheck(False)  # designed to stay within bounds
 @cython.wraparound(False)  # we don't use negative indexing
-cdef DTYPE_t _extend_right(DTYPE_t *x, np.intp_t idx, np.intp_t len_x,
-                           MODE mode, DTYPE_t cval) noexcept nogil:
+cdef DTYPE_t _extend_right(
+    const DTYPE_t *x,
+    np.intp_t idx,
+    const np.intp_t len_x,
+    const MODE mode,
+    const DTYPE_t cval
+) noexcept nogil:
     # note: idx will be >= len_x
     cdef DTYPE_t re = 0.
     cdef DTYPE_t lin_slope = 0.
@@ -274,9 +284,16 @@ cpdef _pad_test(np.ndarray[DTYPE_t] data, np.intp_t npre=0, np.intp_t npost=0,
     return np.asarray(out)
 
 
-def _apply(np.ndarray data, const DTYPE_t [::1] h_trans_flip, np.ndarray out,
-           np.intp_t up, np.intp_t down, np.intp_t axis, np.intp_t mode,
-           DTYPE_t cval):
+def _apply(
+    np.ndarray data,
+    const DTYPE_t [::1] h_trans_flip,
+    np.ndarray out,
+    const np.intp_t up,
+    const np.intp_t down,
+    const np.intp_t axis,
+    const np.intp_t mode,
+    const DTYPE_t cval
+):
     cdef ArrayInfo data_info, output_info
     cdef np.intp_t len_h = h_trans_flip.size
     cdef DTYPE_t *data_ptr
@@ -317,12 +334,20 @@ def _apply(np.ndarray data, const DTYPE_t [::1] h_trans_flip, np.ndarray out,
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int _apply_axis_inner(DTYPE_t* data, ArrayInfo data_info,
-                           DTYPE_t* h_trans_flip, np.intp_t len_h,
-                           DTYPE_t* output, ArrayInfo output_info,
-                           np.intp_t up, np.intp_t down,
-                           np.intp_t axis, MODE mode, DTYPE_t cval,
-                           np.intp_t len_out) noexcept nogil:
+cdef int _apply_axis_inner(
+    const DTYPE_t* data,
+    const ArrayInfo data_info,
+    const DTYPE_t* h_trans_flip,
+    const np.intp_t len_h,
+    DTYPE_t* output,
+    const ArrayInfo output_info,
+    const np.intp_t up,
+    const np.intp_t down,
+    const np.intp_t axis,
+    const MODE mode,
+    const DTYPE_t cval,
+    const np.intp_t len_out
+) noexcept nogil:
     cdef np.intp_t i
     cdef np.intp_t num_loops = 1
     cdef bint make_temp_data, make_temp_output
@@ -418,10 +443,18 @@ cdef int _apply_axis_inner(DTYPE_t* data, ArrayInfo data_info,
 @cython.cdivision(True)  # faster modulo
 @cython.boundscheck(False)  # designed to stay within bounds
 @cython.wraparound(False)  # we don't use negative indexing
-cdef void _apply_impl(DTYPE_t *x, np.intp_t len_x, DTYPE_t *h_trans_flip,
-                      np.intp_t len_h, DTYPE_t *out,
-                      np.intp_t up, np.intp_t down, MODE mode,
-                      DTYPE_t cval, np.intp_t len_out) noexcept nogil:
+cdef void _apply_impl(
+    const DTYPE_t *x,
+    const np.intp_t len_x,
+    const DTYPE_t *h_trans_flip,
+    const np.intp_t len_h,
+    DTYPE_t *out,
+    const np.intp_t up,
+    const np.intp_t down,
+    const MODE mode,
+    const DTYPE_t cval,
+    const np.intp_t len_out
+) noexcept nogil:
     cdef np.intp_t h_per_phase = len_h // up
     cdef np.intp_t padded_len = len_x + h_per_phase - 1
     cdef np.intp_t x_idx = 0

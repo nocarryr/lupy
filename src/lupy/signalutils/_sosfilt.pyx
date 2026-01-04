@@ -23,9 +23,10 @@ ctypedef fused DTYPE_floating_t:
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void _sosfilt_float(DTYPE_floating_t [:, ::1] sos,
+cdef void _sosfilt_float(const DTYPE_floating_t [:, ::1] sos,
                          DTYPE_floating_t [:, ::1] x,
-                         DTYPE_floating_t [:, :, ::1] zi) noexcept nogil:
+                         DTYPE_floating_t [:, :, ::1] zi,
+                         const DTYPE_floating_t const_1) noexcept nogil:
     # Modifies x and zi in place
     cdef Py_ssize_t n_signals = x.shape[0]
     cdef Py_ssize_t n_samples = x.shape[1]
@@ -33,7 +34,6 @@ cdef void _sosfilt_float(DTYPE_floating_t [:, ::1] sos,
     cdef Py_ssize_t i, n, s
     cdef DTYPE_floating_t x_new, x_cur
     cdef DTYPE_floating_t[:, ::1] zi_slice
-    cdef DTYPE_floating_t const_1 = 1.0
 
     # jumping through a few memoryview hoops to reduce array lookups,
     # the original version is still in the gil version below.
@@ -53,8 +53,9 @@ cdef void _sosfilt_float(DTYPE_floating_t [:, ::1] sos,
             x[i, n] = x_cur
 
 
-def _sosfilt(DTYPE_floating_t [:, ::1] sos,
+def _sosfilt(const DTYPE_floating_t [:, ::1] sos,
              DTYPE_floating_t [:, ::1] x,
              DTYPE_floating_t [:, :, ::1] zi):
+    cdef DTYPE_floating_t const_1 = 1.0
     with nogil:
-        _sosfilt_float(sos, x, zi)
+        _sosfilt_float(sos, x, zi, const_1)
