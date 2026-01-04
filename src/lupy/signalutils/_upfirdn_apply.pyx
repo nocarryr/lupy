@@ -308,7 +308,6 @@ def _apply(
     cdef ArrayInfo data_info, output_info
     cdef np.intp_t len_h = h_trans_flip.shape[0]
     cdef DTYPE_t *data_ptr
-    cdef DTYPE_t *filter_ptr
     cdef DTYPE_t *out_ptr
     cdef int retval
     cdef np.intp_t len_out = out.shape[axis]
@@ -325,20 +324,19 @@ def _apply(
     output_info.shape = <np.intp_t *> out.shape
 
     data_ptr = <DTYPE_t*> data.data
-    filter_ptr = <DTYPE_t*> &h_trans_flip[0]
     out_ptr = <DTYPE_t*> out.data
 
     with nogil:
         # Select the proper specialization for zero-padding
         if zpad:
             retval = _apply_axis_inner(data_ptr, data_info,
-                                       filter_ptr, len_h,
+                                       h_trans_flip, len_h,
                                        out_ptr, output_info,
                                        up, down, axis, <MODE>mode, cval, len_out,
                                        zpad_flag)
         else:
             retval = _apply_axis_inner(data_ptr, data_info,
-                                       filter_ptr, len_h,
+                                       h_trans_flip, len_h,
                                        out_ptr, output_info,
                                        up, down, axis, <MODE>mode, cval, len_out,
                                        not_zpad_flag)
@@ -359,7 +357,7 @@ def _apply(
 cdef int _apply_axis_inner(
     const DTYPE_t* data,
     const ArrayInfo data_info,
-    const DTYPE_t* h_trans_flip,
+    const DTYPE_t [::1] h_trans_flip,
     const np.intp_t len_h,
     DTYPE_t* output,
     const ArrayInfo output_info,
@@ -469,7 +467,7 @@ cdef int _apply_axis_inner(
 cdef void _apply_impl(
     const DTYPE_t *x,
     const np.intp_t len_x,
-    const DTYPE_t *h_trans_flip,
+    const DTYPE_t [::1] h_trans_flip,
     const np.intp_t len_h,
     DTYPE_t *out,
     const np.intp_t up,
