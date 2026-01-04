@@ -295,7 +295,7 @@ def _apply(
     const DTYPE_t cval
 ):
     cdef ArrayInfo data_info, output_info
-    cdef np.intp_t len_h = h_trans_flip.size
+    cdef np.intp_t len_h = h_trans_flip.shape[0]
     cdef DTYPE_t *data_ptr
     cdef DTYPE_t *filter_ptr
     cdef DTYPE_t *out_ptr
