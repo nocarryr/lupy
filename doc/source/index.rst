@@ -31,7 +31,11 @@ Installation
 Pip
 ---
 
-Pip install not yet available, but will come soon
+Pip install not yet available since there is another project named "lupy" on
+the Python Package Index (PyPI).
+
+Renaming and/or publishing to PyPI will hopefully come soon.
+
 
 .. .. code-block:: bash
 

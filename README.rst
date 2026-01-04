@@ -1,14 +1,67 @@
 lupy
-====
+####
 
 Python library for `Audio Loudness`_ measurements.
 Yet another implementation of `ITU-R BS.1770`_, `ITU-R BS.1771`_,
 `EBU Tech 3341`_ and `EBU Tech 3342`_.
 
 
+Features
+========
+
+* Supports calculations for the following measurements
+
+  * Integrated Loudness
+  * Short-Term Loudness
+  * Momentary Loudness
+  * Loudness Range (LRA)
+  * True Peak
+
+* Handles various input lengths suitable for most audio engines
+
+
+
+Installation
+============
+
+Pip
+---
+
+Pip install not yet available since there is another project named "lupy" on
+the Python Package Index (PyPI).
+
+Renaming and/or publishing to PyPI will hopefully come soon.
+
+
+..
+
+.. .. code-block:: bash
+
+..    $ pip install lupy
+
+
+
+Dependencies
+============
+
+* numpy
+* scipy
+
+
+Project Links
+=============
+
+
+Homepage
+   https://github.com/nocarryr/lupy
+
+Documentation
+   https://lupy-nocarryr.readthedocs.io/
+
+
 
 License
--------
+=======
 
 This project is licensed under the MIT License - see the `LICENSE`_ file for details.
 
