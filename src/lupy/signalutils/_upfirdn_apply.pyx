@@ -117,8 +117,11 @@ cdef DTYPE_t _extend_left(
     cdef DTYPE_t le = 0.
     cdef DTYPE_t lin_slope = 0.
 
+    if mode == MODE_CONSTANT:
+        return cval
+
     # note: idx will be < 0
-    if mode == MODE_SYMMETRIC:
+    elif mode == MODE_SYMMETRIC:
         if (-idx) < len_x:
             return x[-idx - 1]
         else:
@@ -169,8 +172,6 @@ cdef DTYPE_t _extend_left(
                 return le - (x[len_x - 1] - x[len_x - 2 - (idx - (len_x - 1))])
     elif mode == MODE_CONSTANT_EDGE:
         return x[0]
-    elif mode == MODE_CONSTANT:
-        return cval
     else:
         return -1.
 
@@ -189,7 +190,9 @@ cdef DTYPE_t _extend_right(
     cdef DTYPE_t re = 0.
     cdef DTYPE_t lin_slope = 0.
 
-    if mode == MODE_SYMMETRIC:
+    if mode == MODE_CONSTANT:
+        return cval
+    elif mode == MODE_SYMMETRIC:
         if idx < (2 * len_x):
             return x[len_x - 1 - (idx - len_x)]
         else:
@@ -235,8 +238,6 @@ cdef DTYPE_t _extend_right(
                 return re + (x[idx] - x[0])
             else:
                 return re + (x[len_x - 1] - x[len_x - 1 - (idx - (len_x - 1))])
-    elif mode == MODE_CONSTANT:
-        return cval
     else:
         return -1.
 
