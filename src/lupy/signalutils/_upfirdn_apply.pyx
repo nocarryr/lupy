@@ -328,7 +328,6 @@ def _apply(
              "but data_info.ndim is only {}.".format(data_info.ndim)))
     elif retval == 3 or retval == 4:
         raise MemoryError()
-    return out
 
 
 @cython.cdivision(True)
