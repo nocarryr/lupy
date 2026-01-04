@@ -5,11 +5,11 @@ np.import_array()
 
 ctypedef fused DTYPE_floating_t:
     float
-    float complex
+    # float complex
     double
-    double complex
+    # double complex
     long double
-    long double complex
+    # long double complex
 
 
 
