@@ -4,8 +4,8 @@ import math
 
 import numpy as np
 from scipy.signal import firwin
-from scipy.signal._upfirdn_apply import _output_len, _apply, mode_enum
 
+from ._upfirdn_apply import _output_len, _apply, mode_enum
 from ..types import Float1dArray, Float2dArray
 from ..typeutils import ensure_1d_array, ensure_2d_array
 

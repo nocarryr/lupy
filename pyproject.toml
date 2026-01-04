@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools", "cython>=0.29", "numpy<=2.2.6"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -66,6 +66,7 @@ doc = [
 dev = [
     {include-group = "test"},
     {include-group = "doc"},
+    "cython",
     "ipython",
     "jupyterlab",
     "matplotlib",
