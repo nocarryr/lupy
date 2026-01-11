@@ -51,12 +51,13 @@ def test_filter_benchmark(benchmark, random_samples, num_channels, bench_sample_
 @pytest.mark.benchmark(group='truepeak_filter')
 def test_truepeak_filter_benchmark(benchmark, random_samples, num_channels, bench_sample_rate):
     sample_rate = bench_sample_rate
+    up_sample = 4 if sample_rate < 88200 else 2
     block_size = sample_rate // 100
     assert sample_rate % block_size == 0
 
     samples = random_samples(num_channels, block_size)
     assert samples.shape == (num_channels, block_size)
-    tp_filter = TruePeakFilter(num_channels=num_channels)
+    tp_filter = TruePeakFilter(num_channels=num_channels, upsample_factor=up_sample)
     num_output_samples = samples.shape[1] * tp_filter.upsample_factor
 
     filtered = np.zeros((samples.shape[0], num_output_samples), dtype=np.float64)

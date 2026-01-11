@@ -429,7 +429,10 @@ class TruePeakProcessor(BaseProcessor):
 
     def __init__(self, num_channels: int, sample_rate: int = 48000) -> None:
         super().__init__(num_channels=num_channels, sample_rate=sample_rate)
-        self.resample_filt = TruePeakFilter(num_channels=num_channels)
+        up_sample = 4 if sample_rate < 88100 else 2
+        self.resample_filt = TruePeakFilter(
+            num_channels=num_channels, upsample_factor=up_sample,
+        )
         self.max_peak = SILENCE_DB
         self.current_peaks: Float1dArray = np.zeros(self.num_channels, dtype=np.float64)
         self.current_peaks[:] = SILENCE_DB
