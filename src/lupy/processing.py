@@ -368,7 +368,7 @@ class BlockProcessor(BaseProcessor):
 
         if not st_rel_gated.size:
             return
-        lo_hi = np.percentile(st_rel_gated, [10, 95])
+        lo_hi = np.quantile(st_rel_gated, [0.1, 0.95])
 
         self.lra = lo_hi[1] - lo_hi[0]
 
