@@ -377,6 +377,7 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
 
         Input data must be of shape ``(num_channels, gate_size)``
         """
+        # TODO: Check and raise exception if exceeding MAX_BLOCKS
         assert samples.shape == (self.num_channels, self.gate_size)
 
         tg = 1 / self.gate_size
@@ -484,6 +485,7 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
         self._block_index = 0
 
     def process(self, samples: Float2dArray):
+        # TODO: Check and raise exception if exceeding MAX_TIME_SECONDS
         tp_vals = self.resample_filt(samples)
         tp_amp_max = np.abs(tp_vals).max(axis=1)
         cur_peaks = lk_log10(tp_amp_max, offset=0, base=20)
