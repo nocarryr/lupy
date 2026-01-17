@@ -368,7 +368,7 @@ class BlockProcessor(BaseProcessor):
 
         if not st_rel_gated.size:
             return
-        lo_hi = np.percentile(st_rel_gated, [10, 95])
+        lo_hi = np.quantile(st_rel_gated, [0.1, 0.95])
 
         self.lra = lo_hi[1] - lo_hi[0]
 
@@ -429,7 +429,10 @@ class TruePeakProcessor(BaseProcessor):
 
     def __init__(self, num_channels: int, sample_rate: int = 48000) -> None:
         super().__init__(num_channels=num_channels, sample_rate=sample_rate)
-        self.resample_filt = TruePeakFilter(num_channels=num_channels)
+        up_sample = 4 if sample_rate < 88100 else 2
+        self.resample_filt = TruePeakFilter(
+            num_channels=num_channels, upsample_factor=up_sample,
+        )
         self.max_peak = SILENCE_DB
         self.current_peaks: Float1dArray = np.zeros(self.num_channels, dtype=np.float64)
         self.current_peaks[:] = SILENCE_DB
