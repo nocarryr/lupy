@@ -81,6 +81,7 @@ class Meter:
         )
         self.true_peak_processor = TruePeakProcessor(
             num_channels=num_channels,
+            gate_size=self.true_peak_sampler.gate_size,
             sample_rate=sample_rate,
         )
         self._paused = False

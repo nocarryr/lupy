@@ -424,25 +424,54 @@ class TruePeakProcessor(BaseProcessor):
     max_peak: Floating
     """Maximum :term:`True Peak` value detected"""
 
-    current_peaks: Float1dArray
-    """:term:`True Peak` values per channel from the last processing period"""
+    gate_size: int
+    """The length in samples to process per call"""
 
-    def __init__(self, num_channels: int, sample_rate: int = 48000) -> None:
+    MAX_TIME_SECONDS = 14400.0  # 4 hours
+
+    def __init__(self, num_channels: int, gate_size: int, sample_rate: int = 48000) -> None:
         super().__init__(num_channels=num_channels, sample_rate=sample_rate)
         up_sample = 4 if sample_rate < 88100 else 2
         self.resample_filt = TruePeakFilter(
             num_channels=num_channels, upsample_factor=up_sample,
         )
         self.max_peak = SILENCE_DB
-        self.current_peaks: Float1dArray = np.zeros(self.num_channels, dtype=np.float64)
-        self.current_peaks[:] = SILENCE_DB
+        self.gate_size = gate_size
+        gate_t = gate_size / sample_rate
+        max_blocks = int(self.MAX_TIME_SECONDS / gate_t)
+        t = (np.arange(max_blocks) * gate_t).astype(np.float64)
+        self._t: Float1dArray = ensure_nd_array(t, 1)
+        self._all_tp_values = np.full(
+            (max_blocks, self.num_channels),
+            SILENCE_DB,
+            dtype=np.float64,
+        )
+        self._block_index = 0
+
+    @property
+    def t(self) -> Float1dArray:
+        """The measurement time for each element in :attr:`current_peaks`
+        """
+        return ensure_nd_array(self._t[:self._block_index], 1)
+
+    @property
+    def all_tp_values(self) -> Float2dArray:
+        """All :term:`True Peak` values per channel for each processed block
+        """
+        return ensure_nd_array(self._all_tp_values[:self._block_index, :], 2)
+
+    @property
+    def current_peaks(self) -> Float1dArray:
+        """:term:`True Peak` values per channel from the last processing period"""
+        return self.all_tp_values[-1]
 
     def __call__(self, samples: Float2dArray) -> None:
         self.process(samples)
 
     def reset(self) -> None:
         self.max_peak = SILENCE_DB
-        self.current_peaks[:] = SILENCE_DB
+        self._all_tp_values[0, :] = SILENCE_DB
+        self._block_index = 0
 
     def process(self, samples: Float2dArray):
         tp_vals = self.resample_filt(samples)
@@ -451,4 +480,5 @@ class TruePeakProcessor(BaseProcessor):
         max_peak = cur_peaks.max()
         if max_peak > self.max_peak:
             self.max_peak = max_peak
-        self.current_peaks[:] = cur_peaks
+        self._all_tp_values[self._block_index, :] = cur_peaks
+        self._block_index += 1
