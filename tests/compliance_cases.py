@@ -465,3 +465,19 @@ all_cases = {
         d.items() for d in cases_by_name.values()
     ]
 )}
+
+_tp_case_names = [
+    'Tech3341Compliance.case15',
+    'Tech3341Compliance.case16',
+    'Tech3341Compliance.case17',
+    'Tech3341Compliance.case18',
+    'Tech3341Compliance.case19',
+    'Tech3341Compliance.case20',
+    'Tech3341Compliance.case21',
+    'Tech3341Compliance.case22',
+    'Tech3341Compliance.case23',
+]
+
+true_peak_cases = {
+    name: all_cases[name] for name in _tp_case_names
+}

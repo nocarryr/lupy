@@ -404,6 +404,8 @@ class TruePeakSampler(BaseSampler):
     The chosen duration must be divisible by the sample rate.
     Shorter durations (e.g., 100ms) may be used for faster updates and *should*
     not affect the accuracy of the true peak measurement (within reason).
+
+    The durations tested and confirmed to be accurate are: ``100ms, 200ms, 400ms, 800ms``.
     """
     def __init__(
         self,

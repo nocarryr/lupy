@@ -127,6 +127,48 @@ def test_compliance_cases(sample_rate, compliance_case):
         assert tp_min <= meter.true_peak_max <= tp_max
 
 
+def test_true_peak_gate_blocks(
+    true_peak_gate_duration,
+    sample_rate,
+    true_peak_compliance_case
+):
+    block_size = 128
+    num_channels = 5
+    meter = Meter(
+        block_size=block_size,
+        num_channels=num_channels,
+        sample_rate=sample_rate,
+        true_peak_gate_duration=true_peak_gate_duration,
+    )
+
+    print('generating samples...')
+    src_data = true_peak_compliance_case.generate_samples(
+        int(meter.sample_rate),
+        block_size=block_size,
+    )
+    assert src_data.shape[0] == num_channels
+    N = src_data.shape[1]
+    assert N % block_size == 0
+
+    print(f'processing {N} samples...')
+    meter.write_all(src_data)
+
+    result_array = meter.true_peak_array
+    time_expected = np.arange(len(result_array)) * float(true_peak_gate_duration)
+    assert np.array_equal(result_array['t'], time_expected)
+
+    true_peak_max = meter.true_peak_max
+    print(f'{true_peak_max=}')
+    assert result_array['tp'].max() == true_peak_max
+
+    tp_target = true_peak_compliance_case.result.true_peak
+    assert tp_target is not None
+
+    tp, neg_tol, pos_tol = tp_target
+    tp_min, tp_max = tp - neg_tol, tp + pos_tol
+    assert tp_min <= true_peak_max <= tp_max
+
+
 @pytest.mark.benchmark(group='meter')
 def test_meter_benchmark(sample_rate, random_samples, benchmark):
     block_size = 1024
