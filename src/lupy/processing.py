@@ -471,6 +471,8 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
     @property
     def current_peaks(self) -> np.ndarray[tuple[NumChannelsT], np.dtype[np.float64]]:
         """:term:`True Peak` values per channel from the last processing period"""
+        if self._block_index == 0:
+            return self._all_tp_values[0]
         return self.all_tp_values[-1]
 
     def __call__(self, samples: Float2dArray) -> None:
