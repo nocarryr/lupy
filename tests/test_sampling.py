@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 import numpy as np
 
-from lupy.sampling import Sampler, Slice, calc_buffer_length
+from lupy.sampling import Sampler, TruePeakSampler, calc_buffer_length
 
 # def test_slice():
 
@@ -22,6 +22,20 @@ def test_buffer_length(sample_rate, block_size):
     n_blocks = int(np.round(((T - T_g) / (T_g * step)))+1)
     assert bfr_shape.num_gate_blocks == n_blocks
     assert bfr_shape.gate_size / bfr_shape.pad_size == 4
+
+
+def test_true_peak_gate_size(true_peak_gate_duration, sample_rate, block_size):
+    gate_size = int(true_peak_gate_duration * sample_rate)
+    assert gate_size.denominator == 1
+    assert gate_size > 0
+    sampler = TruePeakSampler(
+        block_size=block_size,
+        num_channels=1,
+        sample_rate=sample_rate,
+        gate_duration=true_peak_gate_duration,
+    )
+    assert sampler.gate_size == gate_size
+    assert sampler.num_gate_blocks >= 1
 
 
 @pytest.fixture(params=[False, True])

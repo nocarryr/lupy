@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Callable
 import os
+from fractions import Fraction
 import numpy as np
 import pytest
 
@@ -51,6 +52,15 @@ def block_size(request) -> int:
 
 @pytest.fixture(params=[1, 2, 3, 5])
 def num_channels(request) -> int:
+    return request.param
+
+@pytest.fixture(params=[
+    Fraction(1, 10),
+    Fraction(2, 10),
+    Fraction(4, 10),
+    Fraction(8, 10),
+])
+def true_peak_gate_duration(request) -> Fraction:
     return request.param
 
 # @pytest.fixture(params=[0, 1, 2])

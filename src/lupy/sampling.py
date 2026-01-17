@@ -389,36 +389,59 @@ class TruePeakSampler(BaseSampler):
     """A :class:`Sampler` subclass for use with true peak sampling
 
     This sampler writes in the same way as :class:`Sampler`, but reads
-    are not overlapping and are always 400ms in length.
+    are not overlapping.
 
-    This is not a requirement for :term:`True Peak` sampling, but was chosen
-    so that reads are aligned with that of the :class:`Sampler` class.
+    The length of each read is determined by :attr:`gate_duration`.
 
     """
     gate_view: Float3dArray
-    """A non-sliding view of :attr:`~BaseSampler.sample_array` with shape
+    """View of :attr:`~BaseSampler.sample_array` with shape
     ``(num_channels, num_gate_blocks, gate_size)``
     """
-    def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
+    gate_duration: Fraction
+    """Duration of each read in seconds. Default is 400ms.
+
+    The chosen duration must be divisible by the sample rate.
+    Shorter durations (e.g., 100ms) may be used for faster updates and *should*
+    not affect the accuracy of the true peak measurement (within reason).
+    """
+    def __init__(
+        self,
+        block_size: int,
+        num_channels: int,
+        sample_rate: int = 48000,
+        gate_duration: Fraction = Fraction(4, 10)
+    ) -> None:
+        self.gate_duration = gate_duration
         super().__init__(block_size, num_channels, sample_rate)
-        num_gate_blocks = self.bfr_shape.num_gate_blocks
         self.gate_view = np.reshape(
             self.sample_array,
-            (num_channels, num_gate_blocks, self.gate_size)
+            (num_channels, self.num_gate_blocks, self.gate_size)
         )
-        self.gate_slice = Slice(self.gate_size, max_index=num_gate_blocks-1)
+        self.gate_slice = Slice(
+            step=self.gate_size,
+            overlap=0,
+            max_index=self.num_gate_blocks-1,
+        )
 
     @property
     def gate_size(self) -> int:
-        """Length of one block of read samples (400ms)"""
+        """Length of each read in samples, depending on :attr:`gate_duration`"""
         return self.bfr_shape.gate_size
+
+    @property
+    def num_gate_blocks(self) -> int:
+        """Number of :attr:`gate_size` blocks that can be stored in the internal buffer"""
+        return self.bfr_shape.num_gate_blocks
 
     def _calc_buffer_shape(self) -> BufferShape:
         fs = self.sample_rate
-        gate_time = Fraction(4, 10)
+        gate_time = self.gate_duration
         assert (fs * gate_time) % 1 == 0
         gate_samples = int(fs * gate_time)
         bfr_len = math.lcm(self.block_size, gate_samples)
+        if bfr_len == self.block_size:
+            bfr_len *= 2
         assert bfr_len > self.block_size
         num_blocks = bfr_len // self.block_size
         assert bfr_len % gate_samples == 0
@@ -508,8 +531,14 @@ class ThreadSafeSampler(Sampler, LockContext):
 class ThreadSafeTruePeakSampler(TruePeakSampler, LockContext):
     """A :class:`TruePeakSampler` subclass for use with threaded reads and writes
     """
-    def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
-        super().__init__(block_size, num_channels, sample_rate)
+    def __init__(
+        self,
+        block_size: int,
+        num_channels: int,
+        sample_rate: int = 48000,
+        gate_duration: Fraction = Fraction(4, 10)
+    ) -> None:
+        super().__init__(block_size, num_channels, sample_rate, gate_duration)
         self._lock = threading.RLock()
 
     def _write(self, samples: Float2dArray|Float2dArray32) -> None:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Union, cast
+from fractions import Fraction
 
 import numpy as np
 
@@ -21,7 +22,13 @@ class Meter:
         block_size: Number of input samples per call to :meth:`write`
         num_channels: Number of audio channels
         sampler_class: The class to use for the :attr:`sampler`
+        tp_sampler_class: The class to use for the :attr:`true_peak_sampler`
         sample_rate: The sample rate of the audio data
+        true_peak_gate_duration: The processing duration for the
+            :attr:`true_peak_processor` in seconds.
+            See :attr:`TruePeakSampler.gate_duration <.sampling.TruePeakSampler.gate_duration>`
+            for details.
+
     """
 
     block_size: int
@@ -50,7 +57,8 @@ class Meter:
         num_channels: int,
         sampler_class: type[Sampler] = Sampler,
         tp_sampler_class: type[TruePeakSampler] = TruePeakSampler,
-        sample_rate: int = 48000
+        sample_rate: int = 48000,
+        true_peak_gate_duration: Fraction = Fraction(4, 10),
     ) -> None:
         self.block_size = block_size
         self.num_channels = num_channels
@@ -64,6 +72,7 @@ class Meter:
             block_size=block_size,
             num_channels=num_channels,
             sample_rate=sample_rate,
+            gate_duration=true_peak_gate_duration,
         )
         self.processor = BlockProcessor(
             num_channels=num_channels,
