@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypeVar, Literal, Any
+from typing import TypeVar, Generic, Literal, Any
 import sys
 if sys.version_info < (3, 11):
     from typing_extensions import TypeAlias
@@ -17,8 +17,13 @@ __all__ = (
     'AnyArray', 'BoolArray', 'IndexArray', 'FloatArray', 'ComplexArray',
     'Float1dArray', 'Float2dArray', 'Float3dArray', 'Float2dArray32', 'AnyFloatArray',
     'AnyNdArray', 'Any1dArray', 'Any2dArray', 'Any3dArray', 'ShapeT',
+    'TruePeakDtype', 'TruePeakArray', 'NumChannelsT',
 )
 
+NumChannels = Literal[1, 2, 3, 5]
+""""""
+NumChannelsT = TypeVar('NumChannelsT', bound=NumChannels)
+""""""
 
 Floating = np.floating
 Complex = np.complex128
@@ -46,6 +51,23 @@ MeterDtype = np.dtype([
     The :term:`Short-Term Loudness` at time :attr:`t`
 
 """
+
+class TruePeakDtype(np.void, Generic[NumChannelsT]):
+    """A :term:`structured data type` for true peak results
+
+    .. attribute:: t
+        :type: numpy.float64
+
+        The time in seconds for each measurement
+
+    .. attribute:: tp
+        :type: tuple[numpy.float64, ...]
+
+        The :term:`True Peak` values per channel at time :attr:`t` as a :term:`subarray`
+        of length :obj:`NumChannelsT`
+
+    """
+
 
 _AnyDtype: TypeAlias = np.dtype[Any]
 DType_co = TypeVar("DType_co", bound=np.dtype[Any], covariant=True)
@@ -102,5 +124,11 @@ SosZI = np.ndarray[tuple[int, int, Literal[2]], np.dtype[np.float64]]
 
 class MeterArray(npt.NDArray[np.void]):
     """Array with dtype :obj:`MeterDtype`
+    """
+    pass
+
+
+class TruePeakArray(npt.NDArray[np.void], Generic[NumChannelsT]):
+    """Array with dtype :obj:`TruePeakDtype`
     """
     pass

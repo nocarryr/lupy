@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import overload
+from typing import Generic, overload
 import sys
 if sys.version_info < (3, 11):
     from typing_extensions import Self
@@ -12,7 +12,7 @@ import numpy as np
 
 
 from .types import *
-from .typeutils import ensure_nd_array, ensure_meter_array
+from .typeutils import ensure_nd_array, ensure_meter_array, build_true_peak_array
 from .filters import TruePeakFilter
 
 __all__ = ('BlockProcessor', 'TruePeakProcessor')
@@ -130,16 +130,16 @@ def from_lk_log10(
 ) -> FloatArray|np.floating:
     return 10 ** ((x + offset) / 10)
 
-class BaseProcessor(ABC):
+class BaseProcessor(ABC, Generic[NumChannelsT]):
     """
     """
-    num_channels: int
+    num_channels: NumChannelsT
     """Number of audio channels"""
 
     sample_rate: int
     """The sample rate of the audio data"""
 
-    def __init__(self, num_channels: int, sample_rate: int = 48000) -> None:
+    def __init__(self, num_channels: NumChannelsT, sample_rate: int = 48000) -> None:
         self.num_channels = num_channels
         self.sample_rate = sample_rate
 
@@ -158,7 +158,7 @@ class BaseProcessor(ABC):
         raise NotImplementedError
 
 
-class BlockProcessor(BaseProcessor):
+class BlockProcessor(BaseProcessor[NumChannelsT]):
     """Process audio samples and store the resulting loudness data
     """
 
@@ -182,7 +182,7 @@ class BlockProcessor(BaseProcessor):
     _blocks_above_rel_thresh: Any1dArray[np.dtype[np.bool_]]
     def __init__(
         self,
-        num_channels: int,
+        num_channels: NumChannelsT,
         gate_size: int,
         sample_rate: int = 48000
     ) -> None:
@@ -418,7 +418,7 @@ class BlockProcessor(BaseProcessor):
         self._quarter_block_weighted_sums[self.block_index] = weighted_sum
 
 
-class TruePeakProcessor(BaseProcessor):
+class TruePeakProcessor(BaseProcessor, Generic[NumChannelsT]):
     """Process audio samples to extract their :term:`True Peak` values
     """
     max_peak: Floating
@@ -429,7 +429,7 @@ class TruePeakProcessor(BaseProcessor):
 
     MAX_TIME_SECONDS = 14400.0  # 4 hours
 
-    def __init__(self, num_channels: int, gate_size: int, sample_rate: int = 48000) -> None:
+    def __init__(self, num_channels: NumChannelsT, gate_size: int, sample_rate: int = 48000) -> None:
         super().__init__(num_channels=num_channels, sample_rate=sample_rate)
         up_sample = 4 if sample_rate < 88100 else 2
         self.resample_filt = TruePeakFilter(
@@ -439,29 +439,37 @@ class TruePeakProcessor(BaseProcessor):
         self.gate_size = gate_size
         gate_t = gate_size / sample_rate
         max_blocks = int(self.MAX_TIME_SECONDS / gate_t)
-        t = (np.arange(max_blocks) * gate_t).astype(np.float64)
-        self._t: Float1dArray = ensure_nd_array(t, 1)
-        self._all_tp_values = np.full(
-            (max_blocks, self.num_channels),
-            SILENCE_DB,
-            dtype=np.float64,
+        self._tp_array: TruePeakArray[NumChannelsT] = build_true_peak_array(
+            num_channels=self.num_channels,
+            size=max_blocks,
         )
+        self._t = self._tp_array['t']
+        self._t[:] = np.arange(max_blocks) * gate_t
+        self._all_tp_values = self._tp_array['tp']
+        self._all_tp_values[...] = SILENCE_DB
         self._block_index = 0
+
+    @property
+    def tp_array(self) -> TruePeakArray[NumChannelsT]:
+        """A structured array of measurement values with
+        dtype :obj:`~.types.TruePeakDtype`
+        """
+        return self._tp_array[:self._block_index]
 
     @property
     def t(self) -> Float1dArray:
         """The measurement time for each element in :attr:`current_peaks`
         """
-        return ensure_nd_array(self._t[:self._block_index], 1)
+        return self.tp_array['t']
 
     @property
-    def all_tp_values(self) -> Float2dArray:
+    def all_tp_values(self) -> np.ndarray[tuple[int, NumChannelsT], np.dtype[np.float64]]:
         """All :term:`True Peak` values per channel for each processed block
         """
-        return ensure_nd_array(self._all_tp_values[:self._block_index, :], 2)
+        return self.tp_array['tp']
 
     @property
-    def current_peaks(self) -> Float1dArray:
+    def current_peaks(self) -> np.ndarray[tuple[NumChannelsT], np.dtype[np.float64]]:
         """:term:`True Peak` values per channel from the last processing period"""
         return self.all_tp_values[-1]
 
