@@ -418,7 +418,7 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         self._quarter_block_weighted_sums[self.block_index] = weighted_sum
 
 
-class TruePeakProcessor(BaseProcessor, Generic[NumChannelsT]):
+class TruePeakProcessor(BaseProcessor[NumChannelsT]):
     """Process audio samples to extract their :term:`True Peak` values
     """
     max_peak: Floating
@@ -458,7 +458,7 @@ class TruePeakProcessor(BaseProcessor, Generic[NumChannelsT]):
 
     @property
     def t(self) -> Float1dArray:
-        """The measurement time for each element in :attr:`current_peaks`
+        """The measurement times for all processed blocks in :attr:`tp_array`
         """
         return self.tp_array['t']
 

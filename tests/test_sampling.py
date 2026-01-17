@@ -26,7 +26,8 @@ def test_buffer_length(sample_rate, block_size):
 
 def test_true_peak_gate_size(true_peak_gate_duration, sample_rate, block_size):
     gate_size = int(true_peak_gate_duration * sample_rate)
-    assert gate_size.denominator == 1
+    # Ensure the gate duration in samples is an exact integer (no rounding error)
+    assert gate_size == true_peak_gate_duration * sample_rate
     assert gate_size > 0
     sampler = TruePeakSampler(
         block_size=block_size,

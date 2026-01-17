@@ -17,7 +17,7 @@ __all__ = (
     'AnyArray', 'BoolArray', 'IndexArray', 'FloatArray', 'ComplexArray',
     'Float1dArray', 'Float2dArray', 'Float3dArray', 'Float2dArray32', 'AnyFloatArray',
     'AnyNdArray', 'Any1dArray', 'Any2dArray', 'Any3dArray', 'ShapeT',
-    'TruePeakDtype', 'TruePeakArray', 'NumChannelsT',
+    'TruePeakDtype', 'TruePeakArray', 'NumChannels', 'NumChannelsT',
 )
 
 NumChannels = Literal[1, 2, 3, 5]

@@ -17,7 +17,7 @@ __all__ = (
 )
 
 
-NumChannels = Literal[1, 2, 3, 4, 5]
+NumChannels = Literal[1, 2, 3, 5]
 NumChannelsT = TypeVar('NumChannelsT', bound=NumChannels)
 
 
