@@ -81,11 +81,16 @@ def test_integrated_lkfs_neg18(sample_rate, block_size):
 
 def test_compliance_cases(sample_rate, compliance_case):
     block_size = 128
-    num_channels = 5
+    num_channels = compliance_case.num_channels
     meter = Meter(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
 
     print('generating samples...')
-    src_data = compliance_case.generate_samples(int(meter.sample_rate), block_size=block_size)
+    src_data = compliance_case.generate_samples(
+        int(meter.sample_rate),
+        block_size=block_size,
+        num_channels=num_channels,
+    )
+    assert src_data.shape[0] == num_channels
     N = src_data.shape[1]
     assert N % block_size == 0
 
@@ -133,7 +138,7 @@ def test_true_peak_gate_blocks(
     true_peak_compliance_case
 ):
     block_size = 128
-    num_channels = 5
+    num_channels = true_peak_compliance_case.num_channels
     meter = Meter(
         block_size=block_size,
         num_channels=num_channels,
@@ -145,6 +150,7 @@ def test_true_peak_gate_blocks(
     src_data = true_peak_compliance_case.generate_samples(
         int(meter.sample_rate),
         block_size=block_size,
+        num_channels=num_channels,
     )
     assert src_data.shape[0] == num_channels
     N = src_data.shape[1]
