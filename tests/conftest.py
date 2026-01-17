@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import Callable
 import os
+from fractions import Fraction
 import numpy as np
 import pytest
 
 from lupy.types import FloatArray
-from compliance_cases import ComplianceBase, cases_by_name, all_cases
+from compliance_cases import ComplianceBase, cases_by_name, all_cases, true_peak_cases
 
 IS_CI = 'CI' in os.environ
 
@@ -53,6 +54,15 @@ def block_size(request) -> int:
 def num_channels(request) -> int:
     return request.param
 
+@pytest.fixture(params=[
+    Fraction(1, 10),
+    Fraction(2, 10),
+    Fraction(4, 10),
+    Fraction(8, 10),
+])
+def true_peak_gate_duration(request) -> Fraction:
+    return request.param
+
 # @pytest.fixture(params=[0, 1, 2])
 # def front_channel(request, num_channels) -> int:
 #     ch: int = request.param
@@ -94,6 +104,11 @@ def tech_3342_compliance_case(request) -> ComplianceBase:
 
 @pytest.fixture(params=all_cases.values(), ids=list(all_cases.keys()))
 def compliance_case(request) -> ComplianceBase:
+    return request.param
+
+
+@pytest.fixture(params=true_peak_cases.values(), ids=list(true_peak_cases.keys()))
+def true_peak_compliance_case(request) -> ComplianceBase:
     return request.param
 
 

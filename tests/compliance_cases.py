@@ -7,7 +7,7 @@ import numpy as np
 from scipy import signal
 from scipy.io import wavfile
 
-from lupy.types import Float1dArray, Float2dArray
+from lupy.types import Float1dArray, Float2dArray, NumChannels
 from lupy.typeutils import is_2d_array, ensure_2d_array
 
 HERE = Path(__file__).parent
@@ -15,6 +15,8 @@ DATA = HERE / 'data'
 EBU_ROOT = DATA / 'ebu-loudness-test-setv05'
 
 nan = np.nan
+
+_NumChannelsOpts: tuple[NumChannels, ...] = (1, 2, 3, 5)
 
 
 def gen_1k_sine(
@@ -31,15 +33,15 @@ def gen_1k_sine(
 
 
 class ComplianceInput(NamedTuple):
-    dBFS: tuple[float, float, float, float, float]
+    dBFS: tuple[float, float, float, float, float] # (L, C, R, LS, RS)
     duration: float
     fc: float|None = None
     phase: tuple[float, float, float, float, float]|None = None
     taper_dur: float|None = None
 
-    def generate(self, sample_rate: int) -> Float2dArray:
+    def generate(self, sample_rate: int, num_channels: NumChannels) -> Float2dArray:
         N = int(round(sample_rate * self.duration))
-        samples = np.zeros((5, N), dtype=np.float64)
+        samples = np.zeros((num_channels, N), dtype=np.float64)
         fc_normalized = self.fc
         if fc_normalized is None:
             fc_normalized = 997 / sample_rate
@@ -53,6 +55,16 @@ class ComplianceInput(NamedTuple):
         for ch, sig_dB in enumerate(self.dBFS):
             if np.isnan(sig_dB):
                 continue
+            ch_dest = ch
+            if ch == 2:
+                if num_channels == 2:
+                    # ch is the right channel as defined in :attr:`dBFS`.
+                    # For stereo output, map to channel 1 (right).
+                    ch_dest = 1
+                else:
+                    assert num_channels >= 3
+            else:
+                assert ch_dest < num_channels
             amp = 10 ** (sig_dB / 20)
             if self.phase is not None and not np.isnan(self.phase[ch]):
                 _sig = gen_1k_sine(N, sample_rate, amp, fc, self.phase[ch])
@@ -62,7 +74,7 @@ class ComplianceInput(NamedTuple):
                 taper_len = taper_win.shape[1]
                 _sig[:taper_len] *= taper_win[0]
                 _sig[-taper_len:] *= taper_win[1]
-            samples[ch,...] = _sig
+            samples[ch_dest,...] = _sig
         return samples
 
 class ComplianceSource(NamedTuple):
@@ -70,7 +82,7 @@ class ComplianceSource(NamedTuple):
     bit_depth: Literal[16, 24, 32]
     is_float: bool = False
 
-    def generate(self, sample_rate: int) -> Float2dArray:
+    def generate(self, sample_rate: int, num_channels: NumChannels) -> Float2dArray:
         if self.filename.suffix == '.npz':
             with np.load(self.filename) as data:
                 samples = data['samples']
@@ -91,6 +103,10 @@ class ComplianceSource(NamedTuple):
 
         if fs != sample_rate:
             samples = signal.resample_poly(samples, sample_rate, fs)
+
+        if num_channels == 2 and samples.shape[1] == 2:
+            # Stereo -> Stereo, no change needed
+            return ensure_2d_array(samples.T)
 
         # Temp array to match channels to their expected indices
         _samples = np.zeros((samples.shape[0], 5), dtype=np.float64)
@@ -121,11 +137,26 @@ class ComplianceBase(NamedTuple):
     result: ComplianceResult
     # target_lu: ClassVar = -23
     name: str
+    num_channels: NumChannels
 
-    def generate_samples(self, sample_rate: int, block_size: int|None = None) -> Float2dArray:
-        inputs = [inp.generate(sample_rate) for inp in self.input]
+    def generate_samples(
+        self,
+        sample_rate: int,
+        block_size: int|None = None,
+        num_channels: NumChannels|None = None
+    ) -> Float2dArray:
+        """Generate the input samples for this compliance case
+
+        If *num_channels* is specified, it must be greater than or equal to
+        :attr:`num_channels`. Otherwise, :attr:`num_channels` is used.
+        """
+        if num_channels is None:
+            num_channels = self.num_channels
+        assert num_channels in _NumChannelsOpts
+        assert num_channels >= self.num_channels
+        inputs = [inp.generate(sample_rate, num_channels) for inp in self.input]
         N = sum(inp.shape[1] for inp in inputs)
-        result = np.zeros((5, N), dtype=np.float64)
+        result = np.zeros((num_channels, N), dtype=np.float64)
         ix = 0
         for inp in inputs:
             assert np.all(np.equal(result[:,ix:ix+inp.shape[1]], 0))
@@ -149,6 +180,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
     # Case 1
     Tech3341Compliance(
         name='case1',
+        num_channels=2,
         input=[
             ComplianceInput(dBFS=(-23, nan, -23, nan, nan), duration=20),
         ],
@@ -162,6 +194,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
     # Case 2
     Tech3341Compliance(
         name='case2',
+        num_channels=2,
         input=[
             ComplianceInput(dBFS=(-33, nan, -33, nan, nan), duration=20),
         ],
@@ -175,6 +208,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
     # Case 3
     Tech3341Compliance(
         name='case3',
+        num_channels=2,
         input=[
             ComplianceInput(dBFS=(-36, nan, -36, nan, nan), duration=10),
             ComplianceInput(dBFS=(-23, nan, -23, nan, nan), duration=60),
@@ -190,6 +224,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
     # Case 4
     Tech3341Compliance(
         name='case4',
+        num_channels=2,
         input=[
             ComplianceInput(dBFS=(-72, nan, -72, nan, nan), duration=10),
             ComplianceInput(dBFS=(-36, nan, -36, nan, nan), duration=10),
@@ -207,6 +242,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
     # Case 5
     Tech3341Compliance(
         name='case5',
+        num_channels=2,
         input=[
             ComplianceInput(dBFS=(-26, nan, -26, nan, nan), duration=20),
             ComplianceInput(dBFS=(-20, nan, -20, nan, nan), duration=20.1),
@@ -222,6 +258,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
     # Case 6
     Tech3341Compliance(
         name='case6',
+        num_channels=5,
         input=[
             ComplianceInput(dBFS=(-28, -24, -28, -30, -30), duration=20),
         ],
@@ -234,6 +271,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
     ),
     Tech3341Compliance(
         name='case9',
+        num_channels=2,
         input=[
             ComplianceInput(dBFS=(-20, nan, -20, nan, nan), duration=1.34),
             ComplianceInput(dBFS=(-30, nan, -30, nan, nan), duration=1.66),
@@ -247,6 +285,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
     ),
     Tech3341Compliance(
         name='case15',
+        num_channels=2,
         input=[
             ComplianceInput(
                 dBFS=(20*np.log10(.5), nan, 20*np.log10(.5), nan, nan),
@@ -265,6 +304,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
     ),
     Tech3341Compliance(
         name='case16',
+        num_channels=2,
         input=[
             ComplianceInput(
                 dBFS=(20*np.log10(.5), nan, 20*np.log10(.5), nan, nan),
@@ -284,6 +324,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
     ),
     Tech3341Compliance(
         name='case17',
+        num_channels=2,
         input=[
             ComplianceInput(
                 dBFS=(20*np.log10(.5), nan, 20*np.log10(.5), nan, nan),
@@ -303,6 +344,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
     ),
     Tech3341Compliance(
         name='case18',
+        num_channels=2,
         input=[
             ComplianceInput(
                 dBFS=(20*np.log10(.5), nan, 20*np.log10(.5), nan, nan),
@@ -322,6 +364,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
     ),
     Tech3341Compliance(
         name='case19',
+        num_channels=2,
         input=[
             ComplianceInput(
                 dBFS=(20*np.log10(1.41), nan, 20*np.log10(1.41), nan, nan),
@@ -341,6 +384,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
     ),
     Tech3341Compliance(
         name='case20',
+        num_channels=2, # Stereo sine wave with frequency fs/6 Hz ...
         input=[
             ComplianceSource(
                 filename=EBU_ROOT / 'seq-3341-20-24bit.wav.npz',
@@ -357,6 +401,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
     ),
     Tech3341Compliance(
         name='case21',
+        num_channels=2, # As #20, but downsampled with a 1 samples offset
         input=[
             ComplianceSource(
                 filename=EBU_ROOT / 'seq-3341-21-24bit.wav.npz',
@@ -373,6 +418,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
     ),
     Tech3341Compliance(
         name='case22',
+        num_channels=2, # As #20, but downsampled with a 2 samples offset
         input=[
             ComplianceSource(
                 filename=EBU_ROOT / 'seq-3341-22-24bit.wav.npz',
@@ -389,6 +435,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
     ),
     Tech3341Compliance(
         name='case23',
+        num_channels=2, # As #20, but downsampled with a 3 samples offset
         input=[
             ComplianceSource(
                 filename=EBU_ROOT / 'seq-3341-23-24bit.wav.npz',
@@ -408,6 +455,7 @@ _tech_3341_compliance_cases: list[ComplianceBase] = [
 _tech_3342_compliance_cases = [
     Tech3342Compliance(
         name='case1',
+        num_channels=2,
         input=[
             ComplianceInput(dBFS=(-20, nan, -20, nan, nan), duration=20),
             ComplianceInput(dBFS=(-30, nan, -30, nan, nan), duration=20),
@@ -419,6 +467,7 @@ _tech_3342_compliance_cases = [
     ),
     Tech3342Compliance(
         name='case2',
+        num_channels=2,
         input=[
             ComplianceInput(dBFS=(-20, nan, -20, nan, nan), duration=20),
             ComplianceInput(dBFS=(-15, nan, -15, nan, nan), duration=20),
@@ -430,6 +479,7 @@ _tech_3342_compliance_cases = [
     ),
     Tech3342Compliance(
         name='case3',
+        num_channels=2,
         input=[
             ComplianceInput(dBFS=(-40, nan, -40, nan, nan), duration=20),
             ComplianceInput(dBFS=(-20, nan, -20, nan, nan), duration=20),
@@ -441,6 +491,7 @@ _tech_3342_compliance_cases = [
     ),
     Tech3342Compliance(
         name='case4',
+        num_channels=2,
         input=[
             ComplianceInput(dBFS=(-50, nan, -50, nan, nan), duration=20),
             ComplianceInput(dBFS=(-35, nan, -35, nan, nan), duration=20),
@@ -465,3 +516,19 @@ all_cases = {
         d.items() for d in cases_by_name.values()
     ]
 )}
+
+_tp_case_names = [
+    'Tech3341Compliance.case15',
+    'Tech3341Compliance.case16',
+    'Tech3341Compliance.case17',
+    'Tech3341Compliance.case18',
+    'Tech3341Compliance.case19',
+    'Tech3341Compliance.case20',
+    'Tech3341Compliance.case21',
+    'Tech3341Compliance.case22',
+    'Tech3341Compliance.case23',
+]
+
+true_peak_cases = {
+    name: all_cases[name] for name in _tp_case_names
+}

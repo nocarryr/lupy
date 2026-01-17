@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypeVar, TypeAlias, Literal, Any, Self, overload
+from typing import TypeVar, Generic, TypeAlias, Literal, Any, Self, overload
 
 
 import numpy as np
@@ -13,7 +13,12 @@ __all__ = (
     'AnyArray', 'BoolArray', 'IndexArray', 'FloatArray', 'ComplexArray',
     'Float1dArray', 'Float2dArray', 'Float3dArray', 'Float2dArray32', 'AnyFloatArray',
     'AnyNdArray', 'Any1dArray', 'Any2dArray', 'Any3dArray', 'ShapeT',
+    'TruePeakDtype', 'TruePeakArray', 'NumChannelsT',
 )
+
+
+NumChannels = Literal[1, 2, 3, 5]
+NumChannelsT = TypeVar('NumChannelsT', bound=NumChannels)
 
 
 _AnyDtype: TypeAlias = dtype[Any]
@@ -36,6 +41,8 @@ MeterDtype = np.dtype([
     ('m', np.float64),
     ('s', np.float64),
 ])
+
+class TruePeakDtype(np.void, Generic[NumChannelsT]): ...
 
 Floating: TypeAlias = np.floating
 Complex = np.complex128
@@ -72,5 +79,20 @@ class MeterArray(npt.NDArray[np.void]):
     @overload
     def __getitem__(self, key: _MeterArrayFields) -> Float1dArray: ...
     def __getitem__(self, key: int|slice[Any, Any, Any]|_MeterArrayFields) -> Float1dArray|Self: ...
+
+    def view(self, dtype: np.dtype|type[npt.NDArray[Any]]) -> Self: ...
+
+
+_TruePeakArrayFields = Literal['t', 'tp']
+
+
+class TruePeakArray(npt.NDArray[np.void], Generic[NumChannelsT]):
+    @overload
+    def __getitem__(self, key: int|slice[Any, Any, Any]) -> Self: ...
+    @overload
+    def __getitem__(self, key: Literal['t']) -> Float1dArray: ...
+    @overload
+    def __getitem__(self, key: Literal['tp']) -> np.ndarray[tuple[int, NumChannelsT], np.dtype[np.float64]]: ...
+    def __getitem__(self, key: int|slice[Any, Any, Any]|_TruePeakArrayFields) -> Float1dArray|Float2dArray|Self: ...
 
     def view(self, dtype: np.dtype|type[npt.NDArray[Any]]) -> Self: ...

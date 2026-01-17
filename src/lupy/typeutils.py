@@ -18,6 +18,7 @@ import numpy as np
 from .types import (
     AnyArray, AnyNdArray, Any1dArray, Any2dArray, Any3dArray, AnyFloatArray,
     IndexArray, BoolArray, ComplexArray, MeterDtype, MeterArray,
+    TruePeakArray, TruePeakDtype, NumChannelsT,
     ShapeT, DType_co,
 )
 
@@ -136,3 +137,53 @@ def ensure_meter_array(arr: AnyArray) -> MeterArray:
     """
     assert is_meter_array(arr)
     return arr
+
+
+def is_true_peak_array(arr: AnyArray, num_channels: NumChannelsT) -> TypeIs[TruePeakArray[NumChannelsT]]:
+    """Check if the given array is a :class:`~.types.TruePeakArray` for the specified number of channels
+
+    Arguments:
+        arr: The array to check
+        num_channels: The number of audio channels
+    """
+    dtype = build_true_peak_dtype(num_channels)
+    return isinstance(arr, np.ndarray) and arr.dtype == dtype
+
+
+def ensure_true_peak_array(
+    arr: AnyArray,
+    num_channels: NumChannelsT
+) -> TruePeakArray[NumChannelsT]:
+    """Ensure the given array is a :class:`~.types.TruePeakArray` for the specified number of channels and return it
+
+    Arguments:
+        arr: The array to check
+        num_channels: The number of audio channels
+    """
+    assert is_true_peak_array(arr, num_channels)
+    return arr
+
+
+def build_true_peak_dtype(num_channels: NumChannelsT) -> TruePeakDtype[NumChannelsT]:
+    """Build a :obj:`TruePeakDtype` for the given number of channels
+
+    Arguments:
+        num_channels: The number of audio channels
+    """
+    return np.dtype([
+        ('t', np.float64),
+        ('tp', (np.float64, num_channels)),
+    ]) # type: ignore[misc]
+
+
+def build_true_peak_array(num_channels: NumChannelsT, size: int) -> TruePeakArray[NumChannelsT]:
+    """Build a :obj:`TruePeakArray` for the given number of channels and size
+
+    Arguments:
+        num_channels: The number of audio channels
+        size: The number of elements in the array
+    """
+    dtype = build_true_peak_dtype(num_channels)
+    r = np.zeros(size, dtype=dtype)
+    assert is_true_peak_array(r, num_channels)
+    return r

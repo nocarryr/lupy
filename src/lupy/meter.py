@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import Union, cast
+from typing import Generic, Union, cast
+from fractions import Fraction
 
 import numpy as np
 
@@ -14,20 +15,26 @@ __all__ = ('Meter',)
 FloatDtypeT = Union[np.dtype[np.float32], np.dtype[np.float64]]
 
 
-class Meter:
+class Meter(Generic[NumChannelsT]):
     """
 
     Arguments:
         block_size: Number of input samples per call to :meth:`write`
         num_channels: Number of audio channels
         sampler_class: The class to use for the :attr:`sampler`
+        tp_sampler_class: The class to use for the :attr:`true_peak_sampler`
         sample_rate: The sample rate of the audio data
+        true_peak_gate_duration: The processing duration for the
+            :attr:`true_peak_processor` in seconds.
+            See :attr:`TruePeakSampler.gate_duration <.sampling.TruePeakSampler.gate_duration>`
+            for details.
+
     """
 
     block_size: int
     """The number of input samples per call to :meth:`write`"""
 
-    num_channels: int
+    num_channels: NumChannelsT
     """Number of audio channels"""
 
     sampler: Sampler
@@ -47,10 +54,11 @@ class Meter:
     def __init__(
         self,
         block_size: int,
-        num_channels: int,
+        num_channels: NumChannelsT,
         sampler_class: type[Sampler] = Sampler,
         tp_sampler_class: type[TruePeakSampler] = TruePeakSampler,
-        sample_rate: int = 48000
+        sample_rate: int = 48000,
+        true_peak_gate_duration: Fraction = Fraction(4, 10),
     ) -> None:
         self.block_size = block_size
         self.num_channels = num_channels
@@ -64,6 +72,7 @@ class Meter:
             block_size=block_size,
             num_channels=num_channels,
             sample_rate=sample_rate,
+            gate_duration=true_peak_gate_duration,
         )
         self.processor = BlockProcessor(
             num_channels=num_channels,
@@ -72,6 +81,7 @@ class Meter:
         )
         self.true_peak_processor = TruePeakProcessor(
             num_channels=num_channels,
+            gate_size=self.true_peak_sampler.gate_size,
             sample_rate=sample_rate,
         )
         self._paused = False
@@ -223,11 +233,18 @@ class Meter:
         return self.processor.t
 
     @property
+    def true_peak_array(self) -> TruePeakArray[NumChannelsT]:
+        """A structured array of :term:`True Peak` measurement values with
+        dtype :obj:`~.types.TruePeakDtype`
+        """
+        return self.true_peak_processor.tp_array
+
+    @property
     def true_peak_max(self) -> Floating:
         """Maximum :term:`True Peak` value detected"""
         return self.true_peak_processor.max_peak
 
     @property
-    def true_peak_current(self) -> Float1dArray:
+    def true_peak_current(self) -> np.ndarray[tuple[NumChannelsT], np.dtype[np.float64]]:
         """:term:`True Peak` values per channel from the last processing period"""
         return self.true_peak_processor.current_peaks
