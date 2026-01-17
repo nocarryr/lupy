@@ -33,7 +33,7 @@ def gen_1k_sine(
 
 
 class ComplianceInput(NamedTuple):
-    dBFS: tuple[float, float, float, float, float]
+    dBFS: tuple[float, float, float, float, float] # (L, C, R, LS, RS)
     duration: float
     fc: float|None = None
     phase: tuple[float, float, float, float, float]|None = None
@@ -58,6 +58,8 @@ class ComplianceInput(NamedTuple):
             ch_dest = ch
             if ch == 2:
                 if num_channels == 2:
+                    # ch is the right channel as defined in :attr:`dBFS`.
+                    # For stereo output, map to channel 1 (right).
                     ch_dest = 1
                 else:
                     assert num_channels >= 3
