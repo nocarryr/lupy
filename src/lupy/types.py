@@ -13,11 +13,11 @@ import numpy.typing as npt
 
 
 __all__ = (
-    'Floating', 'Complex', 'MeterDtype', 'MeterArray', 'SosCoeff', 'SosZI',
+    'Floating', 'Complex', 'SosCoeff', 'SosZI',
     'AnyArray', 'BoolArray', 'IndexArray', 'FloatArray', 'ComplexArray',
     'Float1dArray', 'Float2dArray', 'Float3dArray', 'Float2dArray32', 'AnyFloatArray',
     'AnyNdArray', 'Any1dArray', 'Any2dArray', 'Any3dArray', 'ShapeT',
-    'TruePeakDtype', 'TruePeakArray', 'NumChannels', 'NumChannelsT',
+    'NumChannels', 'NumChannelsT',
 )
 
 NumChannels = Literal[1, 2, 3, 5]
@@ -28,45 +28,6 @@ NumChannelsT = TypeVar('NumChannelsT', bound=NumChannels)
 Floating = np.floating
 Complex = np.complex128
 
-MeterDtype = np.dtype([
-    ('t', np.float64),
-    ('m', np.float64),
-    ('s', np.float64),
-])
-"""Structured data type for loudness results
-
-.. attribute:: t
-    :type: numpy.float64
-
-    The time in seconds for each measurement
-
-.. attribute:: m
-    :type: numpy.float64
-
-    The :term:`Momentary Loudness` at time :attr:`t`
-
-.. attribute:: s
-    :type: numpy.float64
-
-    The :term:`Short-Term Loudness` at time :attr:`t`
-
-"""
-
-class TruePeakDtype(np.void, Generic[NumChannelsT]):
-    """A :term:`structured data type` for true peak results
-
-    .. attribute:: t
-        :type: numpy.float64
-
-        The time in seconds for each measurement
-
-    .. attribute:: tp
-        :type: tuple[numpy.float64, ...]
-
-        The :term:`True Peak` values per channel at time :attr:`t` as a :term:`subarray`
-        of length :obj:`NumChannelsT`
-
-    """
 
 
 _AnyDtype: TypeAlias = np.dtype[Any]
@@ -120,15 +81,3 @@ SosCoeff = np.ndarray[tuple[int, Literal[6]], np.dtype[np.float64]]
 
 SosZI = np.ndarray[tuple[int, int, Literal[2]], np.dtype[np.float64]]
 """Array representing initial conditions for second-order sections filtering"""
-
-
-class MeterArray(npt.NDArray[np.void]):
-    """Array with dtype :obj:`MeterDtype`
-    """
-    pass
-
-
-class TruePeakArray(npt.NDArray[np.void], Generic[NumChannelsT]):
-    """Array with dtype :obj:`TruePeakDtype`
-    """
-    pass

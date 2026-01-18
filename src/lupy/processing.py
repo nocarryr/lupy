@@ -10,9 +10,9 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-
+from .arraytypes import MeterArray, TruePeakArray
 from .types import *
-from .typeutils import ensure_nd_array, ensure_meter_array, build_true_peak_array
+from .typeutils import ensure_nd_array, build_meter_array, build_true_peak_array
 from .filters import TruePeakFilter
 
 __all__ = ('BlockProcessor', 'TruePeakProcessor')
@@ -190,8 +190,7 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         self.gate_size = gate_size
         self.pad_size = gate_size // 4
         self.weights = self._channel_weights[:self.num_channels]
-        block_data = np.zeros(self.MAX_BLOCKS, dtype=MeterDtype)
-        self._block_data = ensure_meter_array(block_data)
+        self._block_data = build_meter_array(self.MAX_BLOCKS)
 
         self._Zij = np.zeros(
             (self.num_channels, self.MAX_BLOCKS),
@@ -224,7 +223,7 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
     @property
     def block_data(self) -> MeterArray:
         """A structured array of measurement values with
-        dtype :obj:`~.types.MeterDtype`
+        dtype :obj:`~.arraytypes.MeterDtype`
         """
         return self._block_data[:self.block_index]
 
@@ -453,7 +452,7 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
     @property
     def tp_array(self) -> TruePeakArray[NumChannelsT]:
         """A structured array of measurement values with
-        dtype :obj:`~.types.TruePeakDtype`
+        dtype :obj:`~.arraytypes.TruePeakDtype`
         """
         return self._tp_array[:self._block_index]
 

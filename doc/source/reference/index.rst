@@ -9,5 +9,6 @@ Reference
     sampling
     filters
     types
+    arraytypes
     typeutils
     signalutils/index

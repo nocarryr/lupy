@@ -15,10 +15,10 @@ else:
 
 import numpy as np
 
+from .arraytypes import MeterArray, MeterDtype, TruePeakArray, TruePeakDtype
 from .types import (
     AnyArray, AnyNdArray, Any1dArray, Any2dArray, Any3dArray, AnyFloatArray,
-    IndexArray, BoolArray, ComplexArray, MeterDtype, MeterArray,
-    TruePeakArray, TruePeakDtype, NumChannelsT,
+    IndexArray, BoolArray, ComplexArray, NumChannelsT,
     ShapeT, DType_co,
 )
 
@@ -128,19 +128,19 @@ def is_complex_array(arr: AnyNdArray[ShapeT, Any]) -> TypeIs[ComplexArray[ShapeT
     return np.issubdtype(arr.dtype, np.complexfloating)
 
 def is_meter_array(arr: AnyArray) -> TypeIs[MeterArray]:
-    """Check if the given array is a :class:`~.types.MeterArray`
+    """Check if the given array is a :class:`~.arraytypes.MeterArray`
     """
     return isinstance(arr, np.ndarray) and arr.dtype == MeterDtype
 
 def ensure_meter_array(arr: AnyArray) -> MeterArray:
-    """Ensure the given array is a :class:`~.types.MeterArray` and return it
+    """Ensure the given array is a :class:`~.arraytypes.MeterArray` and return it
     """
     assert is_meter_array(arr)
     return arr
 
 
 def is_true_peak_array(arr: AnyArray, num_channels: NumChannelsT) -> TypeIs[TruePeakArray[NumChannelsT]]:
-    """Check if the given array is a :class:`~.types.TruePeakArray` for the specified number of channels
+    """Check if the given array is a :class:`~.arraytypes.TruePeakArray` for the specified number of channels
 
     Arguments:
         arr: The array to check
@@ -154,7 +154,7 @@ def ensure_true_peak_array(
     arr: AnyArray,
     num_channels: NumChannelsT
 ) -> TruePeakArray[NumChannelsT]:
-    """Ensure the given array is a :class:`~.types.TruePeakArray` for the specified number of channels and return it
+    """Ensure the given array is a :class:`~.arraytypes.TruePeakArray` for the specified number of channels and return it
 
     Arguments:
         arr: The array to check
@@ -164,8 +164,16 @@ def ensure_true_peak_array(
     return arr
 
 
+def build_meter_array(size: int) -> MeterArray:
+    """Build a :obj:`~.arraytypes.MeterArray` of the given size
+    """
+    r = np.zeros(size, dtype=MeterDtype)
+    assert is_meter_array(r)
+    return r
+
+
 def build_true_peak_dtype(num_channels: NumChannelsT) -> TruePeakDtype[NumChannelsT]:
-    """Build a :obj:`TruePeakDtype` for the given number of channels
+    """Build a :obj:`~.arraytypes.TruePeakDtype` for the given number of channels
 
     Arguments:
         num_channels: The number of audio channels
@@ -177,7 +185,7 @@ def build_true_peak_dtype(num_channels: NumChannelsT) -> TruePeakDtype[NumChanne
 
 
 def build_true_peak_array(num_channels: NumChannelsT, size: int) -> TruePeakArray[NumChannelsT]:
-    """Build a :obj:`TruePeakArray` for the given number of channels and size
+    """Build a :obj:`~.arraytypes.TruePeakArray` for the given number of channels and size
 
     Arguments:
         num_channels: The number of audio channels
