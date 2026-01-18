@@ -164,6 +164,14 @@ def ensure_true_peak_array(
     return arr
 
 
+def build_meter_array(size: int) -> MeterArray:
+    """Build a :obj:`~.arraytypes.MeterArray` of the given size
+    """
+    r = np.zeros(size, dtype=MeterDtype)
+    assert is_meter_array(r)
+    return r
+
+
 def build_true_peak_dtype(num_channels: NumChannelsT) -> TruePeakDtype[NumChannelsT]:
     """Build a :obj:`~.arraytypes.TruePeakDtype` for the given number of channels
 
