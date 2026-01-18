@@ -1,0 +1,314 @@
+{
+    "1770-2_Comp_RelGateTest": {
+        "name": "1770-2_Comp_RelGateTest",
+        "num_channels": 2,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -10.0
+    },
+    "1770-2_Comp_AbsGateTest": {
+        "name": "1770-2_Comp_AbsGateTest",
+        "num_channels": 2,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -69.5
+    },
+    "1770-2_Comp_24LKFS_25Hz_2ch": {
+        "name": "1770-2_Comp_24LKFS_25Hz_2ch",
+        "num_channels": 2,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -24.0
+    },
+    "1770-2_Comp_24LKFS_100Hz_2ch": {
+        "name": "1770-2_Comp_24LKFS_100Hz_2ch",
+        "num_channels": 2,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -24.0
+    },
+    "1770-2_Comp_24LKFS_500Hz_2ch": {
+        "name": "1770-2_Comp_24LKFS_500Hz_2ch",
+        "num_channels": 2,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -24.0
+    },
+    "1770-2_Comp_24LKFS_1000Hz_2ch": {
+        "name": "1770-2_Comp_24LKFS_1000Hz_2ch",
+        "num_channels": 2,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -24.0
+    },
+    "1770-2_Comp_24LKFS_2000Hz_2ch": {
+        "name": "1770-2_Comp_24LKFS_2000Hz_2ch",
+        "num_channels": 2,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -24.0
+    },
+    "1770-2_Comp_24LKFS_10000Hz_2ch": {
+        "name": "1770-2_Comp_24LKFS_10000Hz_2ch",
+        "num_channels": 2,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -24.0
+    },
+    "1770-2_Comp_23LKFS_25Hz_2ch": {
+        "name": "1770-2_Comp_23LKFS_25Hz_2ch",
+        "num_channels": 2,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -23.0
+    },
+    "1770-2_Comp_23LKFS_100Hz_2ch": {
+        "name": "1770-2_Comp_23LKFS_100Hz_2ch",
+        "num_channels": 2,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -23.0
+    },
+    "1770-2_Comp_23LKFS_500Hz_2ch": {
+        "name": "1770-2_Comp_23LKFS_500Hz_2ch",
+        "num_channels": 2,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -23.0
+    },
+    "1770-2_Comp_23LKFS_1000Hz_2ch": {
+        "name": "1770-2_Comp_23LKFS_1000Hz_2ch",
+        "num_channels": 2,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -23.0
+    },
+    "1770-2_Comp_23LKFS_2000Hz_2ch": {
+        "name": "1770-2_Comp_23LKFS_2000Hz_2ch",
+        "num_channels": 2,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -23.0
+    },
+    "1770-2_Comp_23LKFS_10000Hz_2ch": {
+        "name": "1770-2_Comp_23LKFS_10000Hz_2ch",
+        "num_channels": 2,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -23.0
+    },
+    "1770-2_Comp_18LKFS_FrequencySweep": {
+        "name": "1770-2_Comp_18LKFS_FrequencySweep",
+        "num_channels": 1,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -18.0
+    },
+    "1770-2_Comp_24LKFS_SummingTest": {
+        "name": "1770-2_Comp_24LKFS_SummingTest",
+        "num_channels": 6,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -24.0
+    },
+    "1770-2_Comp_23LKFS_SummingTest": {
+        "name": "1770-2_Comp_23LKFS_SummingTest",
+        "num_channels": 6,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -23.0
+    },
+    "1770-2_Comp_24LKFS_ChannelCheckLeft": {
+        "name": "1770-2_Comp_24LKFS_ChannelCheckLeft",
+        "num_channels": 6,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -24.0
+    },
+    "1770-2_Comp_24LKFS_ChannelCheckRight": {
+        "name": "1770-2_Comp_24LKFS_ChannelCheckRight",
+        "num_channels": 6,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -24.0
+    },
+    "1770-2_Comp_24LKFS_ChannelCheckCentre": {
+        "name": "1770-2_Comp_24LKFS_ChannelCheckCentre",
+        "num_channels": 6,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -24.0
+    },
+    "1770-2_Comp_24LKFS_ChannelCheckLFE": {
+        "name": "1770-2_Comp_24LKFS_ChannelCheckLFE",
+        "num_channels": 6,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -Infinity
+    },
+    "1770-2_Comp_24LKFS_ChannelCheckLs": {
+        "name": "1770-2_Comp_24LKFS_ChannelCheckLs",
+        "num_channels": 6,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -24.0
+    },
+    "1770-2_Comp_24LKFS_ChannelCheckRs": {
+        "name": "1770-2_Comp_24LKFS_ChannelCheckRs",
+        "num_channels": 6,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -24.0
+    },
+    "1770-2_Comp_23LKFS_ChannelCheckLeft": {
+        "name": "1770-2_Comp_23LKFS_ChannelCheckLeft",
+        "num_channels": 6,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -23.0
+    },
+    "1770-2_Comp_23LKFS_ChannelCheckRight": {
+        "name": "1770-2_Comp_23LKFS_ChannelCheckRight",
+        "num_channels": 6,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -23.0
+    },
+    "1770-2_Comp_23LKFS_ChannelCheckCentre": {
+        "name": "1770-2_Comp_23LKFS_ChannelCheckCentre",
+        "num_channels": 6,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -23.0
+    },
+    "1770-2_Comp_23LKFS_ChannelCheckLFE": {
+        "name": "1770-2_Comp_23LKFS_ChannelCheckLFE",
+        "num_channels": 6,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -Infinity
+    },
+    "1770-2_Comp_23LKFS_ChannelCheckLs": {
+        "name": "1770-2_Comp_23LKFS_ChannelCheckLs",
+        "num_channels": 6,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -23.0
+    },
+    "1770-2_Comp_23LKFS_ChannelCheckRs": {
+        "name": "1770-2_Comp_23LKFS_ChannelCheckRs",
+        "num_channels": 6,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -23.0
+    },
+    "1770-2_Conf_6ch_VinCntr-24LKFS": {
+        "name": "1770-2_Conf_6ch_VinCntr-24LKFS",
+        "num_channels": 6,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -24.0
+    },
+    "1770-2_Conf_6ch_VinL+R-24LKFS": {
+        "name": "1770-2_Conf_6ch_VinL+R-24LKFS",
+        "num_channels": 6,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -24.0
+    },
+    "1770-2_Conf_6ch_VinL-R-C-24LKFS": {
+        "name": "1770-2_Conf_6ch_VinL-R-C-24LKFS",
+        "num_channels": 6,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -24.0
+    },
+    "1770-2_Conf_Stereo_VinL+R-24LKFS": {
+        "name": "1770-2_Conf_Stereo_VinL+R-24LKFS",
+        "num_channels": 2,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -24.0
+    },
+    "1770-2_Conf_Mono_Voice+Music-24LKFS": {
+        "name": "1770-2_Conf_Mono_Voice+Music-24LKFS",
+        "num_channels": 1,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -24.0
+    },
+    "1770-2_Conf_6ch_VinCntr-23LKFS": {
+        "name": "1770-2_Conf_6ch_VinCntr-23LKFS",
+        "num_channels": 6,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -23.0
+    },
+    "1770-2_Conf_6ch_VinL+R-23LKFS": {
+        "name": "1770-2_Conf_6ch_VinL+R-23LKFS",
+        "num_channels": 6,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -23.0
+    },
+    "1770-2_Conf_6ch_VinL-R-C-23LKFS": {
+        "name": "1770-2_Conf_6ch_VinL-R-C-23LKFS",
+        "num_channels": 6,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -23.0
+    },
+    "1770-2_Conf_Stereo_VinL+R-23LKFS": {
+        "name": "1770-2_Conf_Stereo_VinL+R-23LKFS",
+        "num_channels": 2,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -23.0
+    },
+    "1770-2_Conf_Mono_Voice+Music-23LKFS": {
+        "name": "1770-2_Conf_Mono_Voice+Music-23LKFS",
+        "num_channels": 1,
+        "sample_rate": 48000,
+        "bit_depth": 16,
+        "is_float": false,
+        "lkfs_expected": -23.0
+    }
+}
