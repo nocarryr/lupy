@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import NamedTuple, Literal
+from typing import Union, NamedTuple, Literal
 from pathlib import Path
 import itertools
 import json
@@ -21,7 +21,7 @@ BS2217_METAFILE = BS2217_ROOT / 'meta.json'
 nan = np.nan
 
 _NumChannelsOpts: tuple[NumChannels, ...] = (1, 2, 3, 5)
-NumChannelsWithLFE = NumChannels | Literal[6]
+NumChannelsWithLFE = Union[NumChannels, Literal[6]]
 _NumChannelsWithLFEOpts: tuple[NumChannelsWithLFE, ...] = (1, 2, 3, 5, 6)
 
 
