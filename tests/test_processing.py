@@ -5,6 +5,7 @@ import pytest
 import numpy as np
 
 from lupy import Meter
+from lupy.processing import SILENCE_DB
 from lupy.types import Float2dArray
 
 from conftest import gen_1k_sine
@@ -130,6 +131,41 @@ def test_compliance_cases(sample_rate, compliance_case):
         tp, neg_tol, pos_tol = tp_target
         tp_min, tp_max = tp - neg_tol, tp + pos_tol
         assert tp_min <= meter.true_peak_max <= tp_max
+
+
+def test_bs2217_compliance_cases(bs_2217_compliance_case):
+    # This is separate from the other compliance cases since we're only
+    # testing at 48k and only checking integrated LKFS
+    sample_rate = 48000
+    block_size = 128
+    num_channels = bs_2217_compliance_case.num_channels
+    meter = Meter(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
+
+    print('generating samples...')
+    src_data = bs_2217_compliance_case.generate_samples(
+        int(meter.sample_rate),
+        block_size=block_size,
+        num_channels=num_channels,
+    )
+    assert src_data.shape[0] == num_channels
+    N = src_data.shape[1]
+    assert N % block_size == 0
+
+    print(f'processing {N} samples...')
+    meter.write_all(src_data)
+
+    integrated = meter.integrated_lkfs
+    print(f'{integrated=}')
+
+    integrated_target = bs_2217_compliance_case.result.integrated
+
+    assert integrated_target is not None
+    lufs, lu, tol = integrated_target
+
+    if np.isneginf(lufs):
+        # We treat -inf as -200 dBFS
+        lufs = SILENCE_DB
+    assert lufs - tol <= integrated <= lufs + tol
 
 
 def test_true_peak_gate_blocks(

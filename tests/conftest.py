@@ -7,7 +7,10 @@ import numpy as np
 import pytest
 
 from lupy.types import FloatArray
-from compliance_cases import ComplianceBase, cases_by_name, all_cases, true_peak_cases
+from compliance_cases import (
+    ComplianceBase, cases_by_name, all_cases, true_peak_cases,
+    bs_2217_compliance_cases,
+)
 
 IS_CI = 'CI' in os.environ
 
@@ -101,6 +104,15 @@ def tech_3341_compliance_case(request) -> ComplianceBase:
 )
 def tech_3342_compliance_case(request) -> ComplianceBase:
     return request.param
+
+
+@pytest.fixture(
+    params=bs_2217_compliance_cases.values(),
+    ids=list(bs_2217_compliance_cases.keys())
+)
+def bs_2217_compliance_case(request) -> ComplianceBase:
+    return request.param
+
 
 @pytest.fixture(params=all_cases.values(), ids=list(all_cases.keys()))
 def compliance_case(request) -> ComplianceBase:
