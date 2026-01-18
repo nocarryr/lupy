@@ -6,6 +6,7 @@ import numpy as np
 
 from .sampling import Sampler, TruePeakSampler
 from .processing import BlockProcessor, TruePeakProcessor
+from .arraytypes import MeterArray, TruePeakArray
 from .types import *
 from .typeutils import is_2d_array, ensure_2d_array
 
@@ -207,7 +208,7 @@ class Meter(Generic[NumChannelsT]):
     @property
     def block_data(self) -> MeterArray:
         """A structured array of measurement values with
-        dtype :obj:`~.types.MeterDtype`
+        dtype :obj:`~.arraytypes.MeterDtype`
         """
         return self.processor.block_data
 
@@ -235,7 +236,7 @@ class Meter(Generic[NumChannelsT]):
     @property
     def true_peak_array(self) -> TruePeakArray[NumChannelsT]:
         """A structured array of :term:`True Peak` measurement values with
-        dtype :obj:`~.types.TruePeakDtype`
+        dtype :obj:`~.arraytypes.TruePeakDtype`
         """
         return self.true_peak_processor.tp_array
 

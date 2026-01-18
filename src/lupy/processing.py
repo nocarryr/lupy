@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-
+from .arraytypes import MeterArray, MeterDtype, TruePeakArray
 from .types import *
 from .typeutils import ensure_nd_array, ensure_meter_array, build_true_peak_array
 from .filters import TruePeakFilter
@@ -224,7 +224,7 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
     @property
     def block_data(self) -> MeterArray:
         """A structured array of measurement values with
-        dtype :obj:`~.types.MeterDtype`
+        dtype :obj:`~.arraytypes.MeterDtype`
         """
         return self._block_data[:self.block_index]
 
@@ -453,7 +453,7 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
     @property
     def tp_array(self) -> TruePeakArray[NumChannelsT]:
         """A structured array of measurement values with
-        dtype :obj:`~.types.TruePeakDtype`
+        dtype :obj:`~.arraytypes.TruePeakDtype`
         """
         return self._tp_array[:self._block_index]
 
