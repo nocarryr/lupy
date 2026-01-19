@@ -29,6 +29,7 @@ class Meter(Generic[NumChannelsT]):
             :attr:`true_peak_processor` in seconds.
             See :attr:`TruePeakSampler.gate_duration <.sampling.TruePeakSampler.gate_duration>`
             for details.
+        true_peak_enabled: Whether to enable :term:`True Peak` processing (default: ``True``)
 
     """
 
@@ -60,6 +61,7 @@ class Meter(Generic[NumChannelsT]):
         tp_sampler_class: type[TruePeakSampler] = TruePeakSampler,
         sample_rate: int = 48000,
         true_peak_gate_duration: Fraction = Fraction(4, 10),
+        true_peak_enabled: bool = True,
     ) -> None:
         self.block_size = block_size
         self.num_channels = num_channels
@@ -86,6 +88,13 @@ class Meter(Generic[NumChannelsT]):
             sample_rate=sample_rate,
         )
         self._paused = False
+        self._true_peak_enabled = true_peak_enabled
+
+    @property
+    def true_peak_enabled(self) -> bool:
+        """Whether :term:`True Peak` processing is enabled (read-only)
+        """
+        return self._true_peak_enabled
 
     @property
     def paused(self) -> bool:
@@ -97,7 +106,11 @@ class Meter(Generic[NumChannelsT]):
         """Whether there is enough room on the internal buffer for at least
         one call to :meth:`write`
         """
-        return self.sampler.can_write() and self.true_peak_sampler.can_write()
+        if self.paused:
+            return False
+        return self.sampler.can_write() and (
+            not self.true_peak_enabled or self.true_peak_sampler.can_write()
+        )
 
     def can_process(self) -> bool:
         """Whether there are enough samples in the internal buffer for at least
@@ -105,7 +118,10 @@ class Meter(Generic[NumChannelsT]):
         """
         if self.paused:
             return False
-        return self.sampler.can_read() or self.true_peak_sampler.can_read()
+        return (
+            self.sampler.can_read() or
+            (self.true_peak_enabled and self.true_peak_sampler.can_read())
+        )
 
     def write(
         self,
@@ -120,7 +136,8 @@ class Meter(Generic[NumChannelsT]):
         if self.paused:
             return
         self.sampler.write(samples)
-        self.true_peak_sampler.write(samples, apply_filter=False)
+        if self.true_peak_enabled:
+            self.true_peak_sampler.write(samples, apply_filter=False)
         if process and self.can_process():
             self.process(process_all=process_all)
 
@@ -168,7 +185,7 @@ class Meter(Generic[NumChannelsT]):
         if self.sampler.can_read():
             samples = self.sampler.read()
             self.processor(samples)
-        if self.true_peak_sampler.can_read():
+        if self.true_peak_enabled and self.true_peak_sampler.can_read():
             tp_samples = self.true_peak_sampler.read()
             assert is_2d_array(tp_samples)
             self.true_peak_processor(tp_samples)
@@ -180,7 +197,8 @@ class Meter(Generic[NumChannelsT]):
         self.sampler.clear()
         self.true_peak_sampler.clear()
         self.processor.reset()
-        self.true_peak_processor.reset()
+        if self.true_peak_enabled:
+            self.true_peak_processor.reset()
 
     def set_paused(self, paused: bool) -> None:
         """Pause or unpause processing
@@ -193,7 +211,8 @@ class Meter(Generic[NumChannelsT]):
         self._paused = paused
         if paused:
             self.sampler.clear()
-            self.true_peak_sampler.clear()
+            if self.true_peak_enabled:
+                self.true_peak_sampler.clear()
 
     @property
     def integrated_lkfs(self) -> Floating:
