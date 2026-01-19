@@ -36,11 +36,12 @@ class Meter(Generic[NumChannelsT]):
 
     .. important::
 
-        If *short_term_enabled* is ``False``, *lra_enabled* must also be ``False``
-        or a :class:`ValueError` will be raised.
-
+        If *short_term_enabled* is ``False``, *lra_enabled* must also be ``False``.
         This is because :term:`Loudness Range` calculation depends on
         :term:`Short-Term Loudness` values.
+
+    Raises:
+        ValueError: If *short_term_enabled* is ``False`` and *lra_enabled* is ``True``
 
     """
 
