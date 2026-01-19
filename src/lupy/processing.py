@@ -19,7 +19,7 @@ __all__ = ('BlockProcessor', 'TruePeakProcessor')
 
 SILENCE_DB: Floating = np.float64(-200.)
 EPSILON: Floating = np.float64(1e-20)
-
+NEG_INFINITY: Floating = np.float64(-np.inf)
 
 
 class RunningSum:
@@ -105,14 +105,19 @@ class RunningSum:
 
 
 @overload
-def lk_log10(x: FloatArray, offset: float = -0.691, base: int = 10) -> FloatArray: ...
+def lk_log10(x: FloatArray, offset: float = -0.691, base: int = 10, allow_negative_inf: bool = ...) -> FloatArray: ...
 @overload
-def lk_log10(x: np.floating, offset: float = -0.691, base: int = 10) -> np.floating: ...
+def lk_log10(x: np.floating, offset: float = -0.691, base: int = 10, allow_negative_inf: bool = ...) -> np.floating: ...
 def lk_log10(
     x: FloatArray|np.floating,
     offset: float = -0.691,
-    base: int = 10
+    base: int = 10,
+    allow_negative_inf: bool = False,
 ) -> FloatArray|np.floating:
+    if allow_negative_inf:
+        with np.errstate(divide='ignore'):
+            r = offset + base * np.log10(x)
+        return r
     if isinstance(x, np.ndarray):
         x[np.less_equal(x, 0)] = EPSILON
     elif x <= 0:
@@ -435,7 +440,7 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
         self.resample_filt = TruePeakFilter(
             num_channels=num_channels, upsample_factor=up_sample,
         )
-        self.max_peak = SILENCE_DB
+        self.max_peak = NEG_INFINITY
         self.gate_size = gate_size
         gate_t = gate_size / sample_rate
         max_blocks = int(self.MAX_TIME_SECONDS / gate_t)
@@ -446,7 +451,7 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
         self._t = self._tp_array['t']
         self._t[:] = np.arange(max_blocks) * gate_t
         self._all_tp_values = self._tp_array['tp']
-        self._all_tp_values[...] = SILENCE_DB
+        self._all_tp_values[...] = NEG_INFINITY
         self._block_index = 0
 
     @property
@@ -479,15 +484,15 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
         self.process(samples)
 
     def reset(self) -> None:
-        self.max_peak = SILENCE_DB
-        self._all_tp_values[0, :] = SILENCE_DB
+        self.max_peak = NEG_INFINITY
+        self._all_tp_values[0, :] = NEG_INFINITY
         self._block_index = 0
 
     def process(self, samples: Float2dArray):
         # TODO: Check and raise exception if exceeding MAX_TIME_SECONDS
         tp_vals = self.resample_filt(samples)
         tp_amp_max = np.abs(tp_vals).max(axis=1)
-        cur_peaks = lk_log10(tp_amp_max, offset=0, base=20)
+        cur_peaks = lk_log10(tp_amp_max, offset=0, base=20, allow_negative_inf=True)
         max_peak = cur_peaks.max()
         if max_peak > self.max_peak:
             self.max_peak = max_peak

@@ -261,10 +261,17 @@ class Meter(Generic[NumChannelsT]):
 
     @property
     def true_peak_max(self) -> Floating:
-        """Maximum :term:`True Peak` value detected"""
+        """Maximum :term:`True Peak` value detected
+
+        If :attr:`true_peak_enabled` is ``False``, this will always return ``-inf``.
+        """
         return self.true_peak_processor.max_peak
 
     @property
     def true_peak_current(self) -> np.ndarray[tuple[NumChannelsT], np.dtype[np.float64]]:
-        """:term:`True Peak` values per channel from the last processing period"""
+        """:term:`True Peak` values per channel from the last processing period
+
+        If :attr:`true_peak_enabled` is ``False``, this will always return
+        an array of ``-inf`` values.
+        """
         return self.true_peak_processor.current_peaks
