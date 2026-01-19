@@ -33,7 +33,15 @@ def build_samples(
 
 def test_integrated_lkfs(sample_rate, block_size, all_channels, is_silent):
     num_channels, sine_channel = all_channels
-    meter = Meter(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
+    meter = Meter(
+        block_size=block_size,
+        num_channels=num_channels,
+        sample_rate=sample_rate,
+        true_peak_enabled=False,
+        momentary_enabled=False,
+        short_term_enabled=False,
+        lra_enabled=False,
+    )
 
     N, Fs = meter.sampler.total_samples, int(meter.sample_rate)
     num_blocks, gate_size = meter.sampler.num_blocks, meter.sampler.gate_size
@@ -65,7 +73,15 @@ def test_integrated_lkfs(sample_rate, block_size, all_channels, is_silent):
 # Stereo 1k (997 Hz) sine at -18 dBFS should read -18 LUFS
 def test_integrated_lkfs_neg18(sample_rate, block_size):
     num_channels = 2
-    meter = Meter(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
+    meter = Meter(
+        block_size=block_size,
+        num_channels=num_channels,
+        sample_rate=sample_rate,
+        true_peak_enabled=False,
+        momentary_enabled=False,
+        short_term_enabled=False,
+        lra_enabled=False,
+    )
 
     N, Fs = meter.sampler.total_samples, int(meter.sample_rate)
     num_blocks, gate_size = meter.sampler.num_blocks, meter.sampler.gate_size
@@ -139,7 +155,15 @@ def test_bs2217_compliance_cases(bs_2217_compliance_case):
     sample_rate = 48000
     block_size = 128
     num_channels = bs_2217_compliance_case.num_channels
-    meter = Meter(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
+    meter = Meter(
+        block_size=block_size,
+        num_channels=num_channels,
+        sample_rate=sample_rate,
+        true_peak_enabled=False,
+        momentary_enabled=False,
+        short_term_enabled=False,
+        lra_enabled=False,
+    )
 
     print('generating samples...')
     src_data = bs_2217_compliance_case.generate_samples(
@@ -180,6 +204,10 @@ def test_true_peak_gate_blocks(
         num_channels=num_channels,
         sample_rate=sample_rate,
         true_peak_gate_duration=true_peak_gate_duration,
+        true_peak_enabled=True,
+        momentary_enabled=False,
+        short_term_enabled=False,
+        lra_enabled=False,
     )
 
     print('generating samples...')
