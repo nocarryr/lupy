@@ -10,18 +10,50 @@ Welcome to lupy's documentation!
 A Python library for :term:`Loudness` measurements of audio signals.
 
 
+Purpose
+=======
+
+This library provides a way to measure audio loudness and true peak measurements
+validated against the official EBU compliance test materials.
+
+Its design focuses more on real-time processing, using a block-based approach
+suitable for audio engines, rather than offline processing of entire audio files.
+
+
 Features
 ========
 
-* Supports calculations for the following measurements
+* Historical tracking of all measurements over time
+* Multi-channel audio support
+* Compliance-based validation of measurements
 
-  * :term:`Integrated Loudness`
-  * :term:`Short-Term Loudness`
-  * :term:`Momentary Loudness`
-  * :term:`Loudness Range` (LRA)
-  * :term:`True Peak`
 
-* Handles various input lengths suitable for most audio engine :term:`block sizes <block size>`
+Measurement Types
+-----------------
+
+* :term:`Integrated Loudness`
+* :term:`Short-Term Loudness`
+* :term:`Momentary Loudness`
+* :term:`Loudness Range` (LRA)
+* :term:`True Peak`
+
+
+
+Compliance
+----------
+
+This library is validated against comprehensive compliance test cases based on
+the official EBU and ITU-R documents:
+
+`EBU Tech 3341`_
+  Integrated, Momentary, Short-Term and True Peak measurements
+
+`EBU Tech 3342`_
+  Loudness Range (LRA) measurements
+
+`ITU-R BS.2217`_
+  Integrated Loudness measurements for various channel configurations
+
 
 
 
@@ -77,3 +109,8 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+
+.. _EBU Tech 3341: https://tech.ebu.ch/publications/tech3341
+.. _EBU Tech 3342: https://tech.ebu.ch/publications/tech3342
+.. _ITU-R BS.2217: https://www.itu.int/pub/R-REP-BS.2217
