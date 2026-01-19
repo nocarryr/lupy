@@ -174,7 +174,10 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
     """The current :term:`Integrated Loudness`"""
 
     lra: float
-    """The current :term:`Loudness Range`"""
+    """The current :term:`Loudness Range`
+
+    If :attr:`lra_enabled` is ``False``, this will always be ``0``
+    """
 
     MAX_BLOCKS = 144000 # <- 14400 seconds (4 hours) / .1 (100 milliseconds)
     _channel_weights = np.array([1, 1, 1, 1.41, 1.41])
@@ -189,11 +192,19 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         self,
         num_channels: NumChannelsT,
         gate_size: int,
-        sample_rate: int = 48000
+        sample_rate: int = 48000,
+        momentary_enabled: bool = True,
+        short_term_enabled: bool = True,
+        lra_enabled: bool = True,
     ) -> None:
         super().__init__(num_channels=num_channels, sample_rate=sample_rate)
         self.gate_size = gate_size
         self.pad_size = gate_size // 4
+        if lra_enabled and not short_term_enabled:
+            raise ValueError("LRA calculation requires short-term loudness to be enabled")
+        self._momentary_enabled = momentary_enabled
+        self._short_term_enabled = short_term_enabled
+        self._lra_enabled = lra_enabled
         self.weights = self._channel_weights[:self.num_channels]
         self._block_data = build_meter_array(self.MAX_BLOCKS)
 
@@ -226,6 +237,24 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         self.block_index = 0
 
     @property
+    def momentary_enabled(self) -> bool:
+        """Whether :term:`Momentary Loudness` processing is enabled (read-only)
+        """
+        return self._momentary_enabled
+
+    @property
+    def short_term_enabled(self) -> bool:
+        """Whether :term:`Short-Term Loudness` processing is enabled (read-only)
+        """
+        return self._short_term_enabled
+
+    @property
+    def lra_enabled(self) -> bool:
+        """Whether :term:`Loudness Range` processing is enabled (read-only)
+        """
+        return self._lra_enabled
+
+    @property
     def block_data(self) -> MeterArray:
         """A structured array of measurement values with
         dtype :obj:`~.arraytypes.MeterDtype`
@@ -236,6 +265,8 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
     def momentary_lkfs(self) -> Float1dArray:
         """:term:`Momentary Loudness` for each 100ms block, averaged over 400ms
         (not gated)
+
+        If :attr:`momentary_enabled` is ``False``, this will be an array of zeros
         """
         return self.block_data['m']
 
@@ -243,6 +274,8 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
     def short_term_lkfs(self) -> Float1dArray:
         """:term:`Short-Term Loudness` for each 100ms block, averaged over 3 seconds
         (not gated)
+
+        If :attr:`short_term_enabled` is ``False``, this will be an array of zeros
         """
         return self.block_data['s']
 
@@ -400,10 +433,14 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
 
         self._calc_gating()
 
-        self._process_quarter_block(samples)
-        self._calc_momentary()
-        self._calc_short_term()
-        self._calc_lra()
+        if self.momentary_enabled or self.short_term_enabled:
+            self._process_quarter_block(samples)
+        if self.momentary_enabled:
+            self._calc_momentary()
+        if self.short_term_enabled:
+            self._calc_short_term()
+        if self.lra_enabled:
+            self._calc_lra()
         self.block_index += 1
         self.num_blocks += 1
 

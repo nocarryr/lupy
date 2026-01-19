@@ -30,6 +30,17 @@ class Meter(Generic[NumChannelsT]):
             See :attr:`TruePeakSampler.gate_duration <.sampling.TruePeakSampler.gate_duration>`
             for details.
         true_peak_enabled: Whether to enable :term:`True Peak` processing (default: ``True``)
+        momentary_enabled: Whether to enable :term:`Momentary Loudness` processing (default: ``True``)
+        short_term_enabled: Whether to enable :term:`Short-Term Loudness` processing (default: ``True``)
+        lra_enabled: Whether to enable :term:`Loudness Range` processing (default: ``True``)
+
+    .. important::
+
+        If *short_term_enabled* is ``False``, *lra_enabled* must also be ``False``
+        or a :class:`ValueError` will be raised.
+
+        This is because :term:`Loudness Range` calculation depends on
+        :term:`Short-Term Loudness` values.
 
     """
 
@@ -62,6 +73,9 @@ class Meter(Generic[NumChannelsT]):
         sample_rate: int = 48000,
         true_peak_gate_duration: Fraction = Fraction(4, 10),
         true_peak_enabled: bool = True,
+        momentary_enabled: bool = True,
+        short_term_enabled: bool = True,
+        lra_enabled: bool = True,
     ) -> None:
         self.block_size = block_size
         self.num_channels = num_channels
@@ -81,6 +95,9 @@ class Meter(Generic[NumChannelsT]):
             num_channels=num_channels,
             gate_size=self.sampler.gate_size,
             sample_rate=sample_rate,
+            momentary_enabled=momentary_enabled,
+            short_term_enabled=short_term_enabled,
+            lra_enabled=lra_enabled,
         )
         self.true_peak_processor = TruePeakProcessor(
             num_channels=num_channels,
@@ -95,6 +112,24 @@ class Meter(Generic[NumChannelsT]):
         """Whether :term:`True Peak` processing is enabled (read-only)
         """
         return self._true_peak_enabled
+
+    @property
+    def momentary_enabled(self) -> bool:
+        """Whether :term:`Momentary Loudness` processing is enabled (read-only)
+        """
+        return self.processor.momentary_enabled
+
+    @property
+    def short_term_enabled(self) -> bool:
+        """Whether :term:`Short-Term Loudness` processing is enabled (read-only)
+        """
+        return self.processor.short_term_enabled
+
+    @property
+    def lra_enabled(self) -> bool:
+        """Whether :term:`Loudness Range` processing is enabled (read-only)
+        """
+        return self.processor.lra_enabled
 
     @property
     def paused(self) -> bool:
@@ -221,7 +256,10 @@ class Meter(Generic[NumChannelsT]):
 
     @property
     def lra(self) -> float:
-        """The current :term:`Loudness Range`"""
+        """The current :term:`Loudness Range`
+
+        If :attr:`lra_enabled` is ``False``, this will always return ``0.0``.
+        """
         return self.processor.lra
 
     @property
@@ -235,6 +273,9 @@ class Meter(Generic[NumChannelsT]):
     def momentary_lkfs(self) -> Float1dArray:
         """:term:`Momentary Loudness` for each 100ms block, averaged over 400ms
         (not gated)
+
+        If :attr:`momentary_enabled` is ``False``, this will return an array of
+        zeroes.
         """
         return self.processor.momentary_lkfs
 
@@ -242,6 +283,9 @@ class Meter(Generic[NumChannelsT]):
     def short_term_lkfs(self) -> Float1dArray:
         """:term:`Short-Term Loudness` for each 100ms block, averaged over 3 seconds
         (not gated)
+
+        If :attr:`short_term_enabled` is ``False``, this will return an array of
+        zeroes.
         """
         return self.processor.short_term_lkfs
 
