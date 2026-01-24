@@ -248,6 +248,13 @@ class Filter(BaseFilter[Coeff]):
         zi = signal.sosfilt_zi(coeff.sos)
         zi[...] = 0
         sos_zi = np.repeat(np.expand_dims(zi, axis=1), num_channels, axis=1)
+
+        # Make sos_zi contiguous along the section axis so that
+        # :func:`.signalutils.sosfilt.sosfilt` can operate on it properly.
+        axis = 1 # num_channels axis
+        sos_zi = np.moveaxis(sos_zi, [0, axis + 1], [-2, -1])
+        sos_zi = np.ascontiguousarray(sos_zi)
+        sos_zi = np.moveaxis(sos_zi, [-2, -1], [0, axis + 1])
         self.sos_zi = _check_sos_zi(sos_zi, num_channels)
 
     def _sos(self, x: Float1dArray|Float2dArray) -> Float2dArray:
