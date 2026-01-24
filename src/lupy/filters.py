@@ -58,6 +58,30 @@ class Coeff:
             self._sos = s
         return s
 
+    def combine(self, other: Self) -> Self:
+        """Return a new :class:`Coeff` instance is a combination of this and
+        another :class:`Coeff` instance
+
+        Raises:
+            ValueError: If the sample rates of the two :class:`Coeff` instances
+                do not match
+
+        """
+        if self.sample_rate != other.sample_rate:
+            raise ValueError(
+                "Cannot combine Coeff instances with different sample rates"
+            )
+        sos1 = self.sos
+        sos2 = other.sos
+        combined_sos = np.vstack([sos1, sos2])
+        num_sections, _ = combined_sos.shape
+        assert combined_sos.shape == (num_sections, 6)
+        combined_sos = cast(SosCoeff, combined_sos)
+        return self.__class__.from_sos(
+            sos=combined_sos,
+            sample_rate=self.sample_rate,
+        )
+
     def as_sample_rate(self, sample_rate: int) -> Self:
         """Return a new :class:`Coeff` instance with the coefficients converted
         to the specified sample rate
@@ -257,6 +281,11 @@ class FilterGroup:
 
     def __init__(self, *coeff: Coeff, num_channels: int = 1):
         self.num_channels = num_channels
+        if len(coeff) > 1:
+            combined = coeff[0]
+            for c in coeff[1:]:
+                combined = combined.combine(c)
+            coeff = (combined,)
         self._filters = [Filter(c, num_channels) for c in coeff]
 
     def __call__(self, x: Float1dArray|Float2dArray) -> Float2dArray:
