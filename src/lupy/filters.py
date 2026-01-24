@@ -17,7 +17,7 @@ from .types import *
 from .signalutils.sosfilt import sosfilt, validate_sos
 from .signalutils.resample import ResamplePoly, calc_tp_fir_win
 from .typeutils import (
-    ensure_1d_array, ensure_2d_array, is_3d_array,
+    ensure_1d_array, ensure_2d_array, is_3d_array, is_1d_array, is_float64_array,
 )
 
 T = TypeVar('T')
@@ -31,6 +31,19 @@ class Coeff:
     a: Float1dArray             #: Denominator of the filter
     sample_rate: int = 48000    #: Sample rate of the filter
     _sos: SosCoeff|None = None
+
+    @classmethod
+    def from_sos(cls, sos: SosCoeff, sample_rate: int = 48000) -> Self:
+        """Create a :class:`Coeff` instance from second-order sections
+
+        This is the inverse of :attr:`sos` property.
+        """
+        b, a = signal.sos2tf(sos)
+        assert is_1d_array(b)
+        assert is_1d_array(a)
+        assert is_float64_array(b)
+        assert is_float64_array(a)
+        return cls(b=b, a=a, sample_rate=sample_rate)
 
     @property
     def sos(self) -> SosCoeff:
