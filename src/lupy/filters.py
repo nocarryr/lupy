@@ -43,7 +43,7 @@ class Coeff:
         assert is_1d_array(a)
         assert is_float64_array(b)
         assert is_float64_array(a)
-        return cls(b=b, a=a, sample_rate=sample_rate)
+        return cls(b=b, a=a, _sos=sos, sample_rate=sample_rate)
 
     @property
     def sos(self) -> SosCoeff:
