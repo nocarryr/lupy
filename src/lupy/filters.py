@@ -17,7 +17,7 @@ from .types import *
 from .signalutils.sosfilt import sosfilt, validate_sos
 from .signalutils.resample import ResamplePoly, calc_tp_fir_win
 from .typeutils import (
-    ensure_1d_array, ensure_2d_array, is_3d_array,
+    ensure_1d_array, ensure_2d_array, is_3d_array, is_1d_array, is_float64_array,
 )
 
 T = TypeVar('T')
@@ -32,6 +32,19 @@ class Coeff:
     sample_rate: int = 48000    #: Sample rate of the filter
     _sos: SosCoeff|None = None
 
+    @classmethod
+    def from_sos(cls, sos: SosCoeff, sample_rate: int = 48000) -> Self:
+        """Create a :class:`Coeff` instance from second-order sections
+
+        This is the inverse of :attr:`sos` property.
+        """
+        b, a = signal.sos2tf(sos)
+        assert is_1d_array(b)
+        assert is_1d_array(a)
+        assert is_float64_array(b)
+        assert is_float64_array(a)
+        return cls(b=b, a=a, _sos=sos, sample_rate=sample_rate)
+
     @property
     def sos(self) -> SosCoeff:
         """Array of second-order sections calculated from the filter's transfer
@@ -44,6 +57,30 @@ class Coeff:
             s = validate_sos(s)
             self._sos = s
         return s
+
+    def combine(self, other: Self) -> Self:
+        """Return a new :class:`Coeff` instance is a combination of this and
+        another :class:`Coeff` instance
+
+        Raises:
+            ValueError: If the sample rates of the two :class:`Coeff` instances
+                do not match
+
+        """
+        if self.sample_rate != other.sample_rate:
+            raise ValueError(
+                "Cannot combine Coeff instances with different sample rates"
+            )
+        sos1 = self.sos
+        sos2 = other.sos
+        combined_sos = np.vstack([sos1, sos2])
+        num_sections, _ = combined_sos.shape
+        assert combined_sos.shape == (num_sections, 6)
+        combined_sos = cast(SosCoeff, combined_sos)
+        return self.__class__.from_sos(
+            sos=combined_sos,
+            sample_rate=self.sample_rate,
+        )
 
     def as_sample_rate(self, sample_rate: int) -> Self:
         """Return a new :class:`Coeff` instance with the coefficients converted
@@ -211,6 +248,13 @@ class Filter(BaseFilter[Coeff]):
         zi = signal.sosfilt_zi(coeff.sos)
         zi[...] = 0
         sos_zi = np.repeat(np.expand_dims(zi, axis=1), num_channels, axis=1)
+
+        # Make sos_zi contiguous along the section axis so that
+        # :func:`.signalutils.sosfilt.sosfilt` can operate on it properly.
+        axis = 1 # num_channels axis
+        sos_zi = np.moveaxis(sos_zi, [0, axis + 1], [-2, -1])
+        sos_zi = np.ascontiguousarray(sos_zi)
+        sos_zi = np.moveaxis(sos_zi, [-2, -1], [0, axis + 1])
         self.sos_zi = _check_sos_zi(sos_zi, num_channels)
 
     def _sos(self, x: Float1dArray|Float2dArray) -> Float2dArray:
@@ -244,6 +288,11 @@ class FilterGroup:
 
     def __init__(self, *coeff: Coeff, num_channels: int = 1):
         self.num_channels = num_channels
+        if len(coeff) > 1:
+            combined = coeff[0]
+            for c in coeff[1:]:
+                combined = combined.combine(c)
+            coeff = (combined,)
         self._filters = [Filter(c, num_channels) for c in coeff]
 
     def __call__(self, x: Float1dArray|Float2dArray) -> Float2dArray:
