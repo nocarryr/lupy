@@ -6,6 +6,7 @@ import itertools
 import json
 import numpy as np
 from scipy import signal
+import scipy.signal.windows as windows
 from scipy.io import wavfile
 
 from lupy.types import Float1dArray, Float2dArray, NumChannels
@@ -88,7 +89,7 @@ class ComplianceInput(NamedTuple):
         taper_len, taper_win = None, None
         if self.taper_dur is not None:
             taper_len = int(self.taper_dur * sample_rate)
-            taper_win = signal.windows.hann(taper_len * 2).reshape((2, taper_len))
+            taper_win = windows.hann(taper_len * 2).reshape((2, taper_len))
 
         for ch, sig_dB in enumerate(self.dBFS):
             if np.isnan(sig_dB):
