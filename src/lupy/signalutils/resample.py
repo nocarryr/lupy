@@ -52,6 +52,7 @@ def calc_tp_fir_win(upsample_factor: int) -> Float1dArray:
         f_c,
         window=window
     )
+    assert isinstance(h, np.ndarray)
     h = h.astype(np.float64)
     return ensure_1d_array(h)
 

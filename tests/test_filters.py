@@ -24,6 +24,10 @@ def test_filter_requantize(coeff, sample_rate):
 
     w0, h0 = signal.freqz(coeff.b, coeff.a)
     w1, h1 = signal.freqz(re_quantized.b, re_quantized.a)
+    assert isinstance(w0, np.ndarray)
+    assert isinstance(w1, np.ndarray)
+    assert isinstance(h0, np.ndarray)
+    assert isinstance(h1, np.ndarray)
     assert np.allclose(w0, w1)
     assert np.allclose(h0, h1)
 
