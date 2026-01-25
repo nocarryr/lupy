@@ -33,7 +33,7 @@ classifiers = [
 ]
 dependencies = [
     "numpy<=2.4.1",
-    "scipy<=1.15.3",
+    "scipy<=1.17.0",
     "typing-extensions; python_version<'3.13'"
 ]
 
