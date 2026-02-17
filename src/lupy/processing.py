@@ -80,7 +80,9 @@ class RunningSum:
         self.add(value)
         return self
 
-    def __eq__(self, other: Floating) -> bool|np.bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, (np.floating, float, int)):
+            return NotImplemented
         return self.value == other
 
     def __gt__(self, other: Floating) -> bool|np.bool:
