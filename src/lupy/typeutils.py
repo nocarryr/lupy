@@ -19,7 +19,7 @@ from .arraytypes import MeterArray, MeterDtype, TruePeakArray, TruePeakDtype
 from .types import (
     AnyArray, AnyNdArray, Any1dArray, Any2dArray, Any3dArray, AnyFloatArray,
     IndexArray, BoolArray, ComplexArray, NumChannelsT,
-    ShapeT, DType_co,
+    ShapeT, DType_co, DType_t,
 )
 
 
@@ -90,8 +90,8 @@ def ensure_nd_array(arr: AnyNdArray[Any, DType_co], ndim: int) -> AnyNdArray[Any
 
 def is_array_of_dtype(
     arr: AnyNdArray[ShapeT, Any],
-    dtype: DType_co,
-) -> TypeIs[AnyNdArray[ShapeT, DType_co]]:
+    dtype: DType_t,
+) -> TypeIs[AnyNdArray[ShapeT, DType_t]]:
     """Check if the given array's dtype matches the specified dtype
     """
     return arr.dtype == dtype
@@ -181,7 +181,7 @@ def build_true_peak_dtype(num_channels: NumChannelsT) -> TruePeakDtype[NumChanne
     return np.dtype([
         ('t', np.float64),
         ('tp', (np.float64, num_channels)),
-    ]) # type: ignore[misc]
+    ]) # type: ignore[return-value]
 
 
 def build_true_peak_array(num_channels: NumChannelsT, size: int) -> TruePeakArray[NumChannelsT]:

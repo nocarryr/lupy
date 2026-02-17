@@ -82,9 +82,9 @@ def sosfilt(sos: SosCoeff, x: Float2dArray, zi: SosZI, axis: int = -1) -> tuple[
 
     """
     n_sections = sos.shape[0]
-    x_zi_shape = list(x.shape)
-    x_zi_shape[axis] = 2
-    x_zi_shape = tuple([n_sections] + x_zi_shape)
+    _x_zi_shape = list(x.shape)
+    _x_zi_shape[axis] = 2
+    x_zi_shape = tuple([n_sections] + _x_zi_shape)
 
     dtype = np.float64
     assert x.ndim == 2

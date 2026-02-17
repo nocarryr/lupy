@@ -138,12 +138,14 @@ class Slice:
         return tuple(new_shape)
 
     def _build_slice_array(self, x: AnyArray, axis: int):
+        start_ix: int|None
         start_ix, end_ix = self.start_index, self.end_index
         if start_ix == 0:
             start_ix = None
         sl_arr: list[slice|IndexArray] = [
             slice(None, None, None) for _ in range(x.ndim)
         ]
+        ax_slice: slice|IndexArray
         if self.is_wrapped(x, axis):
             ax_slice = self.indices(x.shape[axis])
         else:

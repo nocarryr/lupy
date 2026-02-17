@@ -50,13 +50,12 @@ class Coeff:
         """Array of second-order sections calculated from the filter's transfer
         function form
         """
-        s = self._sos
-        if s is None:
+        if self._sos is None:
             s = ensure_2d_array(signal.tf2sos(self.b, self.a))
             assert s.shape[1] == 6
             s = validate_sos(s)
             self._sos = s
-        return s
+        return self._sos
 
     def combine(self, other: Self) -> Self:
         """Return a new :class:`Coeff` instance is a combination of this and
@@ -265,7 +264,7 @@ class Filter(BaseFilter[Coeff]):
         self.sos_zi = _check_sos_zi(zi, self.num_channels)
         return ensure_2d_array(y)
 
-    def __call__(self, x: Float2dArray) -> Float2dArray:
+    def __call__(self, x: Float1dArray|Float2dArray) -> Float2dArray:
         return self._sos(x)
 
     def reset(self) -> None:

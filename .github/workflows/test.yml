@@ -8,6 +8,24 @@ on:
     branches: [ "main" ]
 
 jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+    - uses: actions/checkout@v6
+    - name: Install uv and set the python version
+      uses: astral-sh/setup-uv@v7
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install the Project
+      run: uv sync --frozen --no-dev --group test
+    - name: Run type checks
+      run: uv run mypy
+
   build:
 
     runs-on: ubuntu-latest
