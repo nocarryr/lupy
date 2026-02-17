@@ -181,7 +181,7 @@ def build_true_peak_dtype(num_channels: NumChannelsT) -> TruePeakDtype[NumChanne
     return np.dtype([
         ('t', np.float64),
         ('tp', (np.float64, num_channels)),
-    ]) # type: ignore[misc]
+    ]) # type: ignore[return-value]
 
 
 def build_true_peak_array(num_channels: NumChannelsT, size: int) -> TruePeakArray[NumChannelsT]:
