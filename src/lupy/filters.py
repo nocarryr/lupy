@@ -264,7 +264,7 @@ class Filter(BaseFilter[Coeff]):
         self.sos_zi = _check_sos_zi(zi, self.num_channels)
         return ensure_2d_array(y)
 
-    def __call__(self, x: Float2dArray) -> Float2dArray:
+    def __call__(self, x: Float1dArray|Float2dArray) -> Float2dArray:
         return self._sos(x)
 
     def reset(self) -> None:
