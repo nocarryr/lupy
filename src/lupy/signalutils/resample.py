@@ -1,12 +1,12 @@
 from __future__ import annotations
-from typing import NamedTuple, cast
+from typing import Generic, NamedTuple, cast
 import math
 
 import numpy as np
 from scipy.signal import firwin
 from scipy.signal._upfirdn_apply import _output_len, _apply, mode_enum
 
-from ..types import Float1dArray, Float2dArray
+from ..types import Float1dArray, Float2dArray, NumChannelsT
 from ..typeutils import ensure_1d_array, ensure_2d_array
 
 
@@ -105,7 +105,7 @@ def calc_resample_poly_params(
     )
 
 
-class ResamplePoly:
+class ResamplePoly(Generic[NumChannelsT]):
     """Polyphase resampler using FIR window
 
     Precomputes parameters for efficient repeated resampling.
@@ -123,7 +123,7 @@ class ResamplePoly:
         self,
         up: int,
         down: int,
-        num_channels: int,
+        num_channels: NumChannelsT,
         window: Float1dArray,
         num_input_samples: int = DEFAULT_INPUT_SAMPLES,
     ) -> None:
@@ -152,7 +152,7 @@ class ResamplePoly:
         )
 
     @property
-    def num_channels(self) -> int:
+    def num_channels(self) -> NumChannelsT:
         """Number of channels"""
         return self._num_channels
 
@@ -187,12 +187,12 @@ class ResamplePoly:
         return self.params.n_out
 
     @property
-    def input_shape(self) -> tuple[int, int]:
+    def input_shape(self) -> tuple[NumChannelsT, int]:
         """Expected input shape for :meth:`apply`"""
         return (self.num_channels, self.num_input_samples)
 
     @property
-    def output_shape(self) -> tuple[int, int]:
+    def output_shape(self) -> tuple[NumChannelsT, int]:
         """Output shape for :meth:`apply`"""
         return (self.num_channels, self.num_output_samples)
 
@@ -241,7 +241,7 @@ def _pad_h(h: Float1dArray, up: int) -> Float1dArray:
 # Adapted from:
 # https://github.com/scipy/scipy/blob/e29dcb65a2040f04819b426a04b60d44a8f69c04/scipy/signal/_upfirdn.py#L72-L104
 #
-class _UpFIRDn:
+class _UpFIRDn(Generic[NumChannelsT]):
     """Helper for resampling."""
     mode = mode_enum('constant')
     dtype = np.dtype(np.float64)
@@ -251,7 +251,7 @@ class _UpFIRDn:
         h: Float1dArray,
         up: int,
         down: int,
-        input_shape: tuple[int, int]
+        input_shape: tuple[NumChannelsT, int]
     ) -> None:
         if h.ndim != 1 or h.size == 0:
             raise ValueError('h must be 1-D with non-zero length')

@@ -161,17 +161,17 @@ def _check_filt_input(x: Float1dArray|Float2dArray) -> Float2dArray:
     return ensure_2d_array(x)
 
 
-class BaseFilter(Generic[T], ABC):
+class BaseFilter(Generic[T, NumChannelsT], ABC):
     """
     """
 
     coeff: T
     """The filter coefficients"""
 
-    num_channels: int
+    num_channels: NumChannelsT
     """Number of audio channels to filter"""
 
-    def __init__(self, coeff: T, num_channels: int = 1) -> None:
+    def __init__(self, coeff: T, num_channels: NumChannelsT) -> None:
         self.coeff = coeff
         self.num_channels = num_channels
 
@@ -197,14 +197,14 @@ class BaseFilter(Generic[T], ABC):
         return _check_filt_input(x)
 
 
-class TruePeakFilter(BaseFilter[Float1dArray]):
+class TruePeakFilter(BaseFilter[Float1dArray, NumChannelsT]):
     """4x Oversampling filter with interpolating FIR window
     """
     upsample_factor: int
     """Upsampling factor (currently only 4 is supported)"""
     def __init__(
         self,
-        num_channels: int = 1,
+        num_channels: NumChannelsT,
         upsample_factor: int = 4
     ) -> None:
         coeff = calc_tp_fir_win(upsample_factor)
@@ -233,7 +233,7 @@ def _check_sos_zi(zi: AnyArray, num_channels: int) -> SosZI:
     return cast(SosZI, zi)
 
 
-class Filter(BaseFilter[Coeff]):
+class Filter(BaseFilter[Coeff, NumChannelsT]):
     """Multi-channel filter that tracks the filter conditions between calls
 
     The filter (defined by :attr:`coeff`) is applied by calling a :class:`Filter`
@@ -242,7 +242,7 @@ class Filter(BaseFilter[Coeff]):
     sos_zi: SosZI
     """The filter conditions"""
 
-    def __init__(self, coeff: Coeff, num_channels: int = 1) -> None:
+    def __init__(self, coeff: Coeff, num_channels: NumChannelsT) -> None:
         super().__init__(coeff=coeff, num_channels=num_channels)
         zi = signal.sosfilt_zi(coeff.sos)
         zi[...] = 0
@@ -272,7 +272,7 @@ class Filter(BaseFilter[Coeff]):
 
 
 
-class FilterGroup:
+class FilterGroup(Generic[NumChannelsT]):
     """Apply multiple :class:`filters <Filter>` in series
 
     Arguments:
@@ -282,10 +282,10 @@ class FilterGroup:
 
     """
 
-    num_channels: int
+    num_channels: NumChannelsT
     """Number of audio channels to filter"""
 
-    def __init__(self, *coeff: Coeff, num_channels: int = 1):
+    def __init__(self, *coeff: Coeff, num_channels: NumChannelsT) -> None:
         self.num_channels = num_channels
         if len(coeff) > 1:
             combined = coeff[0]
