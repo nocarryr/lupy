@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypeVar, NamedTuple
+from typing import TypeVar, Generic, NamedTuple
 import sys
 if sys.version_info < (3, 11):
     from typing_extensions import Self
@@ -212,14 +212,14 @@ def calc_buffer_length(sample_rate: int, block_size: int) -> BufferShape:
 
 
 
-class BaseSampler(ABC):
+class BaseSampler(ABC, Generic[NumChannelsT]):
     sample_rate: Fraction
     """The sample rate of the input data"""
 
     block_size: int
     """Sample length per call to :meth:`write`"""
 
-    num_channels: int
+    num_channels: NumChannelsT
     """Number of channels"""
 
     sample_array: Float2dArray
@@ -229,7 +229,7 @@ class BaseSampler(ABC):
     """View of :attr:`sample_array` with shape
     ``(num_channels, block_size, sample_array.shape[1] // block_size)``
     """
-    def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
+    def __init__(self, block_size: int, num_channels: NumChannelsT, sample_rate: int = 48000) -> None:
         self.block_size = block_size
         self.sample_rate = Fraction(sample_rate, 1)
         self.num_channels = num_channels
@@ -302,7 +302,7 @@ class BaseSampler(ABC):
         self.write_slice.index = 0
 
 
-class Sampler(BaseSampler):
+class Sampler(BaseSampler[NumChannelsT]):
     """Allows input data to be stored in chunks of a specified length
     and read out in windowed segments as needed for :term:`gating block`
     calculations.
@@ -313,11 +313,11 @@ class Sampler(BaseSampler):
     and shape ``(num_channels, gate_size, sample_array.shape[1] // gate_size)``
     """
 
-    filter: FilterGroup
+    filter: FilterGroup[NumChannelsT]
     """A :class:`~.filters.FilterGroup` with both stages of the pre-filter
     defined in :term:`BS 1770`
     """
-    def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
+    def __init__(self, block_size: int, num_channels: NumChannelsT, sample_rate: int = 48000) -> None:
         super().__init__(block_size, num_channels, sample_rate)
         self.gate_view = self.sample_array.view()
         self.gate_slice = Slice(
@@ -387,7 +387,7 @@ class Sampler(BaseSampler):
         self.filter.reset()
 
 
-class TruePeakSampler(BaseSampler):
+class TruePeakSampler(BaseSampler[NumChannelsT]):
     """A :class:`Sampler` subclass for use with true peak sampling
 
     This sampler writes in the same way as :class:`Sampler`, but reads
@@ -412,7 +412,7 @@ class TruePeakSampler(BaseSampler):
     def __init__(
         self,
         block_size: int,
-        num_channels: int,
+        num_channels: NumChannelsT,
         sample_rate: int = 48000,
         gate_duration: Fraction = Fraction(4, 10)
     ) -> None:
@@ -513,10 +513,10 @@ class LockContext:
         self.release()
 
 
-class ThreadSafeSampler(Sampler, LockContext):
+class ThreadSafeSampler(Sampler[NumChannelsT], LockContext):
     """A :class:`Sampler` subclass for use with threaded reads and writes
     """
-    def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
+    def __init__(self, block_size: int, num_channels: NumChannelsT, sample_rate: int = 48000) -> None:
         super().__init__(block_size, num_channels, sample_rate)
         self._lock = threading.RLock()
 
@@ -532,13 +532,13 @@ class ThreadSafeSampler(Sampler, LockContext):
         with self:
             super()._clear()
 
-class ThreadSafeTruePeakSampler(TruePeakSampler, LockContext):
+class ThreadSafeTruePeakSampler(TruePeakSampler[NumChannelsT], LockContext):
     """A :class:`TruePeakSampler` subclass for use with threaded reads and writes
     """
     def __init__(
         self,
         block_size: int,
-        num_channels: int,
+        num_channels: NumChannelsT,
         sample_rate: int = 48000,
         gate_duration: Fraction = Fraction(4, 10)
     ) -> None:

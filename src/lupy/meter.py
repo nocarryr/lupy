@@ -51,16 +51,16 @@ class Meter(Generic[NumChannelsT]):
     num_channels: NumChannelsT
     """Number of audio channels"""
 
-    sampler: Sampler
+    sampler: Sampler[NumChannelsT]
     """The :class:`~.sampling.Sampler` instance to buffer input data"""
 
-    true_peak_sampler: TruePeakSampler
+    true_peak_sampler: TruePeakSampler[NumChannelsT]
     """Sample buffer to hold un-filtered samples for :attr:`true_peak_processor`"""
 
-    processor: BlockProcessor
+    processor: BlockProcessor[NumChannelsT]
     """The :class:`~.processing.BlockProcessor` to perform the calulations"""
 
-    true_peak_processor: TruePeakProcessor
+    true_peak_processor: TruePeakProcessor[NumChannelsT]
     """The :class:`~.processing.TruePeakProcessor`"""
 
     sample_rate: int
