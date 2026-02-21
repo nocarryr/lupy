@@ -114,7 +114,7 @@ class Slice:
         return self._index
     @index.setter
     def index(self, value: int):
-        if value > self.max_index:
+        if value > self.max_index and self.overlap == 0:
             value = 0
         if value == self._index:
             return
