@@ -53,6 +53,61 @@ class BufferShape(NamedTuple):
 
 
 class Slice:
+    """Helper class to manage slicing of overlapping array chunks
+
+    This can be used to slice overlapping or non-overlapping chunks
+    from an array, wrapping around the end of the array as needed.
+
+    For non-overlapping slices, set :attr:`overlap` to zero.
+
+    Arguments:
+        step: Length of each sliced array chunk
+        overlap: Number of elements to repeat for each sliced array chunk
+        max_index: Maximum index value before wrapping to zero
+        index_: Initial index value (default 0)
+
+
+    .. note::
+
+        The naming of :attr:`step` and :attr:`overlap` is somewhat
+        counter-intuitive.  :attr:`step` refers to the length of each
+        sliced chunk (what would typically be called "window size"), while
+        :attr:`overlap` refers to the number of elements to repeat between
+        chunks (what would typically be called "step size").
+
+
+    Examples:
+
+        Overlapping Slices:
+
+        >>> arr = np.arange(6)
+        >>> sl = Slice(step=4, overlap=2, max_index=0)
+        >>> sl.slice(arr, axis=0)       # index 0
+        array([0, 1, 2, 3])
+        >>> sl.increment(arr, axis=0)   # index 1
+        >>> sl.slice(arr, axis=0)
+        array([2, 3, 4, 5])
+        >>> sl.increment(arr, axis=0)
+        >>> sl.slice(arr, axis=0)       # index 2 (wraps around)
+        array([4, 5, 0, 1])
+        >>> sl.increment(arr, axis=0)
+        >>> sl.slice(arr, axis=0)       # index 0
+        array([0, 1, 2, 3])
+
+
+        Non-overlapping Slices:
+
+        >>> sl = Slice(step=3, overlap=0, max_index=1)
+        >>> sl.slice(arr, axis=0)       # index 0
+        array([0, 1, 2])
+        >>> sl.increment(arr, axis=0)
+        >>> sl.slice(arr, axis=0)       # index 1
+        array([3, 4, 5])
+        >>> sl.increment(arr, axis=0)
+        >>> sl.slice(arr, axis=0)       # index 0 (wraps around)
+        array([0, 1, 2])
+
+    """
     step: int
     """Length of each sliced array chunk
     (this would be better named "win_size")
@@ -61,6 +116,15 @@ class Slice:
     overlap: int
     """Number of elements to repeat for each sliced array chunk
     (this would be better named "step")
+    """
+
+    max_index: int
+    """Maximum :attr:`index` value before wrapping to zero when :attr:`overlap` is zero.
+
+    .. note::
+
+        This has no effect when :attr:`overlap` is non-zero, since the slice will
+        wrap around the end of the array as needed regardless of the index value.
     """
     def __init__(
         self,
@@ -78,10 +142,11 @@ class Slice:
 
     @property
     def index(self) -> int:
+        """The current index value"""
         return self._index
     @index.setter
     def index(self, value: int):
-        if value > self.max_index:
+        if value > self.max_index and self.overlap == 0:
             value = 0
         if value == self._index:
             return
@@ -91,25 +156,40 @@ class Slice:
 
     @property
     def start_index(self) -> int:
+        """The starting index of the current slice"""
         ix = self._start_index
         if ix is None:
-            ix = self._start_index = self.index * self.overlap
+            if self.overlap != 0:
+                ix = self._start_index = self.index * self.overlap
+            else:
+                ix = self._start_index = self.index * self.step
             if ix < 0:
                 ix = 0
         return ix
 
     @property
     def end_index(self) -> int:
+        """The ending index of the current slice"""
         ix = self._end_index
         if ix is None:
             ix = self._end_index = self.start_index + self.step
         return ix
 
     def increment(self, x: AnyArray, axis: int) -> None:
+        """Increment the slice to the next position, wrapping around the end
+        of the array as needed
+
+        Arguments:
+            x: The array being sliced
+            axis: The axis along which to slice
+        """
         if self.index == 0:
             self.index += 1
             return
-        start_ix = self.start_index + self.overlap
+        if self.overlap != 0:
+            start_ix = self.start_index + self.overlap
+        else:
+            start_ix = self.start_index + self.step
         if start_ix >= x.shape[axis]:
             self.index = 0
         else:
@@ -118,14 +198,32 @@ class Slice:
             self._end_index = None
 
     def is_wrapped(self, x: AnyArray, axis: int) -> bool:
+        """Whether the current slice wraps around the end of the array
+
+        Arguments:
+            x: The array being sliced
+            axis: The axis along which to slice
+        """
         return self.end_index > x.shape[axis]
 
     def indices(self, arr_len: int) -> IndexArray:
+        """Get an index array for the current slice, wrapping around
+        the end of the array as needed
+
+        Arguments:
+            arr_len: Length of the array being sliced
+        """
         a = np.arange(self.step, dtype=np.intp) + self.start_index
         a[a>=arr_len] -= arr_len
         return a
 
-    def _calc_shape(self, x: AnyArray, axis: int):
+    def calc_shape(self, x: AnyArray, axis: int) -> tuple[int, ...]:
+        """Calculate the shape of the sliced array along the specified axis
+
+        Arguments:
+            x: The array being sliced
+            axis: The axis along which to slice
+        """
         ndim = x.ndim
         if axis == ndim - 1:
             new_shape = list(x.shape[:-1])
@@ -137,7 +235,17 @@ class Slice:
             del new_shape[axis + 1]
         return tuple(new_shape)
 
-    def _build_slice_array(self, x: AnyArray, axis: int):
+    def build_slice_array(self, x: AnyArray, axis: int) -> tuple[slice|IndexArray, ...]:
+        """Build a tuple of slices/indices for slicing the array along
+        the specified axis
+
+        If the slice wraps around the end of the array, an index array
+        will be used for that axis.  Otherwise, a standard slice will be used.
+
+        Arguments:
+            x: The array being sliced
+            axis: The axis along which to slice
+        """
         start_ix: int|None
         start_ix, end_ix = self.start_index, self.end_index
         if start_ix == 0:
@@ -154,8 +262,14 @@ class Slice:
         return tuple(sl_arr)
 
     def slice(self, x: AnyArray, axis: int) -> AnyArray:
-        sl_arr = self._build_slice_array(x, axis)
-        new_shape = self._calc_shape(x, axis)
+        """Get the current slice of the array along the specified axis
+
+        Arguments:
+            x: The array being sliced
+            axis: The axis along which to slice
+        """
+        sl_arr = self.build_slice_array(x, axis)
+        new_shape = self.calc_shape(x, axis)
         return np.reshape(x[sl_arr], new_shape)
 
     def __repr__(self) -> str:
