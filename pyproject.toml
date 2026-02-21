@@ -49,8 +49,8 @@ exclude = ["tests*"]
 
 
 [tool.pytest.ini_options]
-addopts = "-n auto --dist=worksteal"
-testpaths = ["tests"]
+addopts = "-n auto --dist=worksteal --doctest-modules"
+testpaths = ["tests", "src"]
 
 [dependency-groups]
 test = [

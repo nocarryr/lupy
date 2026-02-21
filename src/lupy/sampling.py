@@ -75,6 +75,38 @@ class Slice:
         :attr:`overlap` refers to the number of elements to repeat between
         chunks (what would typically be called "step size").
 
+
+    Examples:
+
+        Overlapping Slices:
+
+        >>> arr = np.arange(6)
+        >>> sl = Slice(step=4, overlap=2, max_index=0)
+        >>> sl.slice(arr, axis=0)       # index 0
+        array([0, 1, 2, 3])
+        >>> sl.increment(arr, axis=0)   # index 1
+        >>> sl.slice(arr, axis=0)
+        array([2, 3, 4, 5])
+        >>> sl.increment(arr, axis=0)
+        >>> sl.slice(arr, axis=0)       # index 2 (wraps around)
+        array([4, 5, 0, 1])
+        >>> sl.increment(arr, axis=0)
+        >>> sl.slice(arr, axis=0)       # index 0
+        array([0, 1, 2, 3])
+
+
+        Non-overlapping Slices:
+
+        >>> sl = Slice(step=3, overlap=0, max_index=1)
+        >>> sl.slice(arr, axis=0)       # index 0
+        array([0, 1, 2])
+        >>> sl.increment(arr, axis=0)
+        >>> sl.slice(arr, axis=0)       # index 1
+        array([3, 4, 5])
+        >>> sl.increment(arr, axis=0)
+        >>> sl.slice(arr, axis=0)       # index 0 (wraps around)
+        array([0, 1, 2])
+
     """
     step: int
     """Length of each sliced array chunk
