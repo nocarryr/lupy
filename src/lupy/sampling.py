@@ -127,7 +127,10 @@ class Slice:
         """The starting index of the current slice"""
         ix = self._start_index
         if ix is None:
-            ix = self._start_index = self.index * self.overlap
+            if self.overlap != 0:
+                ix = self._start_index = self.index * self.overlap
+            else:
+                ix = self._start_index = self.index * self.step
             if ix < 0:
                 ix = 0
         return ix
@@ -151,7 +154,10 @@ class Slice:
         if self.index == 0:
             self.index += 1
             return
-        start_ix = self.start_index + self.overlap
+        if self.overlap != 0:
+            start_ix = self.start_index + self.overlap
+        else:
+            start_ix = self.start_index + self.step
         if start_ix >= x.shape[axis]:
             self.index = 0
         else:
