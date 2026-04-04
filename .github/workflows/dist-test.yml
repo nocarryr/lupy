@@ -59,15 +59,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+      - name: Download requirements
+        uses: actions/download-artifact@v8
+        with:
+          name: 'requirements'
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
-      - name: Download requirements
-        uses: actions/download-artifact@v8
-        with:
-          name: 'requirements'
       - name: Install dependencies
         run: pip install -r requirements.txt
 
