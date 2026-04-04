@@ -13,10 +13,6 @@ jobs:
   benchmarks:
     name: Run benchmarks
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.13"]
     steps:
       - uses: actions/checkout@v6
       - name: Install uv
@@ -24,7 +20,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.13
       - name: Install the Project
         run: uv sync --frozen --no-dev --group test
       - name: Run benchmarks
