@@ -56,34 +56,54 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         dist-type: ["wheel", "sdist"]
-
+    env:
+      UV_LOCKED: 1
+      UV_NO_CONFIG: 1
     steps:
       - uses: actions/checkout@v6
       - name: Download requirements
         uses: actions/download-artifact@v8
         with:
           name: 'requirements'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-          cache: "pip"
       - name: Install dependencies
-        run: pip install -r requirements.txt
-
+        run: |
+          uv venv --no-project
+          uv pip install -r requirements.txt
+      - name: Ensure project is not installed
+        run: |
+          uv run --no-project python -c "
+          import importlib.util
+          assert importlib.util.find_spec('lupy') is None, 'lupy should not be installed yet'
+          "
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
           name: 'dists'
           path: dist
       - name: Install wheel
-        run: pip install dist/*.whl
+        run: uv pip install dist/*.whl
         if: matrix.dist-type == 'wheel'
       - name: Install sdist
-        run: pip install dist/*.tar.gz
+        run: uv pip install dist/*.tar.gz
         if: matrix.dist-type == 'sdist'
+      - name: Ensure project is dist installed
+        run: |
+          uv run --no-project python -c "
+          import importlib.metadata
+          dist_files = importlib.metadata.files('lupy')
+          has_editable = any(f.name.startswith('__editable__') for f in dist_files)
+          assert not has_editable, 'lupy should not be installed in editable mode'
+          "
       - name: Test built distribution
-        run: py.test -n=0 tests/test_distribution.py
+        run: uv run --no-project pytest -n=0 tests/test_distribution.py
 
   deploy:
     needs: test
