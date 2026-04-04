@@ -33,6 +33,7 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           python-version: ${{ matrix.python-version }}
+          enable-cache: true
       - name: Install the Project
         run: uv sync --frozen --no-dev --group test
       - name: Run type checks
@@ -51,6 +52,7 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           python-version: ${{ matrix.python-version }}
+          enable-cache: true
       - name: Install the Project
         run: uv sync --frozen --no-dev --group test
       - name: Test with pytest
