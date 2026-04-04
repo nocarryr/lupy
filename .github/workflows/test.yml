@@ -38,8 +38,7 @@ jobs:
       - name: Run type checks
         run: uv run mypy
 
-  build:
-
+  test:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
