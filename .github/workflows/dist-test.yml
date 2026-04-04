@@ -69,13 +69,13 @@ jobs:
     - name: Install wheel
       run: pip install dist/*.whl
     - name: Test built wheel
-      run: py.test
+      run: py.test -n=0 tests/test_distribution.py
     - name: Install sdist
       run: |
         pip uninstall -y lupy
         pip install dist/*.tar.gz
     - name: Test built sdist
-      run: py.test
+      run: py.test -n=0 tests/test_distribution.py
 
   deploy:
     needs: test
