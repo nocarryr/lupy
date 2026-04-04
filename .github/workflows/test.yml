@@ -4,8 +4,20 @@ name: Test
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - "pyproject.toml"
+      - "uv.lock"
+      - "src/**"
+      - "tests/**"
+      - ".github/workflows/test.yml"
   pull_request:
     branches: [ "main" ]
+    paths:
+      - "pyproject.toml"
+      - "uv.lock"
+      - "src/**"
+      - "tests/**"
+      - ".github/workflows/test.yml"
 
 jobs:
   typecheck:
