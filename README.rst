@@ -59,17 +59,9 @@ Installation
 Pip
 ---
 
-Pip install not yet available since there is another project named "lupy" on
-the Python Package Index (PyPI).
+.. code-block:: bash
 
-Renaming and/or publishing to PyPI will hopefully come soon.
-
-
-..
-
-.. .. code-block:: bash
-
-..    $ pip install lupy
+  $ pip install lupy
 
 
 
@@ -86,6 +78,9 @@ Project Links
 
 Homepage
    https://github.com/nocarryr/lupy
+
+PyPI
+   https://pypi.org/project/lupy/
 
 Documentation
    https://lupy-nocarryr.readthedocs.io/
