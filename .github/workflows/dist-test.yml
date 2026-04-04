@@ -1,0 +1,92 @@
+
+name: Test from sdist and wheels
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      allow_deploy:
+        description: "Deploy to PyPI"
+        required: true
+        type: boolean
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: 3.14
+      - name: Build dists
+        run: uv build
+      - name: Export Lockfile
+        run: uv export --frozen --only-group test --only-group doc --format requirements-txt -o requirements.txt
+      - name: Upload dist artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: 'dists'
+          path: 'dist/*'
+      - name: Upload requirements
+        uses: actions/upload-artifact@v7
+        with:
+          name: 'requirements'
+          path: 'requirements.txt'
+
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        dist-type: ["wheel", "sdist"]
+
+    steps:
+    - uses: actions/checkout@v6
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Download requirements
+      uses: actions/download-artifact@v8
+      with:
+        name: 'requirements'
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Download artifacts
+      uses: actions/download-artifact@v8
+      with:
+        name: 'dists'
+        path: dist
+    - name: Install wheel
+      run: pip install dist/*.whl
+      if: matrix.dist-type == 'wheel'
+    - name: Install sdist
+      run: pip install dist/*.tar.gz
+      if: matrix.dist-type == 'sdist'
+    - name: Test built distribution
+      run: py.test -n=0 tests/test_distribution.py
+
+  deploy:
+    needs: test
+    if: ${{ success() && inputs.allow_deploy }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: 'dists'
+          path: dist
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
