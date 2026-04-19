@@ -300,14 +300,15 @@ class Meter(Generic[NumChannelsT]):
             m = block_data['m'][-1]
             s = block_data['s'][-1]
             t = block_data['t'][-1]
+        tp_current = self.true_peak_current
         return CurrentMeasurement(
             momentary=m,
             short_term=s,
             integrated=self.integrated_lkfs,
             lra=self.lra,
             time=t,
-            true_peak_array=self.true_peak_current,
-            true_peak_max=self.true_peak_current.max(),
+            true_peak_array=tp_current,
+            true_peak_max=tp_current.max(),
         )
 
     @property
