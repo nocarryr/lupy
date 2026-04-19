@@ -1,11 +1,7 @@
 from __future__ import annotations
 
-from typing import TypeVar, Generic, Literal, Any
+from typing import TypeVar, Generic, Literal, NamedTuple, Any
 import sys
-if sys.version_info <= (3, 10):
-    from typing_extensions import NamedTuple
-else:
-    from typing import NamedTuple
 if sys.version_info < (3, 11):
     from typing_extensions import TypeAlias
 else:
