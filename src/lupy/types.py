@@ -6,6 +6,7 @@ if sys.version_info < (3, 11):
     from typing_extensions import TypeAlias
 else:
     from typing import TypeAlias
+from dataclasses import dataclass
 
 import numpy as np
 import numpy.typing as npt
@@ -17,7 +18,7 @@ __all__ = (
     'AnyArray', 'BoolArray', 'IndexArray', 'FloatArray', 'ComplexArray',
     'Float1dArray', 'Float2dArray', 'Float3dArray', 'Float2dArray32', 'AnyFloatArray',
     'AnyNdArray', 'Any1dArray', 'Any2dArray', 'Any3dArray', 'ShapeT',
-    'NumChannels', 'NumChannelsT',
+    'NumChannels', 'NumChannelsT', 'CurrentMeasurement',
 )
 
 NumChannels = Literal[1, 2, 3, 5]
@@ -82,3 +83,23 @@ SosCoeff = np.ndarray[tuple[int, Literal[6]], np.dtype[np.float64]]
 
 SosZI = np.ndarray[tuple[int, int, Literal[2]], np.dtype[np.float64]]
 """Array representing initial conditions for second-order sections filtering"""
+
+
+# TODO: Revert to NamedTuple when Python 3.10 support is dropped
+@dataclass(frozen=True)
+class CurrentMeasurement(Generic[NumChannelsT]):
+    """Represents the current measurement state for a gating block"""
+    time: float|Floating
+    """The measurement time for this gating block"""
+    momentary: float|Floating
+    """The :term:`Momentary Loudness` for this gating block"""
+    short_term: float|Floating
+    """The :term:`Short-Term Loudness` for this gating block"""
+    integrated: float|Floating
+    """The :term:`Integrated Loudness` for this gating block"""
+    lra: float|Floating
+    """The :term:`Loudness Range` for this gating block"""
+    true_peak_array: np.ndarray[tuple[NumChannelsT], np.dtype[np.float64]]
+    """The :term:`True Peak` value for each channel for this gating block"""
+    true_peak_max: float|Floating
+    """The maximum :term:`True Peak` value across all channels for this gating block"""

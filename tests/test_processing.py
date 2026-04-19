@@ -6,7 +6,7 @@ import numpy as np
 
 from lupy import Meter
 from lupy.processing import SILENCE_DB
-from lupy.types import Float2dArray
+from lupy.types import FloatArray, Float2dArray
 
 from conftest import gen_1k_sine
 
@@ -22,7 +22,7 @@ def build_samples(
     num_channels: int,
     sample_rate: int,
     sine_channels: Iterable[int]|None,
-    sine_amp: float = 1,
+    sine_amp: float|FloatArray = 1,
 ) -> Float2dArray:
     samples = np.zeros((num_channels, num_samples), dtype=np.float64)
     if sine_channels is not None:
@@ -190,6 +190,75 @@ def test_bs2217_compliance_cases(bs_2217_compliance_case):
         # We treat -inf as -200 dBFS
         lufs = SILENCE_DB
     assert lufs - tol <= integrated <= lufs + tol
+
+
+def test_meter_current_measurement(all_channels):
+    num_channels, sine_channel = all_channels
+    silent_channels_ix = np.array(
+        [i for i in range(num_channels) if i != sine_channel],
+        dtype=np.intp,
+    )
+
+    sample_rate = 48000
+    block_size = 128
+    meter = Meter(
+        block_size=block_size,
+        num_channels=num_channels,
+        sample_rate=sample_rate,
+    )
+
+    N = sample_rate * 2
+    assert N % block_size == 0
+
+    # generate a linearly increasing amplitude array from -18 dBFS to 0 dBFS
+    amp_array = np.linspace(10 ** (-18/20), 1.0, N, dtype=np.float64)
+    src_data = build_samples(
+        num_samples=N,
+        num_channels=num_channels,
+        sample_rate=sample_rate,
+        sine_channels=(sine_channel,),
+        sine_amp=amp_array,
+    )
+
+    num_blocks = N // block_size
+    src_data = np.reshape(src_data, (num_channels, num_blocks, block_size))
+
+    # Check that the initial current measurement is at the expected silence state
+    current_measurement = meter.current_measurement
+    assert current_measurement.momentary == SILENCE_DB
+    assert current_measurement.short_term == SILENCE_DB
+    assert current_measurement.integrated == meter.integrated_lkfs == SILENCE_DB
+    assert current_measurement.lra == meter.lra == 0
+    assert current_measurement.time == 0
+    assert np.all(current_measurement.true_peak_array == -np.inf)
+    assert current_measurement.true_peak_max == -np.inf
+
+
+    write_index = 0
+    gate_block_index = 0
+    prev_measurement: CurrentMeasurement|None = None
+
+    for i in range(num_blocks):
+        block = src_data[:, i, :]
+        meter.write(block, process=False)
+        while meter.can_process():
+            meter.process()
+            current_measurement = meter.current_measurement
+
+            assert current_measurement.time == pytest.approx(gate_block_index * 0.1)
+            if prev_measurement is not None:
+                assert current_measurement.integrated >= prev_measurement.integrated
+                assert current_measurement.time > prev_measurement.time
+                assert current_measurement.momentary >= prev_measurement.momentary
+                assert current_measurement.short_term >= prev_measurement.short_term
+                assert current_measurement.lra >= prev_measurement.lra
+                assert current_measurement.true_peak_max >= prev_measurement.true_peak_max
+                assert np.all(current_measurement.true_peak_array >= prev_measurement.true_peak_array)
+                assert np.all(current_measurement.true_peak_array[silent_channels_ix] == -np.inf)
+
+            prev_measurement = current_measurement
+            gate_block_index += 1
+        write_index += 1
 
 
 def test_true_peak_gate_blocks(

@@ -37,14 +37,14 @@ def inc_samples():
     return gen
 
 @pytest.fixture
-def lkfs_1k_sine() -> Callable[[int, int, float], FloatArray]:
+def lkfs_1k_sine() -> Callable[[int, int, float|FloatArray], FloatArray]:
     # def gen(count: int, sample_rate: int, amp: float = 1):
     #     fc = 997
     #     t = np.arange(count) / sample_rate
     #     return amp * np.sin(2 * np.pi * fc * t)
     return gen_1k_sine
 
-def gen_1k_sine(count: int, sample_rate: int, amp: float = 1):
+def gen_1k_sine(count: int, sample_rate: int, amp: float|FloatArray = 1):
     fc = 997
     t = np.arange(count) / sample_rate
     return amp * np.sin(2 * np.pi * fc * t)
