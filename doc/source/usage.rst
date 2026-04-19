@@ -161,6 +161,14 @@ each time the meter processes new samples.
 * :attr:`Meter.lra`
 * :attr:`Meter.true_peak_max`
 
+.. tip::
+
+  For convenience, all relevant measurement values can be accessed together
+  through :attr:`Meter.current_measurement`. This returns an object containing
+  the items listed above as well as other useful measurements.
+
+  See the :class:`~.CurrentMeasurement` class reference for the full list.
+
 
 Array Values
 ^^^^^^^^^^^^
