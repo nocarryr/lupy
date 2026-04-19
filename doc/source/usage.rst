@@ -157,10 +157,10 @@ Scalar Values
 These attributes contain a single value which is updated
 each time the meter processes new samples.
 
-* :attr:`Meter.integrated_lkfs`
-* :attr:`Meter.lra`
+* :attr:`Meter.integrated_lkfs` holds the latest integrated loudness value.
+* :attr:`Meter.lra` holds the latest loudness range value.
 * :attr:`Meter.true_peak_current` holds the latest true peak values for each channel.
-* :attr:`Meter.true_peak_max`
+* :attr:`Meter.true_peak_max` holds the maximum true peak value observed across all channels.
 
 .. tip::
 
