@@ -185,7 +185,7 @@ arrays will be one element larger (when accessed).
 Structured Arrays
 """""""""""""""""
 
-The historical :term:`Momentary Loudness`, :term:`Short-Term Loudness`
+The historical :term:`Momentary Loudness` and :term:`Short-Term Loudness`
 measurements can be accessed as a :term:`structured array` through :attr:`Meter.block_data`:
 
 >>> ms_times = meter.block_data['t']           # A 1D array of times in seconds
