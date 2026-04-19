@@ -5,7 +5,7 @@ from fractions import Fraction
 import numpy as np
 
 from .sampling import Sampler, TruePeakSampler
-from .processing import BlockProcessor, TruePeakProcessor
+from .processing import BlockProcessor, TruePeakProcessor, SILENCE_DB
 from .arraytypes import MeterArray, TruePeakArray
 from .types import *
 from .typeutils import is_2d_array, ensure_2d_array
@@ -269,6 +269,46 @@ class Meter(Generic[NumChannelsT]):
         dtype :obj:`~.arraytypes.MeterDtype`
         """
         return self.processor.block_data
+
+    @property
+    def current_measurement(self) -> CurrentMeasurement[NumChannelsT]:
+        """The current measurement values as a :class:`~.CurrentMeasurement` instance
+
+        This is a snapshot of the most recent measurement values for each metric
+        as of the last processed gating block.
+
+        It provides the latest values for:
+
+        - The measurement time for the last processed gating block
+        - The :attr:`momentary_lkfs`
+        - :attr:`short_term_lkfs`
+        - :attr:`integrated_lkfs`
+        - :attr:`lra`
+        - :attr:`true_peak_current`
+        - The maximum of the :attr:`true_peak_current` array
+
+
+        If no gating blocks have been processed yet, the values returned will
+        correspond to their initial silence states.
+
+        """
+        block_data = self.block_data
+        if block_data.size == 0:
+            m = s = SILENCE_DB
+            t = 0
+        else:
+            m = block_data['m'][-1]
+            s = block_data['s'][-1]
+            t = block_data['t'][-1]
+        return CurrentMeasurement(
+            momentary=m,
+            short_term=s,
+            integrated=self.integrated_lkfs,
+            lra=self.lra,
+            time=t,
+            true_peak_array=self.true_peak_current,
+            true_peak_max=self.true_peak_current.max(),
+        )
 
     @property
     def momentary_lkfs(self) -> Float1dArray:
