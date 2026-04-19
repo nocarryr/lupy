@@ -320,6 +320,14 @@ def test_meter_benchmark(sample_rate, random_samples, benchmark):
     assert N % block_size == 0
     src_data = random_samples(num_channels, N)
 
+    # add a low-level sine oscillator to the random samples to simulate
+    # changes in level and trigger changes to the relative threshold detection
+    oscillator_amp = 10 ** (-12/20)
+    oscillator_freq = 3
+    t = np.arange(N) / sample_rate
+    oscillator = oscillator_amp * np.sin(2 * np.pi * oscillator_freq * t)
+    src_data[...] += oscillator
+
     def bench():
         meter.write_all(src_data)
         meter.reset()
