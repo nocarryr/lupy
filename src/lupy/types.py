@@ -99,7 +99,7 @@ class CurrentMeasurement(Generic[NumChannelsT]):
     """The :term:`Integrated Loudness` for this gating block"""
     lra: float|Floating
     """The :term:`Loudness Range` for this gating block"""
-    true_peak_array: np.ndarray[tuple[NumChannelsT], np.dtype[np.float64]]
+    true_peak_current: np.ndarray[tuple[NumChannelsT], np.dtype[np.float64]]
     """The :term:`True Peak` value for each channel for this gating block"""
     true_peak_max: float|Floating
     """The maximum :term:`True Peak` value across all channels for this gating block"""

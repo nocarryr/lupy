@@ -307,7 +307,7 @@ class Meter(Generic[NumChannelsT]):
             integrated=self.integrated_lkfs,
             lra=self.lra,
             time=t,
-            true_peak_array=tp_current,
+            true_peak_current=tp_current,
             true_peak_max=tp_current.max(),
         )
 
