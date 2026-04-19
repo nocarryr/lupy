@@ -95,7 +95,7 @@ Channel Layout
 --------------
 
 When measuring more than one channel, the expected layout should follow
-the order below.  This is import because channels are weighted differently
+the order below.  This is important because channels are weighted differently
 in the calculations.
 
 
