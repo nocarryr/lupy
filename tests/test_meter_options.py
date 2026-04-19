@@ -51,6 +51,8 @@ def test_momentary_disabled():
     assert meter.true_peak_max != -np.inf
     tp_array = meter.true_peak_array['tp']
     assert not np.array_equal(tp_array, np.full_like(tp_array, -np.inf))
+    current_measurement = meter.current_measurement
+    assert current_measurement.momentary == 0.0
 
 
 def test_short_term_disabled_and_lra_enabled_raises():
@@ -97,6 +99,8 @@ def test_short_term_disabled():
     assert meter.true_peak_max != -np.inf
     tp_array = meter.true_peak_array['tp']
     assert not np.array_equal(tp_array, np.full_like(tp_array, -np.inf))
+    current_measurement = meter.current_measurement
+    assert current_measurement.short_term == 0.0
 
 
 def test_lra_disabled():
@@ -124,6 +128,8 @@ def test_lra_disabled():
     assert meter.true_peak_max != -np.inf
     tp_array = meter.true_peak_array['tp']
     assert not np.array_equal(tp_array, np.full_like(tp_array, -np.inf))
+    current_measurement = meter.current_measurement
+    assert current_measurement.lra == 0.0
 
 
 def test_true_peak_disabled():
@@ -149,3 +155,6 @@ def test_true_peak_disabled():
     assert meter.true_peak_max == -np.inf
     tp_array = meter.true_peak_array['tp']
     assert np.array_equal(tp_array, np.full_like(tp_array, -np.inf))
+    current_measurement = meter.current_measurement
+    assert current_measurement.true_peak_max == -np.inf
+    assert np.all(current_measurement.true_peak_array == -np.inf)
