@@ -6,7 +6,7 @@ import numpy as np
 
 from lupy import Meter
 from lupy.processing import SILENCE_DB
-from lupy.types import Float2dArray
+from lupy.types import FloatArray, Float2dArray
 
 from conftest import gen_1k_sine
 
@@ -22,7 +22,7 @@ def build_samples(
     num_channels: int,
     sample_rate: int,
     sine_channels: Iterable[int]|None,
-    sine_amp: float = 1,
+    sine_amp: float|FloatArray = 1,
 ) -> Float2dArray:
     samples = np.zeros((num_channels, num_samples), dtype=np.float64)
     if sine_channels is not None:
