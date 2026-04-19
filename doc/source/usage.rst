@@ -159,6 +159,7 @@ each time the meter processes new samples.
 
 * :attr:`Meter.integrated_lkfs`
 * :attr:`Meter.lra`
+* :attr:`Meter.true_peak_current` holds the latest true peak values for each channel.
 * :attr:`Meter.true_peak_max`
 
 .. tip::
@@ -207,7 +208,6 @@ Direct Access
 * :attr:`Meter.t` holds the times for momentary/short-term measurements.
 * :attr:`Meter.momentary_lkfs` holds the historical momentary loudness values.
 * :attr:`Meter.short_term_lkfs` holds the historical short-term loudness values.
-* :attr:`Meter.true_peak_current` holds the latest true peak values for each channel.
 
 
 
