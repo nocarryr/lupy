@@ -83,6 +83,9 @@ Project Links
 Homepage
    :project-url:`Homepage`
 
+PyPI
+   :project-url:`PyPI`
+
 Documentation
    :project-url:`Documentation`
 
