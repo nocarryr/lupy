@@ -63,15 +63,11 @@ Installation
 Pip
 ---
 
-Pip install not yet available since there is another project named "lupy" on
-the Python Package Index (PyPI).
+.. code-block:: bash
 
-Renaming and/or publishing to PyPI will hopefully come soon.
+  $ pip install lupy
 
 
-.. .. code-block:: bash
-
-..    $ pip install lupy
 
 
 Dependencies
