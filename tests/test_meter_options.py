@@ -157,4 +157,4 @@ def test_true_peak_disabled():
     assert np.array_equal(tp_array, np.full_like(tp_array, -np.inf))
     current_measurement = meter.current_measurement
     assert current_measurement.true_peak_max == -np.inf
-    assert np.all(current_measurement.true_peak_array == -np.inf)
+    assert np.all(current_measurement.true_peak_current == -np.inf)

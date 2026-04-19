@@ -279,7 +279,7 @@ class Meter(Generic[NumChannelsT]):
 
         It provides the latest values for:
 
-        - The measurement time for the last processed gating block
+        - The :attr:`measurement time <t>` for the last processed gating block
         - The :attr:`momentary_lkfs`
         - :attr:`short_term_lkfs`
         - :attr:`integrated_lkfs`
@@ -307,7 +307,7 @@ class Meter(Generic[NumChannelsT]):
             integrated=self.integrated_lkfs,
             lra=self.lra,
             time=t,
-            true_peak_array=tp_current,
+            true_peak_current=tp_current,
             true_peak_max=tp_current.max(),
         )
 

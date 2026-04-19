@@ -230,7 +230,7 @@ def test_meter_current_measurement(all_channels):
     assert current_measurement.integrated == meter.integrated_lkfs == SILENCE_DB
     assert current_measurement.lra == meter.lra == 0
     assert current_measurement.time == 0
-    assert np.all(current_measurement.true_peak_array == -np.inf)
+    assert np.all(current_measurement.true_peak_current == -np.inf)
     assert current_measurement.true_peak_max == -np.inf
 
 
@@ -253,8 +253,8 @@ def test_meter_current_measurement(all_channels):
                 assert current_measurement.short_term >= prev_measurement.short_term
                 assert current_measurement.lra >= prev_measurement.lra
                 assert current_measurement.true_peak_max >= prev_measurement.true_peak_max
-                assert np.all(current_measurement.true_peak_array >= prev_measurement.true_peak_array)
-                assert np.all(current_measurement.true_peak_array[silent_channels_ix] == -np.inf)
+                assert np.all(current_measurement.true_peak_current >= prev_measurement.true_peak_current)
+                assert np.all(current_measurement.true_peak_current[silent_channels_ix] == -np.inf)
 
             prev_measurement = current_measurement
             gate_block_index += 1

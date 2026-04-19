@@ -95,7 +95,7 @@ Channel Layout
 --------------
 
 When measuring more than one channel, the expected layout should follow
-the order below.  This is import because channels are weighted differently
+the order below.  This is important because channels are weighted differently
 in the calculations.
 
 
@@ -157,9 +157,18 @@ Scalar Values
 These attributes contain a single value which is updated
 each time the meter processes new samples.
 
-* :attr:`Meter.integrated_lkfs`
-* :attr:`Meter.lra`
-* :attr:`Meter.true_peak_max`
+* :attr:`Meter.integrated_lkfs` holds the latest integrated loudness value.
+* :attr:`Meter.lra` holds the latest loudness range value.
+* :attr:`Meter.true_peak_current` holds the latest true peak values for each channel.
+* :attr:`Meter.true_peak_max` holds the maximum true peak value observed across all channels.
+
+.. tip::
+
+  For convenience, all relevant measurement values can be accessed together
+  through :attr:`Meter.current_measurement`. This returns an object containing
+  the items listed above as well as other useful measurements.
+
+  See the :class:`~.CurrentMeasurement` class reference for the full list.
 
 
 Array Values
@@ -173,12 +182,35 @@ recent data point in their last element. In other words,
 when a new 100ms chunk of input has been processed, the
 arrays will be one element larger (when accessed).
 
-The time (in seconds) for each can be accessed from
-:attr:`Meter.t`
 
-* :attr:`Meter.momentary_lkfs`
-* :attr:`Meter.short_term_lkfs`
-* :attr:`Meter.true_peak_current`
+Structured Arrays
+"""""""""""""""""
+
+The historical :term:`Momentary Loudness` and :term:`Short-Term Loudness`
+measurements can be accessed as a :term:`structured array` through :attr:`Meter.block_data`:
+
+>>> ms_times = meter.block_data['t']           # A 1D array of times in seconds
+>>> momentary_values = meter.block_data['m']   # A 1D array of momentary loudness values
+>>> short_term_values = meter.block_data['s']  # A 1D array of short-term loudness values
+
+
+The historical :term:`True Peak` measurements can be accessed
+from :attr:`Meter.true_peak_array` which contains the peak values
+for each channel along with their measurement times:
+
+>>> tp_times = meter.true_peak_array['t']   # A 1D array of times in seconds
+>>> tp_values = meter.true_peak_array['tp'] # A 2D array of shape (n, num_channels)
+
+
+Direct Access
+"""""""""""""
+
+* :attr:`Meter.t` holds the times for momentary/short-term measurements.
+* :attr:`Meter.momentary_lkfs` holds the historical momentary loudness values.
+* :attr:`Meter.short_term_lkfs` holds the historical short-term loudness values.
+
+
+
 
 
 
