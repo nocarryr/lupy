@@ -349,13 +349,12 @@ def processor_bench_data(request) -> tuple[np.ndarray, int, BlockProcessor, Proc
     assert in_samples.shape == (num_channels, N)
 
     # expand the first dimension to 5 (channels) and fill the new channels with silence
-    in_samples_5ch = np.resize(in_samples, (5, N))
-    assert np.array_equal(in_samples_5ch[:num_channels, :], in_samples)
-    in_samples_5ch[num_channels:, :] = 0
+    in_samples_5ch = np.zeros((5, N), dtype=in_samples.dtype)
+    in_samples_5ch[:num_channels, :] = in_samples
     assert in_samples_5ch.shape == (5, N)
 
     num_gate_blocks = N // gate_size
-    samples = in_samples_5ch.reshape(5, num_gate_blocks, gate_size)
+    samples = in_samples_5ch.reshape(5, num_gate_blocks, gate_size).transpose(1, 0, 2).copy()
 
     processor = BlockProcessor(
         num_channels=5,
@@ -374,7 +373,7 @@ def test_block_processor_benchmark(benchmark, processor_bench_data):
 
     def bench():
         for i in range(num_gate_blocks):
-            block = samples[:, i, :]
+            block = samples[i]
             processor.process_block(block)
         return processor.integrated_lkfs
 
