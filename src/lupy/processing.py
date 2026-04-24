@@ -216,8 +216,10 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         )
         self._block_weighted_sums = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
         self._quarter_block_weighted_sums = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
-        self._blocks_above_abs_thresh = np.zeros(self.MAX_BLOCKS, dtype=bool)
-        self._blocks_above_rel_thresh = np.zeros(self.MAX_BLOCKS, dtype=bool)
+        self._block_weighted_sums = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
+        self._quarter_block_weighted_sums = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
+
+        self._block_loudness = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
 
         self._block_loudness = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
         self._t = self._block_data['t']
@@ -358,8 +360,7 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
             # a full array comparison and just add the current block to the running sum.
             blocks_above_rel_thresh[-1] = cur_block_lk >= rel_threshold
             if cur_block_lk >= rel_threshold and above_abs:
-                rs.value += cur_block_wsum
-                rs.count += 1
+                rs += cur_block_wsum
 
         self._rel_threshold = rel_threshold
         if not rs.count:
