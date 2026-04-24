@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from typing import Iterable
+from typing import Iterable, Literal, get_args
 import pytest
 import numpy as np
 
-from lupy import Meter
+from lupy import Meter, BlockProcessor
 from lupy.processing import SILENCE_DB
 from lupy.types import FloatArray, Float2dArray
 
 from conftest import gen_1k_sine
+from compliance_cases import BS2217_NPZ_DIR
 
 
 
@@ -324,3 +325,75 @@ def test_meter_benchmark(sample_rate, random_samples, benchmark):
         meter.write_all(src_data)
         meter.reset()
     benchmark(bench)
+
+
+
+ProcessorMode = Literal['integrated', 'momentary', 'short_term', 'lra']
+
+@pytest.fixture(params=get_args(ProcessorMode))
+def processor_bench_data(request) -> tuple[np.ndarray, int, BlockProcessor, ProcessorMode]:
+    mode = request.param
+    src_file = BS2217_NPZ_DIR / '1770-2_Comp_RelGateTest_prefiltered_gated.npz'
+    with np.load(src_file) as data:
+        in_samples: np.ndarray[tuple[int, int], np.dtype[np.float32]] = data['samples']
+        sample_rate = int(data['sample_rate'])
+        num_channels = int(data['num_channels'])
+    assert sample_rate == 48000
+    assert num_channels == 2
+    gate_size = int(sample_rate * 0.4)
+    N = in_samples.shape[1]
+    if N % gate_size != 0:
+        N -= N % gate_size
+        in_samples = in_samples[:, :N]
+
+    assert in_samples.shape == (num_channels, N)
+
+    # expand the first dimension to 5 (channels) and fill the new channels with silence
+    in_samples_5ch = np.zeros((5, N), dtype=in_samples.dtype)
+    in_samples_5ch[:num_channels, :] = in_samples
+    assert in_samples_5ch.shape == (5, N)
+
+    num_gate_blocks = N // gate_size
+    samples = in_samples_5ch.reshape(5, num_gate_blocks, gate_size).transpose(1, 0, 2).copy()
+
+    processor = BlockProcessor(
+        num_channels=5,
+        gate_size=gate_size,
+        sample_rate=sample_rate,
+        momentary_enabled=(mode == 'momentary'),
+        short_term_enabled=(mode == 'short_term' or mode == 'lra'),
+        lra_enabled=(mode == 'lra'),
+    )
+    return samples, num_gate_blocks, processor, mode
+
+
+@pytest.mark.benchmark(group='block_processor')
+def test_block_processor_benchmark(benchmark, processor_bench_data):
+    samples, num_gate_blocks, processor, mode = processor_bench_data
+
+    def bench():
+        for i in range(num_gate_blocks):
+            block = samples[i]
+            processor.process_block(block)
+        return processor.integrated_lkfs
+
+    def teardown():
+        processor.reset()
+
+    # The number of rounds is chosen based off of experimentation to get a
+    # relatively low standard deviation.
+    rounds: dict[ProcessorMode, int] = {
+        'integrated': 800,
+        'momentary':600,
+        'short_term': 500,
+        'lra': 300,
+    }
+
+    # Using pedantic so that `processor.reset()` isn't included in the measurements
+    result = benchmark.pedantic(
+        bench,
+        teardown=teardown,
+        warmup_rounds=10,
+        rounds=rounds[mode],
+    )
+    assert result == pytest.approx(-10, abs=0.1)
