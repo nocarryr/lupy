@@ -36,16 +36,13 @@ DType_t = TypeVar("DType_t", bound=np.dtype[Any])
 DType_co = TypeVar("DType_co", bound=np.dtype[Any], covariant=True)
 """"""
 
-_1D: TypeAlias = tuple[int]
-_2D: TypeAlias = tuple[int, int]
-_3D: TypeAlias = tuple[int, int, int]
 
 ShapeT = TypeVar('ShapeT', bound=tuple[int,...])
 ShapeT_co = TypeVar('ShapeT_co', bound=tuple[int,...], covariant=True)
 
-_1DArray = np.ndarray[_1D, DType_co]
-_2DArray = np.ndarray[_2D, DType_co]
-_3DArray = np.ndarray[_3D, DType_co]
+_1DArray = np.ndarray[tuple[int], DType_co]
+_2DArray = np.ndarray[tuple[int, int], DType_co]
+_3DArray = np.ndarray[tuple[int, int, int], DType_co]
 
 
 # type AnyNdArray[_St: (tuple[int,...]), _Dt: (_AnyDtype)] = np.ndarray[_St, _Dt]
