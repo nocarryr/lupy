@@ -112,9 +112,9 @@ def sosfilt(sos: SosCoeff, x: Float2dArray, zi: SosZI, axis: int = -1) -> tuple[
     _sosfilt(sos, x, zi)
     x = x.reshape(x_shape)
 
-    _zi = zi.reshape(zi_shape)
+    zi = cast(SosZI, zi.reshape(zi_shape))
 
     # move section axis back to front, axis back to original position
-    _zi = np.moveaxis(_zi, [-2, -1], [0, axis + 1])
+    zi = np.moveaxis(zi, [-2, -1], [0, axis + 1])
 
-    return x, cast(SosZI, _zi)
+    return x, zi
