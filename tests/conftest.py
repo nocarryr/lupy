@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, overload
 import os
 from fractions import Fraction
 import numpy as np
@@ -44,7 +44,15 @@ def lkfs_1k_sine() -> Callable[[int, int, float|FloatArray], FloatArray]:
     #     return amp * np.sin(2 * np.pi * fc * t)
     return gen_1k_sine
 
-def gen_1k_sine(count: int, sample_rate: int, amp: float|FloatArray = 1):
+@overload
+def gen_1k_sine(count: int, sample_rate: int, amp: float) -> FloatArray[tuple[int]]: ...
+@overload
+def gen_1k_sine(count: int, sample_rate: int, amp: FloatArray[ShapeT]) -> FloatArray[ShapeT]: ...
+def gen_1k_sine(
+    count: int,
+    sample_rate: int,
+    amp: float|FloatArray[ShapeT] = 1
+) -> FloatArray[ShapeT] | FloatArray[tuple[int]]:
     fc = 997
     t = np.arange(count) / sample_rate
     return amp * np.sin(2 * np.pi * fc * t)
