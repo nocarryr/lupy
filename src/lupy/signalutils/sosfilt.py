@@ -102,7 +102,7 @@ def sosfilt(sos: SosCoeff, x: Float2dArray, zi: SosZI, axis: int = -1) -> tuple[
     axis = axis % x.ndim  # make positive
 
     # move section axis to front, axis to last-but-one
-    zi = np.moveaxis(zi, [0, axis + 1], [-2, -1]) # type: ignore[arg-type]
+    zi = np.moveaxis(zi, [0, axis + 1], [-2, -1])
     x_shape, zi_shape = x.shape, zi.shape
 
     x = ensure_2d_array(np.array(x, dtype, order='C'))  # make a copy, can modify in place
@@ -110,11 +110,11 @@ def sosfilt(sos: SosCoeff, x: Float2dArray, zi: SosZI, axis: int = -1) -> tuple[
     assert zi.flags.c_contiguous
 
     _sosfilt(sos, x, zi)
-    x.shape = x_shape
+    x = x.reshape(x_shape)
 
-    zi.shape = zi_shape
+    _zi = zi.reshape(zi_shape)
 
     # move section axis back to front, axis back to original position
-    zi = np.moveaxis(zi, [-2, -1], [0, axis + 1]) # type: ignore[arg-type]
+    _zi = np.moveaxis(_zi, [-2, -1], [0, axis + 1])
 
-    return x, cast(SosZI, zi)
+    return x, cast(SosZI, _zi)
