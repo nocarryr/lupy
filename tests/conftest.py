@@ -6,7 +6,7 @@ from fractions import Fraction
 import numpy as np
 import pytest
 
-from lupy.types import FloatArray
+from lupy.types import *
 from compliance_cases import (
     ComplianceBase, cases_by_name, all_cases, true_peak_cases,
     bs_2217_compliance_cases,
@@ -54,7 +54,7 @@ def block_size(request) -> int:
     return request.param
 
 @pytest.fixture(params=[1, 2, 3, 5])
-def num_channels(request) -> int:
+def num_channels(request) -> NumChannels:
     return request.param
 
 @pytest.fixture(params=[
@@ -79,7 +79,7 @@ def true_peak_gate_duration(request) -> Fraction:
     (3, 0), (3, 1), (3, 2),
     (5, 0), (5, 1), (5, 2),
 ])
-def front_channels(request) -> tuple[int, int]:
+def front_channels(request) -> tuple[NumChannels, ChannelIndex]:
     return request.param
 
 @pytest.fixture(params=[
@@ -88,7 +88,7 @@ def front_channels(request) -> tuple[int, int]:
     (3, 0), (3, 1), (3, 2),
     (5, 0), (5, 1), (5, 2), (5, 3), (5, 4),
 ])
-def all_channels(request) -> tuple[int, int]:
+def all_channels(request) -> tuple[NumChannels, ChannelIndex]:
     return request.param
 
 @pytest.fixture(
