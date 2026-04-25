@@ -87,6 +87,24 @@ def ensure_nd_array(arr: AnyNdArray[Any, DType_co], ndim: int) -> AnyNdArray[Any
     return arr
 
 
+def is_array_of_shape(
+    arr: np.ndarray[tuple[int,...], DType_t],
+    shape: ShapeT
+) -> TypeIs[np.ndarray[ShapeT, DType_t]]:
+    """Check if the given array's shape matches the specified shape
+    """
+    return arr.shape == shape
+
+
+def ensure_array_of_shape(
+    arr: np.ndarray[tuple[int,...], DType_t],
+    shape: ShapeT
+) -> np.ndarray[ShapeT, DType_t]:
+    """Ensure the given array's shape matches the specified shape and return it
+    """
+    assert is_array_of_shape(arr, shape)
+    return arr
+
 
 def is_array_of_dtype(
     arr: AnyNdArray[ShapeT, Any],

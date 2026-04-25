@@ -6,7 +6,8 @@ import numpy as np
 
 from lupy import Meter, BlockProcessor
 from lupy.processing import SILENCE_DB
-from lupy.types import FloatArray, Float2dArray
+from lupy.types import FloatArray, NumChannelsT, ChannelIndex, CurrentMeasurement
+from lupy.typeutils import is_array_of_shape
 
 from conftest import gen_1k_sine
 from compliance_cases import BS2217_NPZ_DIR
@@ -20,12 +21,13 @@ def is_silent(request) -> bool:
 
 def build_samples(
     num_samples: int,
-    num_channels: int,
+    num_channels: NumChannelsT,
     sample_rate: int,
-    sine_channels: Iterable[int]|None,
-    sine_amp: float|FloatArray = 1,
-) -> Float2dArray:
+    sine_channels: Iterable[ChannelIndex]|None,
+    sine_amp: float|FloatArray[tuple[int]] = 1,
+) -> np.ndarray[tuple[NumChannelsT, int], np.dtype[np.float64]]:
     samples = np.zeros((num_channels, num_samples), dtype=np.float64)
+    assert is_array_of_shape(samples, (num_channels, num_samples))
     if sine_channels is not None:
         sig = gen_1k_sine(num_samples, sample_rate, sine_amp)
         samples[np.array(sine_channels),...] = sig
@@ -47,7 +49,7 @@ def test_integrated_lkfs(sample_rate, block_size, all_channels, is_silent):
     N, Fs = meter.sampler.total_samples, int(meter.sample_rate)
     num_blocks, gate_size = meter.sampler.num_blocks, meter.sampler.gate_size
 
-    src_data = build_samples(N, num_channels, Fs, [sine_channel], 1)
+    src_data = build_samples(N, num_channels, Fs, (sine_channel,), 1)
     assert src_data.shape == (num_channels, N)
 
     if is_silent:
@@ -87,7 +89,7 @@ def test_integrated_lkfs_neg18(sample_rate, block_size):
     N, Fs = meter.sampler.total_samples, int(meter.sample_rate)
     num_blocks, gate_size = meter.sampler.num_blocks, meter.sampler.gate_size
 
-    sine_channels = [0, 1]
+    sine_channels = (0, 1)
     amp = 10 ** (-18/20)
     src_data = build_samples(N, num_channels, Fs, sine_channels, amp)
     meter.write_all(src_data)

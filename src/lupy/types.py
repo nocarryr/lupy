@@ -18,12 +18,17 @@ __all__ = (
     'AnyArray', 'BoolArray', 'IndexArray', 'FloatArray', 'ComplexArray',
     'Float1dArray', 'Float2dArray', 'Float3dArray', 'Float2dArray32', 'AnyFloatArray',
     'AnyNdArray', 'Any1dArray', 'Any2dArray', 'Any3dArray', 'ShapeT',
-    'NumChannels', 'NumChannelsT', 'CurrentMeasurement',
+    'NumChannels', 'NumChannelsT', 'ChannelIndex', 'ChannelIndexT',
+    'CurrentMeasurement',
 )
 
 NumChannels = Literal[1, 2, 3, 5]
 """"""
 NumChannelsT = TypeVar('NumChannelsT', bound=NumChannels)
+""""""
+ChannelIndex = Literal[0, 1, 2, 3, 4]
+""""""
+ChannelIndexT = TypeVar('ChannelIndexT', bound=ChannelIndex)
 """"""
 
 Floating = np.floating
@@ -31,21 +36,17 @@ Complex = np.complex128
 
 
 
-_AnyDtype: TypeAlias = np.dtype[Any]
 DType_t = TypeVar("DType_t", bound=np.dtype[Any])
 DType_co = TypeVar("DType_co", bound=np.dtype[Any], covariant=True)
 """"""
 
-_1D: TypeAlias = tuple[int]
-_2D: TypeAlias = tuple[int, int]
-_3D: TypeAlias = tuple[int, int, int]
 
-ShapeT = TypeVar('ShapeT', _1D, _2D, _3D)
+ShapeT = TypeVar('ShapeT', bound=tuple[int,...])
 ShapeT_co = TypeVar('ShapeT_co', bound=tuple[int,...], covariant=True)
 
-_1DArray = np.ndarray[_1D, DType_co]
-_2DArray = np.ndarray[_2D, DType_co]
-_3DArray = np.ndarray[_3D, DType_co]
+_1DArray = np.ndarray[tuple[int], DType_co]
+_2DArray = np.ndarray[tuple[int, int], DType_co]
+_3DArray = np.ndarray[tuple[int, int, int], DType_co]
 
 
 # type AnyNdArray[_St: (tuple[int,...]), _Dt: (_AnyDtype)] = np.ndarray[_St, _Dt]
