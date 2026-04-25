@@ -18,12 +18,17 @@ __all__ = (
     'AnyArray', 'BoolArray', 'IndexArray', 'FloatArray', 'ComplexArray',
     'Float1dArray', 'Float2dArray', 'Float3dArray', 'Float2dArray32', 'AnyFloatArray',
     'AnyNdArray', 'Any1dArray', 'Any2dArray', 'Any3dArray', 'ShapeT',
-    'NumChannels', 'NumChannelsT', 'CurrentMeasurement',
+    'NumChannels', 'NumChannelsT', 'ChannelIndex', 'ChannelIndexT',
+    'CurrentMeasurement',
 )
 
 NumChannels = Literal[1, 2, 3, 5]
 """"""
 NumChannelsT = TypeVar('NumChannelsT', bound=NumChannels)
+""""""
+ChannelIndex = Literal[0, 1, 2, 3, 4]
+""""""
+ChannelIndexT = TypeVar('ChannelIndexT', bound=ChannelIndex)
 """"""
 
 Floating = np.floating
