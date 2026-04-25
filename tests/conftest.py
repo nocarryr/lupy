@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, overload
+from typing import overload
 import os
 from fractions import Fraction
 import numpy as np
@@ -36,13 +36,6 @@ def inc_samples():
         return a
     return gen
 
-@pytest.fixture
-def lkfs_1k_sine() -> Callable[[int, int, float|FloatArray], FloatArray]:
-    # def gen(count: int, sample_rate: int, amp: float = 1):
-    #     fc = 997
-    #     t = np.arange(count) / sample_rate
-    #     return amp * np.sin(2 * np.pi * fc * t)
-    return gen_1k_sine
 
 @overload
 def gen_1k_sine(count: int, sample_rate: int, amp: float) -> FloatArray[tuple[int]]: ...
