@@ -40,7 +40,7 @@ _1D: TypeAlias = tuple[int]
 _2D: TypeAlias = tuple[int, int]
 _3D: TypeAlias = tuple[int, int, int]
 
-ShapeT = TypeVar('ShapeT', _1D, _2D, _3D)
+ShapeT = TypeVar('ShapeT', bound=tuple[int,...])
 ShapeT_co = TypeVar('ShapeT_co', bound=tuple[int,...], covariant=True)
 
 _1DArray = np.ndarray[_1D, DType_co]
