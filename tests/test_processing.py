@@ -341,6 +341,16 @@ def processor_bench_data(request) -> tuple[np.ndarray, int, BlockProcessor, Proc
     assert sample_rate == 48000
     assert num_channels == 2
     gate_size = int(sample_rate * 0.4)
+
+    # ratio between the number of input samples and the number of output samples after gating
+    gate_ratio = 3.7
+
+    # Add a second of silence to the end of the input samples with gating applied
+    silence_time = 1.0
+    n_silence_samples_with_gate = int(sample_rate * silence_time * gate_ratio)
+    silence_samples = np.zeros((num_channels, n_silence_samples_with_gate), dtype=np.float32)
+    in_samples = np.concatenate((in_samples, silence_samples), axis=1)
+
     N = in_samples.shape[1]
     if N % gate_size != 0:
         N -= N % gate_size
