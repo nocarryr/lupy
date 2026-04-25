@@ -6,7 +6,7 @@ from fractions import Fraction
 import numpy as np
 import pytest
 
-from lupy.types import *
+from lupy.types import FloatArray, ShapeT, NumChannels, ChannelIndex
 from compliance_cases import (
     ComplianceBase, cases_by_name, all_cases, true_peak_cases,
     bs_2217_compliance_cases,

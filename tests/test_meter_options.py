@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 
 from lupy import Meter
-from lupy.types import *
+from lupy.types import NumChannelsT
 from lupy.typeutils import is_array_of_shape
 
 from conftest import gen_1k_sine

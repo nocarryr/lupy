@@ -6,7 +6,7 @@ import numpy as np
 
 from lupy import Meter, BlockProcessor
 from lupy.processing import SILENCE_DB
-from lupy.types import *
+from lupy.types import FloatArray, NumChannelsT, ChannelIndex, CurrentMeasurement
 from lupy.typeutils import is_array_of_shape
 
 from conftest import gen_1k_sine
