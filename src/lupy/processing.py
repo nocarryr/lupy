@@ -216,6 +216,10 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         )
         self._block_weighted_sums = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
         self._quarter_block_weighted_sums = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
+        self._block_weighted_sums = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
+        self._quarter_block_weighted_sums = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
+
+        self._block_loudness = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
 
         self._block_loudness = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
         self._t = self._block_data['t']
@@ -306,6 +310,8 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         self._quarter_block_weighted_sums[:] = 0
         self._block_loudness[:] = 0
         self._rel_threshold = SILENCE_DB
+        self._blocks_above_abs_thresh[:] = False
+        self._blocks_above_rel_thresh[:] = False
         self._above_rel_running_sum.clear()
         self._above_abs_running_sum.clear()
         self.integrated_lkfs = SILENCE_DB
@@ -321,27 +327,42 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
 
     def _calc_gating(self) -> None:
         block_lk = self._block_loudness[:self.block_index+1]
+        blocks_above_rel_thresh = self._blocks_above_rel_thresh[:self.block_index+1]
+        blocks_above_abs_thresh = self._blocks_above_abs_thresh[:self.block_index+1]
         block_wsums = self._block_weighted_sums[:self.block_index+1]
         cur_block_lk = block_lk[-1]
         cur_block_wsum = block_wsums[-1]
         above_abs = cur_block_lk >= -70
+        rel_threshold_changed = False
 
         if above_abs:
             self._above_abs_running_sum += cur_block_wsum
+        blocks_above_abs_thresh[-1] = above_abs
 
         if self._above_abs_running_sum == 0:
             rel_threshold = SILENCE_DB
         else:
             rel_threshold = lk_log10(self._above_abs_running_sum.mean) - 10
-        self._rel_threshold = rel_threshold
+            if rel_threshold != self._rel_threshold:
+                rel_threshold_changed = True
 
         rs = self._above_rel_running_sum
-        x = block_wsums[np.logical_and(
-            np.greater_equal(block_lk, rel_threshold),
-            np.greater_equal(block_lk, -70)
-        )]
-        rs.value = x.sum()
-        rs.count = x.size
+        if rel_threshold_changed:
+            blocks_above_rel_thresh[:] = block_lk >= rel_threshold
+            x = block_wsums[np.logical_and(
+                blocks_above_rel_thresh,
+                blocks_above_abs_thresh
+            )]
+            rs.value = x.sum()
+            rs.count = x.size
+        else:
+            # If the relative threshold hasn't changed, we can avoid doing
+            # a full array comparison and just add the current block to the running sum.
+            blocks_above_rel_thresh[-1] = cur_block_lk >= rel_threshold
+            if cur_block_lk >= rel_threshold and above_abs:
+                rs += cur_block_wsum
+
+        self._rel_threshold = rel_threshold
         if not rs.count:
             self.integrated_lkfs = SILENCE_DB
         else:
