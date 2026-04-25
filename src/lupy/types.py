@@ -31,7 +31,6 @@ Complex = np.complex128
 
 
 
-_AnyDtype: TypeAlias = np.dtype[Any]
 DType_t = TypeVar("DType_t", bound=np.dtype[Any])
 DType_co = TypeVar("DType_co", bound=np.dtype[Any], covariant=True)
 """"""
