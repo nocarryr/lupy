@@ -5,7 +5,8 @@ import pytest
 import numpy as np
 
 from lupy import Meter
-from lupy.types import Float2dArray, NumChannels
+from lupy.types import *
+from lupy.typeutils import is_array_of_shape
 
 from conftest import gen_1k_sine
 
@@ -14,11 +15,12 @@ from conftest import gen_1k_sine
 def build_samples(
     num_samples: int,
     sample_rate: int,
-    num_channels: NumChannels = 2,
+    num_channels: NumChannelsT = 2,
     sine_channels: Iterable[int]|None = (0, 1),
     sine_amp: float = 10 ** (-18/20),
-) -> Float2dArray:
+) -> np.ndarray[tuple[NumChannelsT, int], np.dtype[np.float64]]:
     samples = np.zeros((num_channels, num_samples), dtype=np.float64)
+    assert is_array_of_shape(samples, (num_channels, num_samples))
     if sine_channels is not None:
         sig = gen_1k_sine(num_samples, sample_rate, sine_amp)
         samples[np.array(sine_channels),...] = sig
