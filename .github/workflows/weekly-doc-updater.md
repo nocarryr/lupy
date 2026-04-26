@@ -26,6 +26,7 @@ network:
     - java
     - rust
     - dotnet
+    - "astral.sh"
 
 permissions:
   contents: read
