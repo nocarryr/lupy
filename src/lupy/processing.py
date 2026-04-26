@@ -7,6 +7,7 @@ if sys.version_info < (3, 11):
 else:
     from typing import Self
 from abc import ABC, abstractmethod
+import bisect
 
 import numpy as np
 
@@ -137,6 +138,25 @@ def from_lk_log10(
 ) -> FloatArray|np.floating:
     return 10 ** ((x + offset) / 10)
 
+def _sorted_quantile(sorted_vals: list[float], lo: int, n: int, q: float) -> float:
+    """Compute a quantile from a pre-sorted list slice using linear interpolation.
+
+    Matches ``numpy.quantile(arr, q, method='linear')`` exactly.
+
+    Parameters:
+        sorted_vals: the full sorted list
+        lo: start index of the relevant slice within *sorted_vals*
+        n: number of elements in the slice
+        q: quantile in [0, 1]
+    """
+    idx = q * (n - 1)
+    i_lo = int(idx)
+    i_hi = min(i_lo + 1, n - 1)
+    frac = idx - i_lo
+    v_lo = sorted_vals[lo + i_lo]
+    v_hi = sorted_vals[lo + i_hi]
+    return v_lo + frac * (v_hi - v_lo)
+
 class BaseProcessor(ABC, Generic[NumChannelsT]):
     """
     """
@@ -209,6 +229,8 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         self._lra_enabled = lra_enabled
         self.weights = self._channel_weights[:self.num_channels]
         self._block_data = build_meter_array(self.MAX_BLOCKS)
+        self._tg: float = 1.0 / gate_size
+        self._tp: float = 1.0 / (gate_size // 4)
 
         self._Zij = np.zeros(
             (self.num_channels, self.MAX_BLOCKS),
@@ -216,10 +238,6 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         )
         self._block_weighted_sums = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
         self._quarter_block_weighted_sums = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
-        self._block_weighted_sums = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
-        self._quarter_block_weighted_sums = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
-
-        self._block_loudness = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
 
         self._block_loudness = np.zeros(self.MAX_BLOCKS, dtype=np.float64)
         self._t = self._block_data['t']
@@ -234,6 +252,7 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         )
         self._above_abs_running_sum = RunningSum()
         self._above_rel_running_sum = RunningSum()
+        self._lra_abs_power_running_sum = RunningSum()
         self._rel_threshold: Floating = np.float64(SILENCE_DB)
         self._momentary_lkfs: Float1dArray = self._block_data['m']
         self._short_term_lkfs: Float1dArray = self._block_data['s']
@@ -241,6 +260,8 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         self.lra = 0
         self.num_blocks = 0
         self.block_index = 0
+        # Incremental state for LRA calculation (avoids full O(n log n) rescan per block)
+        self._lra_sorted_abs_gated: list[float] = []
 
     @property
     def momentary_enabled(self) -> bool:
@@ -314,10 +335,12 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         self._blocks_above_rel_thresh[:] = False
         self._above_rel_running_sum.clear()
         self._above_abs_running_sum.clear()
+        self._lra_abs_power_running_sum.clear()
         self.integrated_lkfs = SILENCE_DB
         self.lra = 0
         self.block_index = 0
         self.num_blocks = 0
+        self._lra_sorted_abs_gated = []
 
     def __call__(self, samples: Float2dArray) -> None:
         self.process_block(samples)
@@ -411,26 +434,39 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
 
     def _calc_lra(self):
         block_index = self.block_index
+
+        # Update incremental state with the current block's short-term loudness.
+        # This must happen every block (not just when block_index >= 4) so that
+        # the sorted list is fully populated when we first compute LRA at block 4.
+        st_lkfs = float(self._short_term_lkfs[block_index])
+        if st_lkfs >= -70.0:
+            bisect.insort(self._lra_sorted_abs_gated, st_lkfs)
+            # from_lk_log10 inlined as Python float arithmetic to avoid numpy overhead
+            self._lra_abs_power_running_sum += np.float64(10.0 ** ((st_lkfs + 0.691) / 10.0))
+
         if block_index < 4:
             return
-        st_loudness = self._short_term_lkfs[:block_index+1]
-        abs_ix = np.greater_equal(st_loudness, -70)
-        st_abs_gated = st_loudness[abs_ix]
-        if not st_abs_gated.size:
+        if not self._lra_abs_power_running_sum.count:
             return
-        st_abs_power = np.mean(from_lk_log10(st_abs_gated))
 
-        st_integrated = lk_log10(st_abs_power)
-        rel_threshold = st_integrated - 20
-        rel_ix = np.greater_equal(st_abs_gated, rel_threshold)
+        mean_abs_power = self._lra_abs_power_running_sum.mean
+        st_integrated = lk_log10(np.float64(mean_abs_power))
+        rel_threshold = float(st_integrated) - 20.0
 
-        st_rel_gated = st_abs_gated[rel_ix]
+        sorted_vals = self._lra_sorted_abs_gated
+        n_all = len(sorted_vals)
 
-        if not st_rel_gated.size:
+        # Find the count of values >= rel_threshold using binary search
+        lo_rel = bisect.bisect_left(sorted_vals, rel_threshold)
+        n_rel = n_all - lo_rel
+
+        if not n_rel:
             return
-        lo_hi = np.quantile(st_rel_gated, [0.1, 0.95])
 
-        self.lra = lo_hi[1] - lo_hi[0]
+        self.lra = (
+            _sorted_quantile(sorted_vals, lo_rel, n_rel, 0.95)
+            - _sorted_quantile(sorted_vals, lo_rel, n_rel, 0.10)
+        )
 
     def process_block(self, samples: Float2dArray):
         """Process one :term:`gating block`
@@ -440,10 +476,9 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         # TODO: Check and raise exception if exceeding MAX_BLOCKS
         assert samples.shape == (self.num_channels, self.gate_size)
 
-        tg = 1 / self.gate_size
         sq_sum: Float1dArray = np.sum(np.square(samples), axis=1)
 
-        _Zij = tg * sq_sum
+        _Zij = self._tg * sq_sum
 
         assert _Zij.shape == (self.num_channels,)
         weighted_sum = np.sum(_Zij * self.weights)
@@ -478,8 +513,7 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         sq_sum: Float1dArray = np.sum(
             np.square(quarter_blk_samples), axis=1
         )
-        tp = 1 / (self.pad_size)
-        weighted_sum = np.sum((tp * sq_sum) * self.weights)
+        weighted_sum = np.sum((self._tp * sq_sum) * self.weights)
         self._quarter_block_weighted_sums[self.block_index] = weighted_sum
 
 
