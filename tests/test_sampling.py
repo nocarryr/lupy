@@ -3,7 +3,13 @@ from __future__ import annotations
 import pytest
 import numpy as np
 
-from lupy.sampling import Sampler, TruePeakSampler, calc_buffer_length, Slice
+import threading
+from fractions import Fraction
+
+from lupy.sampling import (
+    Sampler, TruePeakSampler, ThreadSafeSampler, ThreadSafeTruePeakSampler,
+    LockContext, calc_buffer_length, Slice,
+)
 
 
 
@@ -276,3 +282,86 @@ def test_write(sample_rate, block_size, num_channels, random_samples, inc_sample
         read_block()
     print(f'{num_written=}, {num_read=}')
     assert not sampler.can_read()
+
+
+def test_thread_safe_sampler_basic(sample_rate, block_size, num_channels):
+    """ThreadSafeSampler write/read works correctly and uses its lock."""
+    sampler = ThreadSafeSampler(
+        block_size=block_size, num_channels=num_channels, sample_rate=sample_rate,
+    )
+    rng = np.random.default_rng(0)
+
+    # Fill enough blocks to make can_read() return True
+    blocks_needed = -(-sampler.gate_size // block_size)  # ceil division
+    for _ in range(blocks_needed):
+        assert sampler.can_write()
+        sampler.write(rng.random((num_channels, block_size)), apply_filter=False)
+
+    assert sampler.can_read()
+    block = sampler.read()
+    assert block.shape == (num_channels, sampler.gate_size)
+
+    sampler.clear()
+    assert sampler.samples_available == 0
+
+
+def test_thread_safe_sampler_lock_context(block_size, num_channels):
+    """LockContext acquire/release and context manager work correctly."""
+    sampler = ThreadSafeSampler(
+        block_size=block_size, num_channels=num_channels, sample_rate=48000,
+    )
+    # acquire / release
+    acquired = sampler.acquire()
+    assert acquired
+    sampler.release()
+
+    # context manager
+    with sampler as ctx:
+        assert ctx is sampler
+
+
+def test_thread_safe_sampler_concurrent_writes(block_size, num_channels):
+    """Concurrent writes to ThreadSafeSampler do not raise."""
+    sampler = ThreadSafeSampler(
+        block_size=block_size, num_channels=num_channels, sample_rate=48000,
+    )
+    rng = np.random.default_rng(42)
+    errors: list[Exception] = []
+
+    def write_blocks(n: int) -> None:
+        for _ in range(n):
+            if sampler.can_write():
+                samples = rng.random((num_channels, block_size))
+                try:
+                    sampler.write(samples, apply_filter=False)
+                except Exception as exc:
+                    errors.append(exc)
+
+    threads = [threading.Thread(target=write_blocks, args=(3,)) for _ in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert not errors
+
+
+def test_thread_safe_true_peak_sampler_basic(sample_rate, block_size, num_channels):
+    """ThreadSafeTruePeakSampler write/read works correctly."""
+    sampler = ThreadSafeTruePeakSampler(
+        block_size=block_size, num_channels=num_channels, sample_rate=sample_rate,
+        gate_duration=Fraction(4, 10),
+    )
+    rng = np.random.default_rng(1)
+
+    # Fill enough blocks to make can_read() return True
+    blocks_needed = -(-sampler.gate_size // block_size)  # ceil division
+    for _ in range(blocks_needed):
+        assert sampler.can_write()
+        sampler.write(rng.random((num_channels, block_size)), apply_filter=False)
+
+    assert sampler.can_read()
+    block = sampler.read()
+    assert block.shape == (num_channels, sampler.gate_size)
+
+    sampler.clear()
+    assert sampler.samples_available == 0
