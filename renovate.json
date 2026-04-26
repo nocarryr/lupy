@@ -3,6 +3,9 @@
   "extends": [
     "config:recommended"
   ],
+  "packageRules": [
+    { "matchFileNames": [".github/workflows/*.lock.{yml,yaml}"], "enabled": false }
+  ],
   "labels": ["dependencies"],
   "lockFileMaintenance": {
     "enabled": true
