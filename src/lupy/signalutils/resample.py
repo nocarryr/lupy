@@ -36,11 +36,7 @@ def calc_tp_fir_win(upsample_factor: int) -> Float1dArray:
     The method matches that of :func:`scipy.signal.resample_poly`
     """
 
-    up, down = upsample_factor, 1
-    g_ = math.gcd(up, down)
-    up //= g_
-    down //= g_
-    max_rate = max(up, down)
+    max_rate = upsample_factor
     f_c = 1 / max_rate
     half_len = 10 * max_rate
 
