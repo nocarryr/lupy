@@ -23,13 +23,13 @@ __all__ = (
 )
 
 NumChannels = Literal[1, 2, 3, 5]
-""""""
+"""Number of audio channels supported by the meter (1, 2, 3, or 5)."""
 NumChannelsT = TypeVar('NumChannelsT', bound=NumChannels)
-""""""
+"""TypeVar bound to :data:`NumChannels`."""
 ChannelIndex = Literal[0, 1, 2, 3, 4]
-""""""
+"""Zero-based index for an audio channel, valid for channel counts up to 5 (``0`` through ``4``)."""
 ChannelIndexT = TypeVar('ChannelIndexT', bound=ChannelIndex)
-""""""
+"""TypeVar bound to :data:`ChannelIndex`."""
 
 Floating = np.floating
 Complex = np.complex128
