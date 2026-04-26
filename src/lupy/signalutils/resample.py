@@ -27,28 +27,35 @@ class ResamplePolyParams(NamedTuple):
     result_slice: tuple[slice, ...]
     """Slice object to extract the valid output samples from the
     polyphase upfirdn filtering step."""
+
+
 # Adapted from:
 # https://github.com/scipy/scipy/blob/87c46641a8b3b5b47b81de44c07b840468f7ebe7/scipy/signal/_signaltools.py#L3363-L3384
 #
 def calc_tp_fir_win(upsample_factor: int) -> Float1dArray:
     """Calculate an appropriate low-pass FIR filter for over-sampling
 
-    The method matches that of :func:`scipy.signal.resample_poly`
+    The method matches what is done in :func:`scipy.signal.resample_poly`,
+    but with the following adjustments:
+
+    - The downsampling factor is fixed as 1 (no downsampling) since only
+      upsampling is required for :term:`True Peak` detection.
+    - The FIR filter length is ``8 * upsample_factor + 1`` instead of ``10 * upsample_factor + 1``.
+      This is a minimal length that still performs well for true peak detection,
+      but is much more efficient than the default length used by
+      :func:`scipy.signal.resample_poly`.
+
     """
 
-    up, down = upsample_factor, 1
-    g_ = math.gcd(up, down)
-    up //= g_
-    down //= g_
-    max_rate = max(up, down)
+    max_rate = upsample_factor
     f_c = 1 / max_rate
-    half_len = 10 * max_rate
+    numtaps = 8 * max_rate + 1
 
     # Casting to str because firwin's type hints are not compatible with the
     # implementation.
     window = cast(str, ('kaiser', 5.0))
     h = firwin(
-        half_len + 1,       # len == 41 with upsample factor of 4
+        numtaps,       # len == 33 with upsample factor of 4
         f_c,
         window=window
     )
