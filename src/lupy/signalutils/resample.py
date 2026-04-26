@@ -49,13 +49,13 @@ def calc_tp_fir_win(upsample_factor: int) -> Float1dArray:
 
     max_rate = upsample_factor
     f_c = 1 / max_rate
-    half_len = 8 * max_rate
+    numtaps = 8 * max_rate + 1
 
     # Casting to str because firwin's type hints are not compatible with the
     # implementation.
     window = cast(str, ('kaiser', 5.0))
     h = firwin(
-        half_len + 1,       # len == 33 with upsample factor of 4
+        numtaps,       # len == 33 with upsample factor of 4
         f_c,
         window=window
     )
