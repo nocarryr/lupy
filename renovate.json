@@ -3,6 +3,9 @@
   "extends": [
     "config:recommended"
   ],
+  "ignorePaths": [
+    ".github/workflows/*.lock.yml"
+  ],
   "labels": ["dependencies"],
   "lockFileMaintenance": {
     "enabled": true
