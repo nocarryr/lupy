@@ -27,13 +27,24 @@ class ResamplePolyParams(NamedTuple):
     result_slice: tuple[slice, ...]
     """Slice object to extract the valid output samples from the
     polyphase upfirdn filtering step."""
+
+
 # Adapted from:
 # https://github.com/scipy/scipy/blob/87c46641a8b3b5b47b81de44c07b840468f7ebe7/scipy/signal/_signaltools.py#L3363-L3384
 #
 def calc_tp_fir_win(upsample_factor: int) -> Float1dArray:
     """Calculate an appropriate low-pass FIR filter for over-sampling
 
-    The method matches that of :func:`scipy.signal.resample_poly`
+    The method matches what is done by in :func:`scipy.signal.resample_poly`,
+    but with the following adjustments:
+
+    - The downsampling factor is fixed as 1 (no downsampling) since only
+      upsampling is required for :term:`True Peak` detection.
+    - The FIR filter length is ``8 * upsample_factor + 1`` instead of ``10 * upsample_factor + 1``.
+      This is a minimal length that still performs well for true peak detection,
+      but is much more efficient than the default length used by
+      :func:`scipy.signal.resample_poly`.
+
     """
 
     max_rate = upsample_factor
