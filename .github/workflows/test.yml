@@ -18,6 +18,7 @@ on:
       - "src/**"
       - "tests/**"
       - ".github/workflows/test.yml"
+  workflow_dispatch:
 
 jobs:
   typecheck:
