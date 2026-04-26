@@ -35,7 +35,7 @@ class ResamplePolyParams(NamedTuple):
 def calc_tp_fir_win(upsample_factor: int) -> Float1dArray:
     """Calculate an appropriate low-pass FIR filter for over-sampling
 
-    The method matches what is done by in :func:`scipy.signal.resample_poly`,
+    The method matches what is done in :func:`scipy.signal.resample_poly`,
     but with the following adjustments:
 
     - The downsampling factor is fixed as 1 (no downsampling) since only
