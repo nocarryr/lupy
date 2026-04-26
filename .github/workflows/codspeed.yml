@@ -2,11 +2,21 @@ name: CodSpeed
 
 on:
   push:
-    branches:
-      - "main"
+    branches: [ "main" ]
+    paths:
+      - "pyproject.toml"
+      - "uv.lock"
+      - "src/**"
+      - "tests/**"
+      - ".github/workflows/codspeed.yml"
   pull_request:
-    branches:
-      - "main"
+    branches: [ "main" ]
+    paths:
+      - "pyproject.toml"
+      - "uv.lock"
+      - "src/**"
+      - "tests/**"
+      - ".github/workflows/codspeed.yml"
   workflow_dispatch:
 
 jobs:
