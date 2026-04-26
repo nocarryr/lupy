@@ -198,10 +198,14 @@ class BaseFilter(Generic[T, NumChannelsT], ABC):
 
 
 class TruePeakFilter(BaseFilter[Float1dArray, NumChannelsT]):
-    """4x Oversampling filter with interpolating FIR window
+    """Oversampling filter with interpolating FIR window
+
+    An :attr:`upsample_factor` of 4 is recommended for sample rates below 88.2 kHz,
+    while a factor of 2 has proven to be sufficient for sample rates of
+    88.2 kHz and above.
     """
     upsample_factor: int
-    """Upsampling factor (currently only 4 is supported)"""
+    """Upsampling factor"""
     def __init__(
         self,
         num_channels: NumChannelsT,
