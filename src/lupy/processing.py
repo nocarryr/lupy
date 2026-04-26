@@ -138,6 +138,25 @@ def from_lk_log10(
 ) -> FloatArray|np.floating:
     return 10 ** ((x + offset) / 10)
 
+def _sorted_quantile(sorted_vals: list[float], lo: int, n: int, q: float) -> float:
+    """Compute a quantile from a pre-sorted list slice using linear interpolation.
+
+    Matches ``numpy.quantile(arr, q, method='linear')`` exactly.
+
+    Parameters:
+        sorted_vals: the full sorted list
+        lo: start index of the relevant slice within *sorted_vals*
+        n: number of elements in the slice
+        q: quantile in [0, 1]
+    """
+    idx = q * (n - 1)
+    i_lo = int(idx)
+    i_hi = min(i_lo + 1, n - 1)
+    frac = idx - i_lo
+    v_lo = sorted_vals[lo + i_lo]
+    v_hi = sorted_vals[lo + i_hi]
+    return v_lo + frac * (v_hi - v_lo)
+
 class BaseProcessor(ABC, Generic[NumChannelsT]):
     """
     """
@@ -444,18 +463,7 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         if not n_rel:
             return
 
-        # Compute 10th and 95th percentiles with linear interpolation,
-        # matching numpy.quantile(arr, q, method='linear') exactly.
-        def _quantile(q: float) -> float:
-            idx = q * (n_rel - 1)
-            lo = int(idx)
-            hi = min(lo + 1, n_rel - 1)
-            frac = idx - lo
-            v_lo = sorted_vals[lo_rel + lo]
-            v_hi = sorted_vals[lo_rel + hi]
-            return v_lo + frac * (v_hi - v_lo)
-
-        self.lra = _quantile(0.95) - _quantile(0.10)
+        self.lra = _sorted_quantile(sorted_vals, lo_rel, n_rel, 0.95) - _sorted_quantile(sorted_vals, lo_rel, n_rel, 0.10)
 
     def process_block(self, samples: Float2dArray):
         """Process one :term:`gating block`
