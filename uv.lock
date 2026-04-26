@@ -1425,6 +1425,7 @@ dev = [
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-codspeed" },
+    { name = "pytest-test-groups" },
     { name = "pytest-xdist" },
     { name = "scipy-stubs", version = "1.15.3.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scipy-stubs", version = "1.17.1.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -1442,6 +1443,7 @@ test = [
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-codspeed" },
+    { name = "pytest-test-groups" },
     { name = "pytest-xdist" },
     { name = "scipy-stubs", version = "1.15.3.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scipy-stubs", version = "1.17.1.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -1463,6 +1465,7 @@ dev = [
     { name = "mypy", specifier = ">=1.19.1" },
     { name = "pytest" },
     { name = "pytest-codspeed" },
+    { name = "pytest-test-groups", specifier = ">=1.2.1" },
     { name = "pytest-xdist" },
     { name = "scipy-stubs", marker = "python_full_version >= '3.10'" },
     { name = "sphinx" },
@@ -1475,6 +1478,7 @@ test = [
     { name = "mypy", specifier = ">=1.19.1" },
     { name = "pytest" },
     { name = "pytest-codspeed" },
+    { name = "pytest-test-groups", specifier = ">=1.2.1" },
     { name = "pytest-xdist" },
     { name = "scipy-stubs", marker = "python_full_version >= '3.10'" },
 ]
@@ -2335,6 +2339,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d8/f4/2cc5e10847aee4233690aa511df6b6f1c2c09f9d8ae506628a138f4ba201/pytest_codspeed-4.4.0-cp314-cp314t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:56d5dd94dcb69460f916acb9c69865d0171b98acec3ce256645d0c0275b553d7", size = 827557, upload-time = "2026-04-14T15:13:12.553Z" },
     { url = "https://files.pythonhosted.org/packages/7f/57/982ce8aa81089b285730dca8404c76af648af41e46d95012be54452913e6/pytest_codspeed-4.4.0-cp314-cp314t-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:33c38e0e797c74506004f231fc53eab0e412987de281755f714018334381aa3a", size = 835388, upload-time = "2026-04-14T15:13:14.232Z" },
     { url = "https://files.pythonhosted.org/packages/99/36/9e84323c6be426728e897133f8e9f3e65a90c26c137e190ca9b27bf304c3/pytest_codspeed-4.4.0-py3-none-any.whl", hash = "sha256:a6aab2fa73523f538e7729c20ccf4a1e8e921324c9877a816b05334135950fd9", size = 203809, upload-time = "2026-04-14T15:13:18.72Z" },
+]
+
+[[package]]
+name = "pytest-test-groups"
+version = "1.2.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9f/5a/c7874fe15e03d86a1109a3274b57a2473edb8a1dda4a4d27f25d848b6ff5/pytest_test_groups-1.2.1.tar.gz", hash = "sha256:67576b295522fc144b3a42fa1801f50ae962389e984b48bab4336686d09032f1", size = 8137, upload-time = "2025-05-08T16:28:19.627Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/31/ff/7ff0ca5e8051931bf7fb65e31f085f7c0577615bf3a4776fb583cb471800/pytest_test_groups-1.2.1-py3-none-any.whl", hash = "sha256:8c7a016448f9ad347fb69a62f417f0a2358ecbf129fe44bc44ee991918a0bb73", size = 5278, upload-time = "2025-05-08T16:28:18.077Z" },
 ]
 
 [[package]]
