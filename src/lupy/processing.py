@@ -463,7 +463,10 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         if not n_rel:
             return
 
-        self.lra = _sorted_quantile(sorted_vals, lo_rel, n_rel, 0.95) - _sorted_quantile(sorted_vals, lo_rel, n_rel, 0.10)
+        self.lra = (
+            _sorted_quantile(sorted_vals, lo_rel, n_rel, 0.95)
+            - _sorted_quantile(sorted_vals, lo_rel, n_rel, 0.10)
+        )
 
     def process_block(self, samples: Float2dArray):
         """Process one :term:`gating block`
