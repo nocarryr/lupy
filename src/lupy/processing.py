@@ -233,6 +233,7 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         )
         self._above_abs_running_sum = RunningSum()
         self._above_rel_running_sum = RunningSum()
+        self._lra_abs_power_running_sum = RunningSum()
         self._rel_threshold: Floating = np.float64(SILENCE_DB)
         self._momentary_lkfs: Float1dArray = self._block_data['m']
         self._short_term_lkfs: Float1dArray = self._block_data['s']
@@ -242,8 +243,6 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         self.block_index = 0
         # Incremental state for LRA calculation (avoids full O(n log n) rescan per block)
         self._lra_sorted_abs_gated: list[float] = []
-        self._lra_abs_power_sum: float = 0.0
-        self._lra_abs_power_count: int = 0
 
     @property
     def momentary_enabled(self) -> bool:
@@ -317,13 +316,12 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         self._blocks_above_rel_thresh[:] = False
         self._above_rel_running_sum.clear()
         self._above_abs_running_sum.clear()
+        self._lra_abs_power_running_sum.clear()
         self.integrated_lkfs = SILENCE_DB
         self.lra = 0
         self.block_index = 0
         self.num_blocks = 0
         self._lra_sorted_abs_gated = []
-        self._lra_abs_power_sum = 0.0
-        self._lra_abs_power_count = 0
 
     def __call__(self, samples: Float2dArray) -> None:
         self.process_block(samples)
@@ -425,15 +423,14 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         if st_lkfs >= -70.0:
             bisect.insort(self._lra_sorted_abs_gated, st_lkfs)
             # from_lk_log10 inlined as Python float arithmetic to avoid numpy overhead
-            self._lra_abs_power_sum += 10.0 ** ((st_lkfs + 0.691) / 10.0)
-            self._lra_abs_power_count += 1
+            self._lra_abs_power_running_sum += np.float64(10.0 ** ((st_lkfs + 0.691) / 10.0))
 
         if block_index < 4:
             return
-        if not self._lra_abs_power_count:
+        if not self._lra_abs_power_running_sum.count:
             return
 
-        mean_abs_power = self._lra_abs_power_sum / self._lra_abs_power_count
+        mean_abs_power = self._lra_abs_power_running_sum.mean
         st_integrated = lk_log10(np.float64(mean_abs_power))
         rel_threshold = float(st_integrated) - 20.0
 
