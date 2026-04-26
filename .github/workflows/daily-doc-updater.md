@@ -13,6 +13,7 @@ network:
   - python
   - rust
   - java
+  - "astral.sh"
 
 permissions:
   contents: read

@@ -29,6 +29,7 @@ network:
   - python
   - rust
   - java
+  - "astral.sh"
 
 safe-outputs:
   add-comment:
