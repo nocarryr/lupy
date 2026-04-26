@@ -1,0 +1,61 @@
+{
+  "last_run": "2026-04-26T01:34:47Z",
+  "last_run_id": "24945355109",
+  "validated_commands": {
+    "test": "uv run py.test tests/",
+    "benchmark": "uv run py.test tests/test_processing.py tests/test_filters.py --codspeed -k benchmark --override-ini='addopts='",
+    "typecheck": "uv run mypy",
+    "install": "uv sync --frozen --no-dev --group test"
+  },
+  "tasks_last_run": {
+    "task1_commands": "2026-04-26",
+    "task2_opportunities": "2026-04-26",
+    "task3_implement": "2026-04-26",
+    "task4_maintain_prs": null,
+    "task5_comment_issues": null,
+    "task6_measurement_infra": null
+  },
+  "open_prs": [
+    {
+      "branch": "perf-assist/incremental-lra",
+      "title": "[Perf Improver] perf: incremental LRA calculation using sorted list + bisect",
+      "description": "LRA calc: O(n log n)/block -> O(log n)/block. test_block_processor_benchmark[lra]: 5.9ms -> 3.7ms (-37%)"
+    }
+  ],
+  "optimization_backlog": [
+    {
+      "id": "runningsum-direct-attr",
+      "desc": "RunningSum.add() - bypass property setters for direct attribute access",
+      "impact": "low",
+      "feasibility": "high",
+      "notes": "Would save 2-3 Python attribute lookups per add() call in _calc_gating hot path"
+    },
+    {
+      "id": "calc-gating-vectorize",
+      "desc": "_calc_gating when rel_threshold_changed: use np.dot instead of logical_and + fancy indexing",
+      "impact": "low-medium",
+      "feasibility": "medium",
+      "notes": "rel_threshold_changed is rare, so impact is minimal in typical usage"
+    },
+    {
+      "id": "bisect-insort-bottleneck",
+      "desc": "For very long sessions (>10000 blocks), bisect.insort list shift may become bottleneck",
+      "impact": "low for typical use",
+      "feasibility": "medium",
+      "notes": "Could use a sorted container library or a different algorithm (e.g., histogrammed approximation)"
+    },
+    {
+      "id": "process-block-einsum",
+      "desc": "process_block: use np.einsum or np.dot for combined square+sum computation",
+      "impact": "very low",
+      "feasibility": "high",
+      "notes": "Intermediate array for np.square is tiny (channels x gate_size), already vectorized"
+    }
+  ],
+  "perf_notes": [
+    "np.quantile is extremely expensive for small arrays due to Python dispatch overhead",
+    "pytest-codspeed (simulation mode) benchmarks with --override-ini=addopts= to disable xdist",
+    "cProfile shows _calc_lra was 39% of process_block time before optimization",
+    "test dataset for benchmark: 1770-2_Comp_RelGateTest_prefiltered_gated.npz at 48000 Hz, ~100 blocks"
+  ]
+}
