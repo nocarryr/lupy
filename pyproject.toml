@@ -73,6 +73,7 @@ dev = [
     "ipython",
     "jupyterlab",
     "matplotlib",
+    "pytest-cov>=7.1.0",
 ]
 
 [tool.mypy]
