@@ -50,7 +50,8 @@ Glossary
 
     Momentary Loudness
         :term:`Loudness` measurement generated using the algorithm described
-        for :term:`Integrated Loudness`, but with a one-sample integration period.
+        for :term:`Integrated Loudness`, but with a 400 ms sliding integration
+        window and without gating.
 
         This algorithm is described in `ITU-R BS.1771`_.
 
