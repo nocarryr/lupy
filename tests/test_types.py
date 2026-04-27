@@ -118,13 +118,12 @@ def test_ensure_true_peak_array_channel_mismatch():
 
 
 def test_ensure_true_peak_array_wrong_dtype():
-    """A float64 array with the same 1-D size as a valid TruePeakArray raises AssertionError.
+    """A TruePeakArray built for 3 channels fails ensure_true_peak_array when num_channels=2.
 
-    is_true_peak_array only checks dtype (not shape), so shape (5,) is valid here.
-    The test isolates the dtype check: the only difference from a real TruePeakArray(2, 5)
-    is that this array has dtype float64 instead of TruePeakDtype[2].
+    The shape (5,) is valid; only the structured dtype differs (3-channel vs 2-channel),
+    so the test isolates the dtype check.
     """
-    arr = np.zeros(5, dtype=np.float64)
+    arr = build_true_peak_array(3, 5)
     with pytest.raises(AssertionError):
         ensure_true_peak_array(arr, 2)  # type: ignore[arg-type]
 

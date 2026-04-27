@@ -162,14 +162,21 @@ def test_true_peak_disabled():
     assert np.all(current_measurement.true_peak_current == -np.inf)
 
 
-@pytest.fixture
-def make_meter():
-    def _factory(block_size: int = 128, num_channels: int = 2, sample_rate: int = 48000, **kwargs) -> Meter:
-        return Meter(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate, **kwargs)
-    return _factory
+def make_meter(
+    block_size: int = 128,
+    num_channels: int = 2,
+    sample_rate: int = 48000,
+    true_peak_enabled: bool = True,
+) -> Meter:
+    return Meter(
+        block_size=block_size,
+        num_channels=num_channels,
+        sample_rate=sample_rate,
+        true_peak_enabled=true_peak_enabled,
+    )
 
 
-def test_set_paused_blocks_writes(make_meter):
+def test_set_paused_blocks_writes():
     """Writes are discarded while paused; can_write and can_process return False."""
     meter = make_meter()
     meter.set_paused(True)
@@ -183,7 +190,7 @@ def test_set_paused_blocks_writes(make_meter):
     assert meter.sampler.samples_available == 0
 
 
-def test_set_paused_clears_buffer(make_meter):
+def test_set_paused_clears_buffer():
     """Buffered samples are cleared when the meter is paused."""
     meter = make_meter()
     # Write enough blocks to have some buffered data
@@ -195,7 +202,7 @@ def test_set_paused_clears_buffer(make_meter):
     assert meter.sampler.samples_available == 0
 
 
-def test_set_paused_noop_if_same_state(make_meter):
+def test_set_paused_noop_if_same_state():
     """set_paused is idempotent: calling with the current state does nothing."""
     meter = make_meter()
     block = build_samples(meter.block_size, meter.sample_rate)
@@ -206,7 +213,7 @@ def test_set_paused_noop_if_same_state(make_meter):
     assert meter.sampler.samples_available == samples_before
 
 
-def test_set_paused_resume(make_meter):
+def test_set_paused_resume():
     """Unpausing allows writes to proceed again."""
     meter = make_meter()
     meter.set_paused(True)
@@ -215,7 +222,7 @@ def test_set_paused_resume(make_meter):
     assert meter.can_write()
 
 
-def test_reset_with_true_peak_enabled(make_meter):
+def test_reset_with_true_peak_enabled():
     """reset() reinitialises the true-peak processor when true_peak_enabled."""
     meter = make_meter(true_peak_enabled=True)
     N = meter.sampler.total_samples
@@ -229,7 +236,7 @@ def test_reset_with_true_peak_enabled(make_meter):
     assert meter.true_peak_processor.tp_array.size == 0
 
 
-def test_process_single_block(make_meter):
+def test_process_single_block():
     """process(process_all=False) processes exactly one gating block."""
     meter = make_meter()
 
@@ -247,7 +254,7 @@ def test_process_single_block(make_meter):
 
 
 
-def test_current_measurement_empty(make_meter):
+def test_current_measurement_empty():
     """current_measurement returns silence defaults before any block is processed."""
     from lupy.processing import SILENCE_DB
     meter = make_meter()
@@ -258,7 +265,7 @@ def test_current_measurement_empty(make_meter):
     assert m.time == 0
 
 
-def test_write_all_truncates_non_multiple(make_meter):
+def test_write_all_truncates_non_multiple():
     """write_all discards trailing samples that don't fill a complete block.
 
     With an input length of ``3 * block_size + extra`` (well below gate_size),

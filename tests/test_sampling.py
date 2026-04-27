@@ -323,7 +323,8 @@ def test_thread_safe_sampler_concurrent_writes():
     """Multiple threads can write concurrently without raising exceptions.
 
     Each thread uses its own RNG seeded by its index to avoid shared-state
-    race conditions in the random number generator.
+    race conditions in the random number generator. Enough blocks are written
+    to guarantee that at least one gate-sized read is possible afterwards.
     """
     block_size = 128
     num_channels = 1
@@ -331,6 +332,11 @@ def test_thread_safe_sampler_concurrent_writes():
     sampler = ThreadSafeSampler(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
 
     errors: list[Exception] = []
+
+    # gate_size = 19200 samples; need >= 150 blocks to allow a read.
+    # 8 threads × 20 writes = 160 blocks; buffer holds 300, so no saturation.
+    num_threads = 8
+    writes_per_thread = 20
 
     def write_blocks(thread_idx: int, n: int) -> None:
         rng = np.random.default_rng(thread_idx)  # per-thread RNG avoids shared state
@@ -342,7 +348,7 @@ def test_thread_safe_sampler_concurrent_writes():
             except Exception as exc:  # pragma: no cover
                 errors.append(exc)
 
-    threads = [threading.Thread(target=write_blocks, args=(i, 3)) for i in range(4)]
+    threads = [threading.Thread(target=write_blocks, args=(i, writes_per_thread)) for i in range(num_threads)]
     for t in threads:
         t.start()
     for t in threads:
@@ -351,6 +357,9 @@ def test_thread_safe_sampler_concurrent_writes():
     assert errors == [], f'Thread errors: {errors}'
     assert sampler.samples_available > 0
     assert sampler.samples_available % block_size == 0
+    assert sampler.can_read()
+    data = sampler.read()
+    assert data.shape == (num_channels, sampler.gate_size)
 
 
 def test_thread_safe_true_peak_sampler_read_write_clear():
