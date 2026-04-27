@@ -1,15 +1,20 @@
 # Testing Backlog
 
 ## Completed
-- [x] Meter pause functionality (set_paused, can_write/can_process, buffer clear) - PR #86
-- [x] ThreadSafeSampler / ThreadSafeTruePeakSampler - PR #86
-- [x] typeutils.py type guard helpers - PR #86
+- [x] Meter pause functionality (set_paused, can_write/can_process, buffer clear) - PR #86 (closed)
+- [x] ThreadSafeSampler / ThreadSafeTruePeakSampler basic tests - PR #86 (closed)
+- [x] typeutils.py type guard helpers - PR #86 (closed)
+- [x] sosfilt.py validate_sos + sosfilt error paths - pending PR (branch: test-assist/sosfilt-resample-error-paths)
+- [x] resample.py _UpFIRDn / ResamplePoly error paths - same PR
+- [x] meter.py set_paused, current_measurement empty, write_all truncation - same PR
+- [x] typeutils.py ensure_true_peak_array wrong-dtype/shape - same PR
+- [x] ThreadSafeSampler per-thread RNG in concurrent test - same PR
 
 ## Pending (priority order)
-1. **sosfilt.py validate_sos error paths** (89%) - lines 23, 26, 28: three ValueError raises for invalid sos array shape/values; plus line 97 (sosfilt zi shape mismatch). Straightforward validation tests.
-2. **meter.py current_measurement empty case** (98%) - lines 297-298: the `if block_data.size == 0` branch (no blocks processed yet). Easy win.
-3. **resample.py _UpFIRDn error paths** (94%) - lines 264, 272, 292: ValueError for h not 1D, up/down < 1, dtype mismatch. Also line 176: ResamplePoly.num_input_samples setter no-op early return.
-4. **processing.py uncovered branches** (94%) - need deeper analysis
+1. **processing.py uncovered branches** (95%) - need deeper analysis; lines 86, 90, 93, 96, 99, 102, 105, 125, 139, 179, 185, 321-322, 386, 410, 464, 562
+2. **filters.py uncovered branches** (95%) - lines 6, 70, 158-159, 187, 196, 229, 310
+3. **sampling.py deeper coverage** (96%) - lines 167, 232-235, 276, 279, 378, 403, 408, 475, 562
+4. **resample.py remaining** (98%) - lines 99, 194, 204
 
 ## Backlog Cursor
-Next: sosfilt.py validate_sos error paths + meter.py current_measurement empty case
+Next: processing.py or filters.py deeper analysis

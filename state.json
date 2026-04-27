@@ -1,22 +1,28 @@
 {
-  "last_run": "2026-04-26T22:56:41Z",
-  "run_id": "24969152531",
-  "tasks_completed": ["task2", "task4", "task7"],
+  "last_run": "2026-04-27T05:00:00Z",
+  "run_id": "24992222301",
+  "tasks_completed": ["task3", "task7"],
   "last_tasks": {
     "task1": "2026-04-26",
     "task2": "2026-04-26",
-    "task3": "2026-04-26",
+    "task3": "2026-04-27",
     "task4": "2026-04-26",
     "task5": null,
     "task6": null,
-    "task7": "2026-04-26"
+    "task7": "2026-04-27"
   },
   "open_prs": [
     {
-      "number": 86,
-      "title": "[Test Improver] Add tests: Meter pause, thread-safe samplers, typeutils type guards",
-      "status": "all_green",
-      "note": "All 17 CI checks pass including test matrix (3.10-3.14), typecheck, benchmarks, codecov (+3.84%), codspeed"
+      "number": "pending",
+      "branch": "test-assist/sosfilt-resample-error-paths",
+      "title": "[Test Improver] Add error-path, edge-case, and thread-safety tests",
+      "status": "draft_created",
+      "note": "42 new tests; coverage 92→97%. sosfilt 89→100%, meter 90→100%, resample 94→98%"
     }
-  ]
+  ],
+  "maintainer_priorities": [
+    "CRITICAL: Test Improver MUST read and address code review comments on its own PRs. Maintainer closed PR #86 because Test Improver failed to do this.",
+    "Per nocarryr comment on PR #86: 'make the [Test Improver] agentic workflow do its job and read the code reviews here. I'm going to delete it otherwise'"
+  ],
+  "checked_off_items": ["PR #86 (closed by maintainer; [x] checked in monthly summary)"]
 }
