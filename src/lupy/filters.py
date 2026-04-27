@@ -112,6 +112,189 @@ class Coeff:
         )
 
 
+def design_HPF2(fc, Q, fs):
+    """Calculates filter coefficients for a 2nd-order highpass filter
+
+    Parameters
+    ----------
+    fc : float
+        Cutoff frequency of the filter in Hz
+    Q : float
+        Quality factor of the filter
+    fs : float
+        Sample rate in Hz
+
+    Returns
+    -------
+    b : ndarray
+        "b" (feedforward) coefficients of the filter
+    a : ndarray
+        "a" (feedback) coefficients of the filter
+    """
+    wc = 2 * np.pi * fc / fs
+    c = 1.0 / np.tan(wc / 2.0)
+    phi = c*c
+    K = c / Q
+    a0 = phi + K + 1.0
+
+    b = [phi / a0, -2.0 * phi / a0, phi / a0]
+    a = [1, 2.0 * (1.0 - phi) / a0, (phi - K + 1.0) / a0]
+    return ensure_1d_array(np.asarray(b)), ensure_1d_array(np.asarray(a))
+
+
+def design_highshelf(fc, Q, gain, fs):
+    """Calculates filter coefficients for a High Shelf filter.
+
+    Parameters
+    ----------
+    fc : float
+        Center frequency of the filter in Hz
+    Q : float
+        Quality factor of the filter
+    gain : float
+        Linear gain for the shelved frequencies
+    fs :  float
+        Sample rate in Hz
+
+    Returns
+    -------
+    b : ndarray
+        "b" (feedforward) coefficients of the filter
+    a : ndarray
+        "a" (feedback) coefficients of the filter
+    """
+    A = np.sqrt(gain)
+    wc = 2 * np.pi * fc / fs
+    wS = np.sin(wc)
+    wC = np.cos(wc)
+    beta = np.sqrt(A) / Q
+
+    a0 = ((A+1.0) - ((A-1.0) * wC) + (beta*wS))
+
+    b = np.zeros(3)
+    a = np.zeros(3)
+    b[0] = A*((A+1.0) + ((A-1.0)*wC) + (beta*wS)) / a0
+    b[1] = -2.0*A * ((A-1.0) + ((A+1.0)*wC)) / a0
+    b[2] = A*((A+1.0) + ((A-1.0)*wC) - (beta*wS)) / a0
+
+    a[0] = 1
+    a[1] = 2.0 * ((A-1.0) - ((A+1.0)*wC)) / a0
+    a[2] = ((A+1.0) - ((A-1.0)*wC)-(beta*wS)) / a0
+    return b, a
+
+
+
+
+@dataclass
+class KFiltCoeff(Coeff):
+    fc: float|None = None
+    gain: float|None = None
+    q: float|None = None
+    is_high_shelf: bool|None = None
+
+    @classmethod
+    def design(cls, fc: float, gain: float, q: float, is_high_shelf: bool, sample_rate: int) -> Self:
+        if is_high_shelf:
+            b, a = design_highshelf(fc, q, gain, sample_rate)
+        else:
+            b, a = design_HPF2(fc, q, sample_rate)
+        # f0, G, Q = fc, gain, q
+        # K = np.tan(np.pi * f0 / sample_rate)
+        # Vh = np.power(10.0, G / 20.0)
+        # Vb = np.power(Vh, 0.4996667741545416)
+
+        # pb = np.array([0., 0., 0.])
+        # pa = np.array([1., 0., 0.])
+        # rb = np.array([1.0, -2.0, 1.0])
+        # ra = np.array([1., 0., 0.])
+        # # if not is_high_shelf:
+        # #     ra[1] = 2.0 * (K * K - 1.0) / (1.0 + K / Q + K * K)
+        # #     ra[2] = (1.0 - K / Q + K * K) / (1.0 + K / Q + K * K)
+        # #     return cls(
+        # #         b=np.array([Vh * (1.0 + K / Q + K * K), 2.0 * Vh * (K * K - 1.0), Vh * (1.0 - K / Q + K * K)]),
+        # #         a=np.array([1., ra[1], ra[2]]),
+        # #         sample_rate=sample_rate,
+        # #     )
+
+        # a0 = 1.0 + K / Q + K * K
+        # pb[0] = (Vh + Vb * K / Q + K * K) / a0
+        # pb[1] = 2.0 * (K * K - Vh) / a0
+        # pb[2] = (Vh - Vb * K / Q + K * K) / a0
+        # pa[1] = 2.0 * (K * K - 1.0) / a0
+        # pa[2] = (1.0 - K / Q + K * K) / a0
+
+        # if not is_high_shelf:
+        #     rb[1] = 2.0 * (K * K - 1.0) / (1.0 + K / Q + K * K)
+        #     rb[2] = (1.0 - K / Q + K * K) / (1.0 + K / Q + K * K)
+        #     b, a = rb, ra
+        # else:
+        #     b, a = pb, pa
+        return cls(
+            b=b,
+            a=a,
+            sample_rate=sample_rate,
+            fc=fc,
+            gain=gain,
+            q=q,
+            is_high_shelf=is_high_shelf,
+        )
+
+    def as_sample_rate(self, sample_rate: int) -> Self:
+        assert self.fc is not None
+        assert self.gain is not None
+        assert self.q is not None
+        assert self.is_high_shelf is not None
+        return self.__class__.design(
+            fc=self.fc,
+            gain=self.gain,
+            q=self.q,
+            is_high_shelf=self.is_high_shelf,
+            sample_rate=sample_rate,
+        )
+# class _HSCoeff(Coeff):
+#     # def __init__(self):
+#     #     super().__init__(
+#     #         b = np.array([1.53512485958697, -2.69169618940638, 1.19839281085285]),
+#     #         a = np.array([1.0, -1.69065929318241, 0.73248077421585]),
+#     #         sample_rate=48000,
+#     #     )
+
+#     def as_sample_rate(self, sample_rate: int) -> Self:
+#         if sample_rate == self.sample_rate:
+#             return self
+
+#         f0 = 1681.974450955533
+#         G = 3.999843853973347
+#         Q = 0.7071752369554196
+#         K = np.tan(np.pi * f0 / sample_rate)
+#         Vh = np.power(10.0, G / 20.0)
+#         Vb = np.power(Vh, 0.4996667741545416)
+
+#         pb = np.array([0., 0., 0.])
+#         pa = np.array([1., 0., 0.])
+#         rb = np.array([1.0, -2.0, 1.0])
+#         ra = np.array([1., 0., 0.])
+
+#         a0 = 1.0 + K / Q + K * K
+#         b0 = (Vh + Vb * K / Q + K * K) / a0
+#         b1 = 2.0 * (K * K - Vh) / a0
+#         b2 = (Vh - Vb * K / Q + K * K) / a0
+#         a1 = 2.0 * (K * K - 1.0) / a0
+#         a2 = (1.0 - K / Q + K * K) / a0
+
+#         return self.__class__(
+#             b = np.array([b0, b1, b2]),
+#             a = np.array([1., a1, a2]),
+#             sample_rate=sample_rate,
+#         )
+
+# HS_COEFF = KFiltCoeff.design(
+#     fc=1681.974450955533,
+#     gain=3.999843853973347,
+#     q=0.7071752369554196,
+#     sample_rate=48000,
+#     is_high_shelf=True,
+# )
 
 HS_COEFF = Coeff(
     b = ensure_1d_array(
@@ -124,6 +307,13 @@ HS_COEFF = Coeff(
 )
 """Stage 1 (high-shelf) of the pre-filter defined in :term:`BS 1770` table 1"""
 
+# HP_COEFF = KFiltCoeff.design(
+#     fc=38.13547087602444,
+#     gain=7.58475998141661,
+#     q=0.5003270373238773,
+#     sample_rate=48000,
+#     is_high_shelf=False,
+# )
 HP_COEFF = Coeff(
     b = ensure_1d_array(
         np.array([1.0, -2.0, 1.0])
