@@ -6,6 +6,7 @@ if sys.version_info < (3, 11):
     from typing_extensions import TypeAlias
 else:
     from typing import TypeAlias
+import enum
 
 import numpy as np
 import numpy.typing as npt
@@ -17,6 +18,7 @@ __all__ = (
     'AnyArray', 'BoolArray', 'IndexArray', 'FloatArray', 'ComplexArray',
     'Float1dArray', 'Float2dArray', 'Float3dArray', 'Float2dArray32', 'AnyFloatArray',
     'AnyNdArray', 'Any1dArray', 'Any2dArray', 'Any3dArray', 'ShapeT',
+    'OperationMode',
     'NumChannels', 'NumChannelsT',
 )
 
@@ -24,6 +26,8 @@ NumChannels = Literal[1, 2, 3, 5]
 """"""
 NumChannelsT = TypeVar('NumChannelsT', bound=NumChannels)
 """"""
+
+NumChannelsOptions: tuple[NumChannels, ...] = (1, 2, 3, 5)
 
 Floating = np.floating
 Complex = np.complex128
@@ -82,3 +86,8 @@ SosCoeff = np.ndarray[tuple[int, Literal[6]], np.dtype[np.float64]]
 
 SosZI = np.ndarray[tuple[int, int, Literal[2]], np.dtype[np.float64]]
 """Array representing initial conditions for second-order sections filtering"""
+
+
+class OperationMode(enum.Enum):
+    offline = enum.auto()
+    online = enum.auto()

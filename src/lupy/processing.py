@@ -14,6 +14,10 @@ from .arraytypes import MeterArray, TruePeakArray
 from .types import *
 from .typeutils import ensure_nd_array, build_meter_array, build_true_peak_array
 from .filters import TruePeakFilter
+from .io import (
+    BlockArrays, BlockMeta, BlockData,
+    TPArrays, TPData, TPMeta,
+)
 
 __all__ = ('BlockProcessor', 'TruePeakProcessor')
 
@@ -209,6 +213,7 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         self._lra_enabled = lra_enabled
         self.weights = self._channel_weights[:self.num_channels]
         self._block_data = build_meter_array(self.MAX_BLOCKS)
+        self.__assign_block_data_aliases(self._block_data)
 
         self._Zij = np.zeros(
             (self.num_channels, self.MAX_BLOCKS),
@@ -231,12 +236,16 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         self._above_abs_running_sum = RunningSum()
         self._above_rel_running_sum = RunningSum()
         self._rel_threshold: Floating = np.float64(SILENCE_DB)
-        self._momentary_lkfs: Float1dArray = self._block_data['m']
-        self._short_term_lkfs: Float1dArray = self._block_data['s']
         self.integrated_lkfs = SILENCE_DB
         self.lra = 0
         self.num_blocks = 0
         self.block_index = 0
+
+    def __assign_block_data_aliases(self, block_data: MeterArray) -> None:
+        self._block_data = block_data
+        self._t = block_data['t']
+        self._momentary_lkfs = block_data['m']
+        self._short_term_lkfs = block_data['s']
 
     @property
     def momentary_enabled(self) -> bool:
@@ -319,15 +328,26 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
     def __len__(self) -> int:
         return self.num_blocks
 
-    def _calc_gating(self) -> None:
-        block_lk = self._block_loudness[:self.block_index+1]
-        block_wsums = self._block_weighted_sums[:self.block_index+1]
-        cur_block_lk = block_lk[-1]
-        cur_block_wsum = block_wsums[-1]
-        above_abs = cur_block_lk >= -70
+    def _calc_gating(self, block_index: int|None = None, recalculate: bool = False) -> None:
+        if block_index is None:
+            block_index = self.block_index + 1
+        block_lk = self._block_loudness[:block_index]
+        block_wsums = self._block_weighted_sums[:block_index]
 
-        if above_abs:
-            self._above_abs_running_sum += cur_block_wsum
+        if recalculate:
+            self._above_abs_running_sum.clear()
+            self._above_rel_running_sum.clear()
+            ix = np.flatnonzero(block_lk >= -70)
+            blocks_above_abs = block_wsums[ix]
+            self._above_abs_running_sum.value = blocks_above_abs.sum()
+            self._above_abs_running_sum.count = blocks_above_abs.size
+        else:
+            cur_block_lk = block_lk[-1]
+            cur_block_wsum = block_wsums[-1]
+            above_abs = cur_block_lk >= -70
+
+            if above_abs:
+                self._above_abs_running_sum += cur_block_wsum
 
         if self._above_abs_running_sum == 0:
             rel_threshold = SILENCE_DB
@@ -346,6 +366,41 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
             self.integrated_lkfs = SILENCE_DB
         else:
             self.integrated_lkfs = lk_log10(rs.mean)
+
+    # def _recalc_thresholds(self, block_index: int|None = None) -> None:
+    #     """Recalculate the relative threshold and integrated loudness without
+    #     using the running sums
+    #     """
+    #     if block_index is None:
+    #         block_index = self.block_index
+
+    #     block_lk = self._block_loudness[:block_index]
+    #     block_wsums = self._block_weighted_sums[:block_index]
+
+    #     self._above_abs_running_sum.clear()
+    #     self._above_rel_running_sum.clear()
+
+    #     ix = np.flatnonzero(block_lk >= -70)
+    #     blocks_above_abs = block_wsums[ix]
+    #     if not blocks_above_abs.size:
+    #         self._rel_threshold = SILENCE_DB
+    #     else:
+    #         self._above_abs_running_sum.value = blocks_above_abs.sum()
+    #         self._above_abs_running_sum.count = blocks_above_abs.size
+    #         self._rel_threshold = lk_log10(self._above_abs_running_sum.mean) - 10
+
+    #     rs = self._above_rel_running_sum
+    #     x = block_wsums[np.logical_and(
+    #         np.greater_equal(block_lk, self._rel_threshold),
+    #         np.greater_equal(block_lk, -70)
+    #     )]
+    #     rs.value = x.sum()
+    #     rs.count = x.size
+    #     print(f'{rs=}, {rs.value=}, {rs.count=}')
+    #     if not rs.count:
+    #         self.integrated_lkfs = SILENCE_DB
+    #     else:
+    #         self.integrated_lkfs = lk_log10(rs.mean)
 
     def _calc_momentary(self):
         block_index = self.block_index
@@ -461,6 +516,54 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         weighted_sum = np.sum((tp * sq_sum) * self.weights)
         self._quarter_block_weighted_sums[self.block_index] = weighted_sum
 
+    def get_object_data(self) -> BlockData:
+        """Get the current object data for this processor
+        """
+        arrays: BlockArrays = {
+            'block_data': self._block_data,
+            'Zij': self._Zij,
+            'block_weighted_sums': self._block_weighted_sums,
+            'quarter_block_weighted_sums': self._quarter_block_weighted_sums,
+            'block_loudness': self._block_loudness,
+        }
+        meta: BlockMeta = {
+            'sample_rate': self.sample_rate,
+            'num_channels': self.num_channels,
+            'gate_size': self.gate_size,
+            'integrated_lkfs': float(self.integrated_lkfs),
+            'lra': float(self.lra),
+            'num_blocks': self.num_blocks,
+            'block_index': self.block_index,
+        }
+        return BlockData(
+            metadata=meta,
+            arrays=arrays,
+        )
+
+    @classmethod
+    def from_object_data(cls, obj_data: BlockData) -> Self:
+        """Create a new instance from the given object data
+        """
+        arrays = obj_data.arrays
+        meta = obj_data.metadata
+        num_channels = meta['num_channels']
+        sample_rate = meta['sample_rate']
+        gate_size = meta['gate_size']
+        instance = cls(num_channels=num_channels, gate_size=gate_size, sample_rate=sample_rate)
+        instance._block_data[:] = arrays['block_data']
+        instance._Zij[:] = arrays['Zij']
+        instance._block_weighted_sums[:] = arrays['block_weighted_sums']
+        instance._quarter_block_weighted_sums[:] = arrays['quarter_block_weighted_sums']
+        instance._block_loudness[:] = arrays['block_loudness']
+        instance.integrated_lkfs = np.float64(meta['integrated_lkfs'])
+        instance.lra = meta['lra']
+        instance.num_blocks = meta['num_blocks']
+        instance.block_index = meta['block_index']
+        instance.__assign_block_data_aliases(instance._block_data)
+
+        instance._calc_gating(block_index=instance.block_index, recalculate=True)
+        # instance._recalc_thresholds(instance.block_index)
+        return instance
 
 class TruePeakProcessor(BaseProcessor[NumChannelsT]):
     """Process audio samples to extract their :term:`True Peak` values
@@ -537,3 +640,34 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
             self.max_peak = max_peak
         self._all_tp_values[self._block_index, :] = cur_peaks
         self._block_index += 1
+
+    def get_object_data(self) -> TPData:
+        """Get the current object data for this processor
+        """
+        arrays: TPArrays = {
+            'current_peaks': self.current_peaks,
+        }
+        meta: TPMeta = {
+            'sample_rate': self.sample_rate,
+            'num_channels': self.num_channels,
+            'max_peak': float(self.max_peak),
+            'gate_size': self.gate_size,
+        }
+        return TPData(
+            metadata=meta,
+            arrays=arrays,
+        )
+
+    @classmethod
+    def from_object_data(cls, obj_data: TPData) -> Self:
+        """Create a new instance from the given object data
+        """
+        arrays = obj_data.arrays
+        meta = obj_data.metadata
+        num_channels = meta['num_channels']
+        sample_rate = meta['sample_rate']
+        gate_size = meta['gate_size']
+        instance = cls(num_channels=num_channels, sample_rate=sample_rate, gate_size=gate_size)
+        instance.current_peaks[:] = arrays['current_peaks']
+        instance.max_peak = np.float64(meta['max_peak'])
+        return instance
