@@ -393,39 +393,33 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
 
     def _calc_momentary(self):
         block_index = self.block_index
-        blocks = self._quarter_block_weighted_sums
+        q_sums = self._quarter_block_weighted_sums
         if block_index < 2:
-            sl = slice(None, block_index+1)
             count = block_index + 1
+            mean_val = q_sums[:count].sum() / count
         else:
-            end_ix = self.block_index+1
-            start_ix = end_ix - 3
-            sl = slice(start_ix, end_ix)
-            count = 3
-        assert blocks.ndim == 1
-        blocks = blocks[sl]
-        assert blocks.size == count
-        r = lk_log10(np.mean(blocks))
+            # Steady-state: 3-element window. Direct arithmetic avoids np.mean
+            # dispatch overhead (np.mean is ~12x slower than scalar addition for
+            # 3-element arrays due to fixed Python/numpy call overhead).
+            i = block_index - 2
+            mean_val = (q_sums[i] + q_sums[i + 1] + q_sums[i + 2]) / 3
+        r = lk_log10(mean_val)
         if r < SILENCE_DB:
             r = SILENCE_DB
         self._momentary_lkfs[block_index] = r
 
     def __calc_short_term(self, block_index: int) -> Floating:
         num_blocks = 30    # 3 second window (100ms per block_index)
-        blocks = self._quarter_block_weighted_sums[:block_index+1]
-
         if block_index < num_blocks:
-            sl = slice(None, block_index+1)
             count = block_index + 1
+            blocks = self._quarter_block_weighted_sums[:count]
         else:
-            end_ix = block_index+1
-            start_ix = end_ix - num_blocks
-            sl = slice(start_ix, end_ix)
+            start_ix = block_index + 1 - num_blocks
+            blocks = self._quarter_block_weighted_sums[start_ix:block_index + 1]
             count = num_blocks
-        assert blocks.ndim == 1
-        blocks = blocks[sl]
-        assert blocks.size == count, f'{count=}, {blocks.size=}, {block_index=}, {sl=}'
-        return lk_log10(np.mean(blocks))
+        # Use .sum()/count instead of np.mean(): avoids numpy's per-call overhead
+        # (shape inspection, type dispatch) which dominates for small arrays.
+        return lk_log10(blocks.sum() / count)
 
     def _calc_short_term(self):
         block_index = self.block_index
