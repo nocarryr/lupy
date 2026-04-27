@@ -11,12 +11,15 @@
 - Compliance test cases in compliance_cases.py
 - benchmark tests use `benchmark` fixture from pytest-codspeed
 
-## CRITICAL Maintainer Priority
+## CRITICAL Maintainer Preferences
+- NO section-separator comment blocks (--- style) in test files
+- USE pytest fixtures for repetitive test setup (not plain helper functions)
+- AVOID type: ignore comments; prefer correct type annotations
+- AVOID quoted forward references (e.g. -> 'Meter') when the class is already imported
 - Test Improver MUST read and address code review comments on its own PRs before the maintainer needs to ask
 - PR #86 was closed because Test Improver didn't address sourcery-ai reviews itself
-- Quote: "make the [Test Improver] agentic workflow do its job and read the code reviews here"
 
-## Coverage Baseline (after this run, 2026-04-27)
+## Coverage Baseline (after 2026-04-27 run)
 - meter.py: 100%
 - signalutils/sosfilt.py: 100%
 - signalutils/resample.py: 98%
