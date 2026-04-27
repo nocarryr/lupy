@@ -93,5 +93,11 @@ def test_ensure_meter_array():
 def test_ensure_true_peak_array():
     arr = build_true_peak_array(2, 5)
     assert ensure_true_peak_array(arr, 2) is arr
+
+    # Wrong num_channels -> wrong structured dtype -> AssertionError
     with pytest.raises(AssertionError):
         ensure_true_peak_array(arr, 3)
+
+    # Correct shape but wrong dtype (plain float array) -> AssertionError
+    with pytest.raises(AssertionError):
+        ensure_true_peak_array(np.zeros(5, dtype=np.float64), 2)  # type: ignore[arg-type]

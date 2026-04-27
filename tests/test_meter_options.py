@@ -281,10 +281,18 @@ def test_write_all_truncates_non_multiple():
     num_channels = 2
     meter = Meter(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
 
+    num_full_blocks = 3
     extra = 100
-    N = meter.sampler.total_samples + extra
+    N = num_full_blocks * block_size + extra
     assert N % block_size != 0
+    # Stay well below gate_size so no gating blocks are processed and
+    # samples_available reflects exactly what was written.
+    assert N < meter.sampler.gate_size
 
     src_data = build_samples(N, sample_rate, num_channels)
-    # Should not raise; extra samples are silently dropped
     meter.write_all(src_data)
+
+    # Only num_full_blocks * block_size samples should have been written;
+    # the extra 100 samples were silently discarded.
+    assert meter.sampler.samples_available == num_full_blocks * block_size
+    assert len(meter.block_data) == 0  # not enough samples for a gating block

@@ -325,10 +325,10 @@ def test_thread_safe_sampler_concurrent_writes(block_size, num_channels):
     sampler = ThreadSafeSampler(
         block_size=block_size, num_channels=num_channels, sample_rate=48000,
     )
-    rng = np.random.default_rng(42)
     errors: list[Exception] = []
 
-    def write_blocks(n: int) -> None:
+    def write_blocks(n: int, seed: int) -> None:
+        rng = np.random.default_rng(seed)
         for _ in range(n):
             if sampler.can_write():
                 samples = rng.random((num_channels, block_size))
@@ -337,7 +337,9 @@ def test_thread_safe_sampler_concurrent_writes(block_size, num_channels):
                 except Exception as exc:
                     errors.append(exc)
 
-    threads = [threading.Thread(target=write_blocks, args=(3,)) for _ in range(4)]
+    threads = [
+        threading.Thread(target=write_blocks, args=(3, i)) for i in range(4)
+    ]
     for t in threads:
         t.start()
     for t in threads:
