@@ -32,3 +32,8 @@
 - sampling.py: 96% (lines 167, 232-235, 276, 279, 378, 403, 408, 475, 562)
 - processing.py: 95%
 - filters.py: 95%
+
+## make_meter Pattern (from nocarryr review on PR #93)
+- When a factory helper is only called directly (not injected by pytest), use a plain module-level function, NOT a @pytest.fixture
+- Add explicit keyword args for test variants (e.g., `true_peak_enabled: bool = True`) instead of `**kwargs`
+- Fixtures are appropriate only when pytest needs to inject them as parameters
