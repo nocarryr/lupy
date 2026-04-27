@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, NamedTuple
 import os
 from fractions import Fraction
 import numpy as np
@@ -16,6 +16,10 @@ IS_CI = 'CI' in os.environ
 
 nan = np.nan
 rng = np.random.default_rng()
+
+class ChannelSpec(NamedTuple):
+    num_channels: int
+    sine_channel: int
 
 
 @pytest.fixture
@@ -73,22 +77,28 @@ def true_peak_gate_duration(request) -> Fraction:
 #         ch = num_channels - 1
 #     return ch
 
-@pytest.fixture(params=[
+_front_channels = [ChannelSpec(*t) for t in [
     (1, 0),
     (2, 0), (2, 1),
     (3, 0), (3, 1), (3, 2),
     (5, 0), (5, 1), (5, 2),
-])
-def front_channels(request) -> tuple[int, int]:
+]]
+
+
+@pytest.fixture(params=_front_channels, ids=[f'nch_{t[0]}-sine_{t[1]}' for t in _front_channels])
+def front_channels(request) -> ChannelSpec:
     return request.param
 
-@pytest.fixture(params=[
+_all_channels = [ChannelSpec(*t) for t in [
     (1, 0),
     (2, 0), (2, 1),
     (3, 0), (3, 1), (3, 2),
     (5, 0), (5, 1), (5, 2), (5, 3), (5, 4),
-])
-def all_channels(request) -> tuple[int, int]:
+]]
+
+
+@pytest.fixture(params=_all_channels, ids=[f'nch_{t[0]}-sine_{t[1]}' for t in _all_channels])
+def all_channels(request) -> ChannelSpec:
     return request.param
 
 @pytest.fixture(
