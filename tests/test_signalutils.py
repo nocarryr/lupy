@@ -6,6 +6,7 @@ import pytest
 
 from lupy.signalutils.sosfilt import validate_sos, sosfilt
 from lupy.signalutils.resample import _UpFIRDn, ResamplePoly, calc_tp_fir_win
+from lupy.typeutils import ensure_2d_array
 
 
 def test_validate_sos_not_2d():
@@ -17,7 +18,7 @@ def test_validate_sos_not_2d():
 def test_validate_sos_wrong_columns():
     """validate_sos raises ValueError when column count is not 6."""
     with pytest.raises(ValueError, match='sos array must be shape'):
-        validate_sos(np.ones((2, 5)))  # type: ignore[arg-type]
+        validate_sos(ensure_2d_array(np.ones((2, 5))))
 
 
 def test_validate_sos_nonunit_denominator():
@@ -25,13 +26,13 @@ def test_validate_sos_nonunit_denominator():
     sos = np.ones((2, 6))
     sos[0, 3] = 2.0
     with pytest.raises(ValueError, match=r'sos\[:, 3\] should be all ones'):
-        validate_sos(sos)  # type: ignore[arg-type]
+        validate_sos(ensure_2d_array(sos))
 
 
 def test_validate_sos_returns_same_array():
     """validate_sos returns the array unchanged for valid input."""
     sos = np.ones((3, 6))
-    result = validate_sos(sos)  # type: ignore[arg-type]
+    result = validate_sos(ensure_2d_array(sos))
     assert result is sos
 
 

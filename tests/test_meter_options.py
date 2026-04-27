@@ -164,10 +164,10 @@ def test_true_peak_disabled():
 
 def make_meter(
     block_size: int = 128,
-    num_channels: int = 2,
+    num_channels: NumChannelsT = 2,
     sample_rate: int = 48000,
     true_peak_enabled: bool = True,
-) -> Meter:
+) -> Meter[NumChannelsT]:
     return Meter(
         block_size=block_size,
         num_channels=num_channels,

@@ -125,7 +125,7 @@ def test_ensure_true_peak_array_wrong_dtype():
     """
     arr = build_true_peak_array(3, 5)
     with pytest.raises(AssertionError):
-        ensure_true_peak_array(arr, 2)  # type: ignore[arg-type]
+        ensure_true_peak_array(arr, 2)
 
 
 def test_true_peak_array_matching():
