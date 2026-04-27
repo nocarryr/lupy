@@ -18,6 +18,9 @@
 - AVOID quoted forward references (e.g. -> 'Meter') when the class is already imported
 - Test Improver MUST read and address code review comments on its own PRs before the maintainer needs to ask
 - PR #86 was closed because Test Improver didn't address sourcery-ai reviews itself
+- Use `ensure_*` functions from lupy.typeutils instead of type: ignore — e.g. `validate_sos(ensure_2d_array(sos))` lets mypy narrow the type without type: ignore
+- Keep type: ignore ONLY where the shape/type is intentionally wrong for the test (e.g. passing 1D to a 2D-expecting fn, float32 to float64-expecting fn)
+- Use NumChannelsT TypeVar and generic return types: `make_meter(...) -> Meter[NumChannelsT]`
 
 ## Coverage Baseline (after 2026-04-27 run)
 - meter.py: 100%
@@ -36,4 +39,5 @@
 ## make_meter Pattern (from nocarryr review on PR #93)
 - When a factory helper is only called directly (not injected by pytest), use a plain module-level function, NOT a @pytest.fixture
 - Add explicit keyword args for test variants (e.g., `true_peak_enabled: bool = True`) instead of `**kwargs`
+- Use NumChannelsT TypeVar: `def make_meter(num_channels: NumChannelsT = 2, ...) -> Meter[NumChannelsT]:`
 - Fixtures are appropriate only when pytest needs to inject them as parameters

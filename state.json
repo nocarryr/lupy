@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-04-27T14:41:21Z",
-  "run_id": "25001544739",
+  "last_run": "2026-04-27T16:28:38Z",
+  "run_id": "25006995998",
   "tasks_completed": ["task4", "task7"],
   "last_tasks": {
     "task1": "2026-04-26",
@@ -17,7 +17,7 @@
       "branch": "test-assist/sosfilt-resample-error-paths-b86e86aa17c227f8",
       "title": "[Test Improver] Add error-path, edge-case, and thread-safety tests",
       "status": "open",
-      "note": "42 new tests; coverage 92→97%. Review comments addressed twice (14:02 and 14:41 2026-04-27)."
+      "note": "42 new tests; coverage 92→97%. Review comments addressed 3 times (14:02, 14:41, 16:28 on 2026-04-27)."
     }
   ],
   "maintainer_priorities": [
@@ -26,7 +26,9 @@
     "nocarryr dislikes section-separator comments (--- style) in test files",
     "nocarryr wants pytest fixtures used for repetitive test setup (but plain module-level helpers when fixture injection is not needed)",
     "nocarryr: pull inner factory functions out as module-level helpers with explicit args, not fixtures, when tests below cannot use fixture injection",
-    "nocarryr wants type: ignore avoided and clean type annotations"
+    "nocarryr wants type: ignore avoided and clean type annotations",
+    "nocarryr: use ensure_* functions from lupy.typeutils instead of type: ignore where the array IS the right shape/type but mypy cannot narrow it",
+    "nocarryr: use NumChannelsT TypeVar and Meter[NumChannelsT] generic return type for factory helpers"
   ],
   "checked_off_items": ["PR #86 (closed by maintainer; [x] checked in monthly summary)"]
 }
