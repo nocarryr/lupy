@@ -8,10 +8,6 @@ from lupy.signalutils.sosfilt import validate_sos, sosfilt
 from lupy.signalutils.resample import _UpFIRDn, ResamplePoly, calc_tp_fir_win
 
 
-# ---------------------------------------------------------------------------
-# validate_sos
-# ---------------------------------------------------------------------------
-
 def test_validate_sos_not_2d():
     """validate_sos raises ValueError for non-2D input."""
     with pytest.raises(ValueError, match='sos array must be 2D'):
@@ -39,10 +35,6 @@ def test_validate_sos_returns_same_array():
     assert result is sos
 
 
-# ---------------------------------------------------------------------------
-# sosfilt zi shape mismatch
-# ---------------------------------------------------------------------------
-
 def test_sosfilt_zi_shape_mismatch():
     """sosfilt raises ValueError when zi has the wrong shape."""
     sos = np.ones((2, 6))
@@ -51,10 +43,6 @@ def test_sosfilt_zi_shape_mismatch():
     with pytest.raises(ValueError, match='Invalid zi shape'):
         sosfilt(sos, x, zi_wrong)  # type: ignore[arg-type]
 
-
-# ---------------------------------------------------------------------------
-# _UpFIRDn error paths
-# ---------------------------------------------------------------------------
 
 def test_upfirdn_h_not_1d():
     """_UpFIRDn raises ValueError when h is not 1-D."""
@@ -89,14 +77,16 @@ def test_upfirdn_apply_filter_dtype_mismatch():
         filt.apply_filter(x_float32)  # type: ignore[arg-type]
 
 
-# ---------------------------------------------------------------------------
-# ResamplePoly.num_input_samples setter no-op
-# ---------------------------------------------------------------------------
 
-def test_resample_poly_num_input_samples_same_value_is_noop():
-    """Setting num_input_samples to the current value skips recalculation."""
+@pytest.fixture
+def resample_poly_128():
     h = calc_tp_fir_win(4)
-    resampler = ResamplePoly(up=4, down=1, num_channels=1, window=h, num_input_samples=128)
+    return ResamplePoly(up=4, down=1, num_channels=1, window=h, num_input_samples=128)
+
+
+def test_resample_poly_num_input_samples_same_value_is_noop(resample_poly_128):
+    """Setting num_input_samples to the current value skips recalculation."""
+    resampler = resample_poly_128
     original_params = resampler.params
     original_upfirdn = resampler._upfirdn
 
@@ -106,10 +96,9 @@ def test_resample_poly_num_input_samples_same_value_is_noop():
     assert resampler._upfirdn is original_upfirdn
 
 
-def test_resample_poly_num_input_samples_change_recalculates():
+def test_resample_poly_num_input_samples_change_recalculates(resample_poly_128):
     """Setting num_input_samples to a different value triggers recalculation."""
-    h = calc_tp_fir_win(4)
-    resampler = ResamplePoly(up=4, down=1, num_channels=1, window=h, num_input_samples=128)
+    resampler = resample_poly_128
     original_params = resampler.params
 
     resampler.num_input_samples = 256  # different value — must recalculate

@@ -284,10 +284,6 @@ def test_write(sample_rate, block_size, num_channels, random_samples, inc_sample
     assert not sampler.can_read()
 
 
-# ---------------------------------------------------------------------------
-# ThreadSafeSampler
-# ---------------------------------------------------------------------------
-
 def test_thread_safe_sampler_read_write_clear():
     """ThreadSafeSampler: write enough blocks to fill a gate, read, then clear."""
     block_size = 512
@@ -353,11 +349,9 @@ def test_thread_safe_sampler_concurrent_writes():
         t.join()
 
     assert errors == [], f'Thread errors: {errors}'
+    assert sampler.samples_available > 0
+    assert sampler.samples_available % block_size == 0
 
-
-# ---------------------------------------------------------------------------
-# ThreadSafeTruePeakSampler
-# ---------------------------------------------------------------------------
 
 def test_thread_safe_true_peak_sampler_read_write_clear():
     """ThreadSafeTruePeakSampler: write, read, and clear behave correctly."""
