@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-04-28T01:45:02Z",
-  "last_run_id": "25029311454",
+  "last_run": "2026-04-28T02:25:28Z",
+  "last_run_id": "25030493143",
   "validated_commands": {
     "test": "uv run py.test tests/",
     "benchmark": "uv run py.test tests/test_processing.py tests/test_filters.py --codspeed -k benchmark --override-ini='addopts='",
@@ -20,15 +20,15 @@
       "number": 95,
       "branch": "perf-assist/single-sq-pass",
       "title": "[Perf Improver] perf: compute np.square once for full block and quarter block",
-      "codspeed_result": "NOT ALTER PERFORMANCE - 16 untouched benchmarks (same as PR #89)",
-      "description": "integrated: 1.830->1.756ms (-4.0%), momentary: 2.705->2.438ms (-9.9%), short_term: 2.695->2.476ms (-8.1%), lra: 3.064->2.898ms (-5.4%) locally, but CodSpeed shows no change"
+      "codspeed_result": "momentary +7%, short_term +7%, lra +7% per individual benchmarks; overall +2% (below 10% threshold so shows 'does not alter performance' in PR status)",
+      "description": "integrated: 1.830->1.756ms (-4.0%), momentary: 2.705->2.438ms (-9.9%), short_term: 2.695->2.476ms (-8.1%), lra: 3.064->2.898ms (-5.4%) locally"
     }
   ],
   "closed_prs": [
     {
       "branch": "perf-assist/avoid-np-mean-small-arrays",
       "pr": 89,
-      "outcome": "CLOSED without merge by nocarryr. CodSpeed said 'not alter performance' (16 untouched benchmarks). Lesson: Python dispatch overhead reductions (np.mean -> direct arithmetic) don't show up in CodSpeed simulation mode instruction counting."
+      "outcome": "CLOSED without merge by nocarryr. CodSpeed overall showed 1% improvement (+3% momentary/short_term, +2% lra per individual benchmarks) but below 10% threshold so showed 'not alter performance'. Lesson: Python dispatch overhead reductions don't show up as strongly in CodSpeed instruction counting."
     },
     {
       "branch": "perf-assist/incremental-lra",
@@ -54,17 +54,18 @@
     {
       "id": "lk_log10-math-scalar",
       "desc": "lk_log10() uses np.log10 for scalars; math.log10 is 3.2x faster for Python-level floats",
-      "impact": "~54ms for momentary benchmark, but probably won't show in CodSpeed",
+      "impact": "~54ms for momentary benchmark, but probably won't show strongly in CodSpeed",
       "feasibility": "medium",
-      "notes": "Changes return type from np.floating to Python float. Functional but type annotation impact. Probably not CodSpeed-visible."
+      "notes": "Changes return type from np.floating to Python float. Functional but type annotation impact. May show small improvement in CodSpeed individual benchmarks."
     }
   ],
   "perf_notes": [
-    "CodSpeed simulation mode detects instruction-count changes, NOT Python dispatch overhead reductions",
-    "Only changes that reduce actual CPU operations (algorithmic changes) show up in CodSpeed",
-    "np.mean Python dispatch overhead (~4us per call) is REAL but NOT detected by CodSpeed simulation",
+    "CodSpeed 'does not alter performance' status = overall improvement below 10% threshold. Individual benchmarks may still show meaningful gains (e.g., PR #95: +7% each in momentary/short_term/lra; PR #89: +3% in momentary/short_term).",
+    "To see individual benchmark results, follow the CodSpeed link in the PR comment (html anchor).",
+    "Only algorithmic changes (O(n^2) -> O(n)) reliably exceed the 10% threshold.",
+    "np.mean Python dispatch overhead (~4us per call) is REAL but NOT detected strongly by CodSpeed simulation",
     "Using ndarray.sum(axis=1) instead of np.sum(arr, axis=1) bypasses fromnumeric._wrapreduction",
-    "np.square(full_block) reuse (PR #95): eliminates ~24k float64 ops per block locally but CodSpeed shows NO CHANGE — numpy likely fuses np.sum(np.square(x)) internally at C level",
+    "np.square(full_block) reuse (PR #95): +7% in momentary/short_term/lra per CodSpeed individual benchmarks (below 10% overall threshold)",
     "pytest-codspeed teardown (reset()) is NOT included in benchmark timing",
     "cProfile shows _calc_lra was 39% of process_block time before incremental LRA optimization",
     "reset() zeros 144000 elements even for short measurements; optimization: zero only [:block_index]",
@@ -76,8 +77,9 @@
     "PR #95 single-sq-pass review (checked off by maintainer in monthly activity 2026-04)"
   ],
   "infrastructure_notes": {
-    "codspeed_gap": "CodSpeed simulation mode counts CPU instructions, not Python interpreter overhead. Constant-factor improvements from reducing Python function calls (isinstance checks, dispatch overhead) don't show up. Only changes that reduce actual arithmetic operations or eliminate numpy array allocations are detected. Even eliminating np.square on 24k-element array did NOT show (numpy likely fuses np.sum(np.square()) internally at C level).",
+    "codspeed_threshold": "CodSpeed 'does not alter performance' = below 10% overall threshold across the whole suite. Individual benchmarks accessible via CodSpeed link at bottom of PR comment. Always check individual results, not just pass/fail status.",
+    "codspeed_gap": "CodSpeed simulation mode counts CPU instructions, not Python interpreter overhead. Small constant-factor improvements (reducing Python function calls, dispatch overhead) don't reliably exceed 10% threshold. Only algorithmic changes scale enough.",
     "benchmark_coverage": "All 4 modes covered: integrated, momentary, short_term, lra. Parameterized by sample_rate and num_channels. Uses pedantic() with warmup_rounds=10 and per-mode rounds (300-800). 5 channels, 48kHz, ~46 blocks per round.",
-    "what_shows_in_codspeed": "Algorithmic changes (O(n^2) -> O(n)) that scale with problem size across rounds. NOT Python dispatch overhead, NOT small-array temp allocation saves, NOT fused-op rewrites (numpy fuses internally)."
+    "what_shows_in_codspeed": "Algorithmic changes (O(n^2) -> O(n)) that scale with problem size across rounds show >10% overall. Smaller optimizations may show 1-7% per individual benchmark but won't trigger 'performance improved' status."
   }
 }
