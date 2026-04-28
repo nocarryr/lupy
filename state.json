@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-04-26T23:59:24Z",
-  "last_run_id": "24970313936",
+  "last_run": "2026-04-28T00:04:39Z",
+  "last_run_id": "25026221537",
   "validated_commands": {
     "test": "uv run py.test tests/",
     "benchmark": "uv run py.test tests/test_processing.py tests/test_filters.py --codspeed -k benchmark --override-ini='addopts='",
@@ -10,25 +10,37 @@
   "tasks_last_run": {
     "task1_commands": "2026-04-26",
     "task2_opportunities": "2026-04-26",
-    "task3_implement": "2026-04-26",
-    "task4_maintain_prs": "2026-04-26",
-    "task5_comment_issues": null,
-    "task6_measurement_infra": null
+    "task3_implement": "2026-04-28",
+    "task4_maintain_prs": "2026-04-28",
+    "task5_comment_issues": "2026-04-28",
+    "task6_measurement_infra": "2026-04-28"
   },
   "open_prs": [
     {
+      "branch": "perf-assist/single-sq-pass",
+      "title": "[Perf Improver] perf: compute np.square once for full block and quarter block",
+      "description": "integrated: 1.830->1.756ms (-4.0%), momentary: 2.705->2.438ms (-9.9%), short_term: 2.695->2.476ms (-8.1%), lra: 3.064->2.898ms (-5.4%)"
+    }
+  ],
+  "closed_prs": [
+    {
       "branch": "perf-assist/avoid-np-mean-small-arrays",
-      "title": "[Perf Improver] perf: avoid np.mean overhead in _calc_momentary and _calc_short_term",
-      "description": "momentary: 4.618ms->4.033ms (-12.7%), short_term: 4.840ms->4.081ms (-15.7%), lra: 5.130ms->4.565ms (-11.0%)"
+      "pr": 89,
+      "outcome": "CLOSED without merge by nocarryr. CodSpeed said 'not alter performance' (16 untouched benchmarks). Lesson: Python dispatch overhead reductions (np.mean -> direct arithmetic) don't show up in CodSpeed simulation mode instruction counting."
+    },
+    {
+      "branch": "perf-assist/incremental-lra",
+      "pr": 72,
+      "outcome": "MERGED. Algorithmic O(n^2 log n) -> O(n log n) change showed 37% improvement in CodSpeed."
     }
   ],
   "optimization_backlog": [
     {
-      "id": "runningsum-direct-attr",
-      "desc": "RunningSum.add() - bypass property setters for direct attribute access",
-      "impact": "very low (<0.1%)",
+      "id": "reset-partial-zero",
+      "desc": "reset() zeros all MAX_BLOCKS (144000) elements even for short measurements; only need to zero [:block_index]",
+      "impact": "63x faster reset, ~143μs saved per reset call (after 50 blocks)",
       "feasibility": "high",
-      "notes": "Profile shows 3900 calls taking 5ms over 50 iterations. Saving ~30% = 30us/iteration. Not worth a standalone PR."
+      "notes": "Doesn't help benchmarks (teardown not timed). Good user-facing improvement for repeated reset() calls."
     },
     {
       "id": "bisect-insort-bottleneck",
@@ -38,23 +50,30 @@
       "notes": "Could use a sorted container library or a different algorithm (e.g., histogrammed approximation)"
     },
     {
-      "id": "process-block-einsum",
-      "desc": "_process_quarter_block: use np.einsum for sq_sum instead of np.sum(np.square(...))",
-      "impact": "low (~8%)",
-      "feasibility": "high",
-      "notes": "Saves ~1.7us per call on quarter block. 2300 blocks = ~4ms over 50 iters. Small but measurable."
+      "id": "lk_log10-math-scalar",
+      "desc": "lk_log10() uses np.log10 for scalars; math.log10 is 3.2x faster for Python-level floats",
+      "impact": "~54ms for momentary benchmark, but probably won't show in CodSpeed",
+      "feasibility": "medium",
+      "notes": "Changes return type from np.floating to Python float. Functional but type annotation impact. Probably not CodSpeed-visible."
     }
   ],
   "perf_notes": [
-    "np.mean has ~4us fixed overhead regardless of array size due to numpy dispatch machinery",
-    "np.quantile is extremely expensive for small arrays due to Python dispatch overhead",
-    "pytest-codspeed (simulation mode) benchmarks with --override-ini=addopts= to disable xdist",
+    "CodSpeed simulation mode detects instruction-count changes, NOT Python dispatch overhead reductions",
+    "Only changes that reduce actual CPU operations (algorithmic changes) show up in CodSpeed",
+    "np.mean Python dispatch overhead (~4us per call) is REAL but NOT detected by CodSpeed simulation",
+    "Using ndarray.sum(axis=1) instead of np.sum(arr, axis=1) bypasses fromnumeric._wrapreduction",
+    "np.square(full_block) can be reused to compute quarter_block sq_sum via slicing",
+    "pytest-codspeed teardown (reset()) is NOT included in benchmark timing",
     "cProfile shows _calc_lra was 39% of process_block time before incremental LRA optimization",
-    "np.mean on 3-element array: 4200ns; direct arithmetic: 360ns (11.7x faster)",
-    "np.mean on 30-element array: 4200ns; .sum()/count: 1270ns (3.3x faster)",
-    "test dataset for benchmark: 1770-2_Comp_RelGateTest_prefiltered_gated.npz at 48000 Hz, ~46 blocks"
+    "reset() zeros 144000 elements even for short measurements; optimization: zero only [:block_index]",
+    "math.log10 is 3.2x faster than np.log10 for scalar Python floats (0.151 vs 0.485 μs)"
   ],
   "checked_off_items": [
     "perf-assist/incremental-lra PR (checked off in monthly activity 2026-04)"
-  ]
+  ],
+  "infrastructure_notes": {
+    "codspeed_gap": "CodSpeed simulation mode counts CPU instructions, not Python interpreter overhead. Constant-factor improvements from reducing Python function calls (isinstance checks, dispatch overhead) don't show up. Only changes that reduce actual arithmetic operations or eliminate numpy array allocations are detected.",
+    "benchmark_coverage": "All 4 modes covered: integrated, momentary, short_term, lra. Parameterized by sample_rate and num_channels. Uses pedantic() with warmup_rounds=10 and per-mode rounds (300-800).",
+    "what_shows_in_codspeed": "Algorithmic changes (O(n^2) -> O(n)), eliminating numpy array allocations (np.square), reducing ufunc.reduce calls. NOT Python dispatch overhead."
+  }
 }
