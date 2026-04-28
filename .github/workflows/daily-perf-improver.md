@@ -30,6 +30,7 @@ network:
   - rust
   - java
   - "astral.sh"
+  - "codspeed.io"
 
 safe-outputs:
   add-comment:
