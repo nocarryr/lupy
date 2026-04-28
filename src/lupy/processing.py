@@ -476,8 +476,8 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         # TODO: Check and raise exception if exceeding MAX_BLOCKS
         assert samples.shape == (self.num_channels, self.gate_size)
 
-        sq: Float2dArray = np.square(samples)
-        sq_sum: Float1dArray = sq.sum(axis=1)
+        squared_samples: Float2dArray = np.square(samples)
+        sq_sum: Float1dArray = squared_samples.sum(axis=1)
 
         _Zij = self._tg * sq_sum
 
@@ -493,7 +493,7 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         self._calc_gating()
 
         if self.momentary_enabled or self.short_term_enabled:
-            self._process_quarter_block(sq)
+            self._process_quarter_block(squared_samples)
         if self.momentary_enabled:
             self._calc_momentary()
         if self.short_term_enabled:
@@ -503,14 +503,14 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         self.block_index += 1
         self.num_blocks += 1
 
-    def _process_quarter_block(self, sq: Float2dArray):
+    def _process_quarter_block(self, squared_samples: Float2dArray):
         # Calculate the weighted squared-sums of the last 100ms segment within
         # this 400ms block. (for use in momentary calculation)
         # With an overlap of 75% in a 400ms block, the only
         # "new" samples will be the last 100ms.
-        # sq is the pre-computed element-wise square of the full block samples.
+        # squared_samples is the pre-computed element-wise square of the full block samples.
 
-        quarter_sq_sum: Float1dArray = sq[:, -self.pad_size:].sum(axis=1)
+        quarter_sq_sum: Float1dArray = squared_samples[:, -self.pad_size:].sum(axis=1)
         weighted_sum = np.sum((self._tp * quarter_sq_sum) * self.weights)
         self._quarter_block_weighted_sums[self.block_index] = weighted_sum
 
