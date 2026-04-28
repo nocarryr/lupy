@@ -1,23 +1,23 @@
 {
-  "last_run": "2026-04-27T16:28:38Z",
-  "run_id": "25006995998",
-  "tasks_completed": ["task4", "task7"],
+  "last_run": "2026-04-28T11:25:00Z",
+  "run_id": "25049973065",
+  "tasks_completed": ["task3", "task7"],
   "last_tasks": {
     "task1": "2026-04-26",
     "task2": "2026-04-26",
-    "task3": "2026-04-27",
+    "task3": "2026-04-28",
     "task4": "2026-04-27",
     "task5": null,
     "task6": null,
-    "task7": "2026-04-27"
+    "task7": "2026-04-28"
   },
   "open_prs": [
     {
-      "number": 93,
-      "branch": "test-assist/sosfilt-resample-error-paths-b86e86aa17c227f8",
-      "title": "[Test Improver] Add error-path, edge-case, and thread-safety tests",
+      "number": null,
+      "branch": "test-assist/processing-filters-coverage",
+      "title": "[Test Improver] Add tests for filters.py and processing.py coverage gaps",
       "status": "open",
-      "note": "42 new tests; coverage 92→97%. Review comments addressed 3 times (14:02, 14:41, 16:28 on 2026-04-27)."
+      "note": "11 new tests; coverage 97→98%. Filters 95→98%, processing 95→99%. Created 2026-04-28."
     }
   ],
   "maintainer_priorities": [
