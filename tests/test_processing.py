@@ -326,7 +326,24 @@ def test_meter_benchmark(sample_rate, random_samples, benchmark):
     def bench():
         meter.write_all(src_data)
         meter.reset()
-    benchmark(bench)
+
+    def teardown():
+        meter.reset()
+
+    rounds = {
+        44100: 300,
+        48000: 300,
+        88200: 200,
+        96000: 200,
+    }
+
+    # Using pedantic so that `meter.reset()` isn't included in the measurements
+    benchmark.pedantic(
+        bench,
+        teardown=teardown,
+        warmup_rounds=10,
+        rounds=rounds[sample_rate],
+    )
 
 
 
