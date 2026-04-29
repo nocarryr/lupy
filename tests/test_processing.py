@@ -325,7 +325,6 @@ def test_meter_benchmark(sample_rate, random_samples, benchmark):
 
     def bench():
         meter.write_all(src_data)
-        meter.reset()
 
     def teardown():
         meter.reset()
