@@ -341,7 +341,7 @@ def test_meter_benchmark(sample_rate, random_samples, benchmark):
         bench,
         teardown=teardown,
         warmup_rounds=10,
-        rounds=rounds[sample_rate],
+        rounds=rounds.get(sample_rate, 200),
     )
 
 
