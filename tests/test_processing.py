@@ -452,23 +452,25 @@ def test_from_lk_log10_roundtrip() -> None:
 
 
 def test_block_processor_zij() -> None:
-    """BlockProcessor.Zij returns per-channel mean-squared values after processing."""
+    """BlockProcessor.Zij returns per-channel mean-squared values for all processed blocks."""
     sample_rate = 48000
     gate_size = int(sample_rate * 0.4)
+    num_blocks = 3
     processor = BlockProcessor(num_channels=2, gate_size=gate_size, sample_rate=sample_rate)
     rng = np.random.default_rng(42)
-    samples = (rng.standard_normal((2, gate_size)) * 0.5).astype(np.float64)
-    processor.process_block(samples)
+    for _ in range(num_blocks):
+        samples = (rng.standard_normal((2, gate_size)) * 0.5).astype(np.float64)
+        processor.process_block(samples)
     zij = processor.Zij
     assert zij.ndim == 2
-    assert zij.shape == (2, 1)
+    assert zij.shape == (2, num_blocks)
     assert np.all(zij >= 0)
 
 
-def test_block_processor_momentary_silence() -> None:
+@pytest.mark.parametrize("gate_size", [int(48000 * 0.4), int(48000 * 0.1)])
+def test_block_processor_momentary_silence(gate_size: int) -> None:
     """Momentary loudness is clamped to SILENCE_DB when the input is all zeros."""
     sample_rate = 48000
-    gate_size = int(sample_rate * 0.4)
     processor = BlockProcessor(num_channels=2, gate_size=gate_size, sample_rate=sample_rate)
     silence = np.zeros((2, gate_size), dtype=np.float64)
     processor.process_block(silence)

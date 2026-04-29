@@ -51,14 +51,20 @@ def test_filter_single_channel_1d_input() -> None:
 
 
 def test_filter_group_single_channel_1d_input() -> None:
-    """FilterGroup accepts a 1-D array for single-channel input."""
+    """FilterGroup accepts a 1-D array for single-channel input and produces the same values as 2-D."""
     fg = FilterGroup(HS_COEFF, HP_COEFF, num_channels=1)
     rng = np.random.default_rng(1)
     samples = rng.standard_normal(480).astype(np.float64)
+
     result = fg(samples)
     assert result.ndim == 2
     assert result.shape[0] == 1
     assert result.shape[1] == 480
+
+    fg2 = FilterGroup(HS_COEFF, HP_COEFF, num_channels=1)
+    samples_2d = samples[np.newaxis, :]
+    result_2d = fg2(samples_2d)
+    assert result == pytest.approx(result_2d)
 
 
 @pytest.mark.benchmark(group='filter')
