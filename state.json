@@ -1,34 +1,39 @@
 {
-  "last_run": "2026-04-28T02:25:28Z",
-  "last_run_id": "25030493143",
+  "last_run": "2026-04-29T00:05:19Z",
+  "last_run_id": "25084046059",
   "validated_commands": {
-    "test": "uv run py.test tests/",
+    "test": "uv run py.test tests/ --override-ini='addopts=' -p no:codspeed -k 'not benchmark'",
     "benchmark": "uv run py.test tests/test_processing.py tests/test_filters.py --codspeed -k benchmark --override-ini='addopts='",
     "typecheck": "uv run mypy",
-    "install": "uv sync --frozen --no-dev --group test"
+    "install": "uv sync --frozen --no-dev --group test",
+    "note": "uv not available in this CI environment; use: pip install -e . --break-system-packages && pip install pytest pytest-xdist --break-system-packages"
   },
   "tasks_last_run": {
-    "task1_commands": "2026-04-26",
+    "task1_commands": "2026-04-29",
     "task2_opportunities": "2026-04-28",
-    "task3_implement": "2026-04-28",
-    "task4_maintain_prs": "2026-04-28",
+    "task3_implement": "2026-04-29",
+    "task4_maintain_prs": "2026-04-29",
     "task5_comment_issues": "2026-04-28",
     "task6_measurement_infra": "2026-04-28"
   },
   "open_prs": [
     {
-      "number": 95,
-      "branch": "perf-assist/single-sq-pass",
-      "title": "[Perf Improver] perf: compute np.square once for full block and quarter block",
-      "codspeed_result": "momentary +7%, short_term +7%, lra +7% per individual benchmarks; overall +2% (below 10% threshold so shows 'does not alter performance' in PR status)",
-      "description": "integrated: 1.830->1.756ms (-4.0%), momentary: 2.705->2.438ms (-9.9%), short_term: 2.695->2.476ms (-8.1%), lra: 3.064->2.898ms (-5.4%) locally"
+      "number": "TBD",
+      "branch": "perf-assist/lk-log10-math-scalar",
+      "title": "[Perf Improver] perf: use np.dot for channel-weighted sums in process_block",
+      "local_results": "integrated: 1.319->1.225ms (-7.1%), momentary: 2.020->1.685ms (-16.6%), short_term: 2.022->1.833ms (-9.3%), lra: 2.377->2.089ms (-12.1%)"
     }
   ],
   "closed_prs": [
     {
+      "branch": "perf-assist/single-sq-pass",
+      "pr": 95,
+      "outcome": "MERGED by nocarryr on 2026-04-28. CodSpeed: +7% on momentary/short_term/lra individual benchmarks, +2% overall (below 10% threshold)."
+    },
+    {
       "branch": "perf-assist/avoid-np-mean-small-arrays",
       "pr": 89,
-      "outcome": "CLOSED without merge by nocarryr. CodSpeed overall showed 1% improvement (+3% momentary/short_term, +2% lra per individual benchmarks) but below 10% threshold so showed 'not alter performance'. Lesson: Python dispatch overhead reductions don't show up as strongly in CodSpeed instruction counting."
+      "outcome": "CLOSED without merge. CodSpeed +3% individual, 1% overall. Lesson: Python dispatch reductions don't exceed 10% threshold for this scale."
     },
     {
       "branch": "perf-assist/incremental-lra",
@@ -38,6 +43,13 @@
   ],
   "optimization_backlog": [
     {
+      "id": "np-dot-weighted-sums",
+      "desc": "Submitted PR: np.dot instead of np.sum(a*b) for channel-weighted sums in process_block and _process_quarter_block",
+      "impact": "integrated -7%, momentary -16%, short_term -9%, lra -12% local; expect 5-12% CodSpeed individual benchmarks",
+      "status": "PR submitted (branch: perf-assist/lk-log10-math-scalar)",
+      "notes": "np.dot avoids temporary array allocation + direct BLAS dispatch for small channel vectors (1-5 elements)"
+    },
+    {
       "id": "reset-partial-zero",
       "desc": "reset() zeros all MAX_BLOCKS (144000) elements even for short measurements; only need to zero [:block_index]",
       "impact": "63x faster reset, ~143us saved per reset call (after 50 blocks)",
@@ -45,41 +57,39 @@
       "notes": "Doesn't help benchmarks (teardown not timed). Good user-facing improvement for repeated reset() calls. NOT CodSpeed-detectable."
     },
     {
-      "id": "calc-gating-incremental",
-      "desc": "_calc_gating does O(block_index) numpy work per block when rel_threshold changes; O(n^2) total. Could use sorted list + suffix_sum for O(log n) per block.",
-      "impact": "Only affects long sessions (>1000 blocks). For benchmark with ~46 blocks, n^2 is only ~2116 tiny ops.",
-      "feasibility": "low (complex: need suffix-sum structure for weighted sum query)",
-      "notes": "Not CodSpeed-visible for short benchmarks. Real-world benefit only for hour-long streams."
+      "id": "lk_log10-math-scalar",
+      "desc": "lk_log10() uses np.log10 for scalars; math.log10 is ~1.4x faster for scalar path. ~1% benchmark improvement only.",
+      "impact": "~1% per benchmark mode (too small for CodSpeed, probably)",
+      "feasibility": "medium",
+      "notes": "Return type must stay np.float64 to preserve type annotations. Smaller win than np.dot was."
     },
     {
-      "id": "lk_log10-math-scalar",
-      "desc": "lk_log10() uses np.log10 for scalars; math.log10 is 3.2x faster for Python-level floats",
-      "impact": "~54ms for momentary benchmark, but probably won't show strongly in CodSpeed",
-      "feasibility": "medium",
-      "notes": "Changes return type from np.floating to Python float. Functional but type annotation impact. May show small improvement in CodSpeed individual benchmarks."
+      "id": "calc-gating-incremental",
+      "desc": "_calc_gating does O(block_index) numpy work per block when rel_threshold changes; O(n^2) total.",
+      "impact": "Only affects long sessions (>1000 blocks).",
+      "feasibility": "low (complex)",
+      "notes": "Not CodSpeed-visible for short benchmarks."
     }
   ],
   "perf_notes": [
-    "CodSpeed 'does not alter performance' status = overall improvement below 10% threshold. Individual benchmarks may still show meaningful gains (e.g., PR #95: +7% each in momentary/short_term/lra; PR #89: +3% in momentary/short_term).",
-    "To see individual benchmark results, follow the CodSpeed link in the PR comment (html anchor).",
-    "Only algorithmic changes (O(n^2) -> O(n)) reliably exceed the 10% threshold.",
-    "np.mean Python dispatch overhead (~4us per call) is REAL but NOT detected strongly by CodSpeed simulation",
-    "Using ndarray.sum(axis=1) instead of np.sum(arr, axis=1) bypasses fromnumeric._wrapreduction",
-    "np.square(full_block) reuse (PR #95): +7% in momentary/short_term/lra per CodSpeed individual benchmarks (below 10% overall threshold)",
+    "CodSpeed 'does not alter performance' = overall improvement below 10% threshold. Individual benchmarks may still show meaningful gains.",
+    "Only algorithmic changes (O(n^2) -> O(n)) or large constant-factor changes (e.g., np.dot 4-5x faster) reliably exceed 10% CodSpeed threshold.",
+    "np.sum(a*b) vs np.dot(a,b): for 2-element arrays, np.dot is 4.2x faster (avoids temp array + direct BLAS dispatch)",
+    "np.square(full_block) reuse (PR #95): +7% in momentary/short_term/lra per CodSpeed individual benchmarks (MERGED)",
+    "math.log10 is 1.4x faster than np.log10 for full lk_log10 function (scalar path), only ~1% benchmark improvement",
     "pytest-codspeed teardown (reset()) is NOT included in benchmark timing",
-    "cProfile shows _calc_lra was 39% of process_block time before incremental LRA optimization",
-    "reset() zeros 144000 elements even for short measurements; optimization: zero only [:block_index]",
-    "math.log10 is 3.2x faster than np.log10 for scalar Python floats (0.151 vs 0.485 us)",
-    "Benchmark processes ~46 blocks per round; 5ch x 48kHz; gate_size=19200 (0.4s)"
+    "Benchmark: 48kHz, 2 channels, gate_size=19200 (0.4s), ~46 blocks per round",
+    "CodSpeed simulation mode counts CPU instructions - Python dispatch overhead matters significantly",
+    "uv not available in CI runner; use pip install --break-system-packages as fallback"
   ],
   "checked_off_items": [
     "perf-assist/incremental-lra PR (checked off in monthly activity 2026-04)",
     "PR #95 single-sq-pass review (checked off by maintainer in monthly activity 2026-04)"
   ],
   "infrastructure_notes": {
-    "codspeed_threshold": "CodSpeed 'does not alter performance' = below 10% overall threshold across the whole suite. Individual benchmarks accessible via CodSpeed link at bottom of PR comment. Always check individual results, not just pass/fail status.",
-    "codspeed_gap": "CodSpeed simulation mode counts CPU instructions, not Python interpreter overhead. Small constant-factor improvements (reducing Python function calls, dispatch overhead) don't reliably exceed 10% threshold. Only algorithmic changes scale enough.",
-    "benchmark_coverage": "All 4 modes covered: integrated, momentary, short_term, lra. Parameterized by sample_rate and num_channels. Uses pedantic() with warmup_rounds=10 and per-mode rounds (300-800). 5 channels, 48kHz, ~46 blocks per round.",
-    "what_shows_in_codspeed": "Algorithmic changes (O(n^2) -> O(n)) that scale with problem size across rounds show >10% overall. Smaller optimizations may show 1-7% per individual benchmark but won't trigger 'performance improved' status."
+    "codspeed_threshold": "CodSpeed 'does not alter performance' = below 10% overall threshold. Individual benchmarks accessible via CodSpeed link at bottom of PR comment.",
+    "codspeed_gap": "CodSpeed simulation mode counts CPU instructions. Small constant-factor improvements need to be >7% to be reliably visible. np.dot (4-5x faster for small arrays) should show well.",
+    "benchmark_coverage": "All 4 modes: integrated, momentary, short_term, lra. 48kHz, 2ch, gate_size=19200, ~46 blocks/round.",
+    "what_shows_in_codspeed": "Algorithmic changes (O(n^2) -> O(n)) or dispatch elimination for frequently-called operations (np.dot vs np.sum). Sub-1% local improvements likely invisible in CodSpeed."
   }
 }
