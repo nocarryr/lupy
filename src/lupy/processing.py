@@ -482,7 +482,7 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         _Zij = self._tg * sq_sum
 
         assert _Zij.shape == (self.num_channels,)
-        weighted_sum = np.sum(_Zij * self.weights)
+        weighted_sum = np.dot(_Zij, self.weights)
         self._block_weighted_sums[self.block_index] = weighted_sum
 
         block_loudness = lk_log10(weighted_sum)
@@ -511,7 +511,7 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         # squared_samples is the pre-computed element-wise square of the full block samples.
 
         quarter_sq_sum: Float1dArray = squared_samples[:, -self.pad_size:].sum(axis=1)
-        weighted_sum = np.sum((self._tp * quarter_sq_sum) * self.weights)
+        weighted_sum = self._tp * np.dot(quarter_sq_sum, self.weights)
         self._quarter_block_weighted_sums[self.block_index] = weighted_sum
 
 
