@@ -1,23 +1,23 @@
 {
-  "last_run": "2026-04-30T11:21:35Z",
-  "run_id": "25162524807",
-  "tasks_completed": ["task3", "task7"],
+  "last_run": "2026-04-30T22:49:30Z",
+  "run_id": "25193124903",
+  "tasks_completed": ["task4", "task7"],
   "last_tasks": {
     "task1": "2026-04-26",
     "task2": "2026-04-26",
     "task3": "2026-04-30",
-    "task4": "2026-04-29",
+    "task4": "2026-04-30",
     "task5": null,
     "task6": null,
     "task7": "2026-04-30"
   },
   "open_prs": [
     {
-      "number": null,
-      "branch": "test-assist/sampling-resample-coverage-gaps",
+      "number": 102,
+      "branch": "test-assist/sampling-resample-coverage-gaps-9e534f5a65d3c73c",
       "title": "[Test Improver] Add targeted tests for sampling.py and resample.py coverage gaps",
       "status": "open",
-      "note": "6 new tests; sampling.py 96→98%, resample.py 98→99%, total 98→99%. PR number TBD (created 2026-04-30)."
+      "note": "6 new tests; 2 review threads addressed 2026-04-30 evening run."
     }
   ],
   "maintainer_priorities": [
@@ -28,7 +28,8 @@
     "nocarryr: pull inner factory functions out as module-level helpers with explicit args, not fixtures, when tests below cannot use fixture injection",
     "nocarryr wants type: ignore avoided and clean type annotations",
     "nocarryr: use ensure_* functions from lupy.typeutils instead of type: ignore where the array IS the right shape/type but mypy cannot narrow it",
-    "nocarryr: use NumChannelsT TypeVar and Meter[NumChannelsT] generic return type for factory helpers"
+    "nocarryr: use NumChannelsT TypeVar and Meter[NumChannelsT] generic return type for factory helpers",
+    "nocarryr: tests should assert concrete expected values, not tautological property-to-property comparisons"
   ],
   "checked_off_items": ["PR #86 (closed by maintainer; [x] checked in monthly summary)", "PR #97 (merged by nocarryr 2026-04-30; remove from suggested actions)"]
 }
