@@ -106,3 +106,23 @@ def test_resample_poly_num_input_samples_change_recalculates(resample_poly_128):
 
     assert resampler.params is not original_params
     assert resampler.params.n_in == 256
+
+
+def test_resample_poly_num_output_samples(resample_poly_128) -> None:
+    """ResamplePoly.num_output_samples returns the expected output sample count.
+
+    For the resample_poly_128 fixture (up=4, down=1, num_input_samples=128),
+    expected n_out = 128 * 4 = 512.
+    """
+    resampler = resample_poly_128
+    assert resampler.num_output_samples == 512
+
+
+def test_resample_poly_output_shape(resample_poly_128) -> None:
+    """ResamplePoly.output_shape returns (num_channels, num_output_samples).
+
+    For the resample_poly_128 fixture (num_channels=1, n_out=512),
+    expected shape is (1, 512).
+    """
+    resampler = resample_poly_128
+    assert resampler.output_shape == (1, 512)
