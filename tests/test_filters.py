@@ -4,7 +4,7 @@ import numpy as np
 from scipy import signal
 import pytest
 
-from lupy.filters import HS_COEFF, HP_COEFF, FilterGroup, TruePeakFilter
+from lupy.filters import HS_COEFF, HP_COEFF, Coeff, Filter, FilterGroup, TruePeakFilter
 
 
 
@@ -30,6 +30,41 @@ def test_filter_requantize(coeff, sample_rate):
     assert isinstance(h1, np.ndarray)
     assert np.allclose(w0, w1)
     assert np.allclose(h0, h1)
+
+
+def test_coeff_combine_different_sample_rates() -> None:
+    """Coeff.combine raises ValueError when sample rates differ."""
+    coeff_44k = HS_COEFF.as_sample_rate(44100)
+    with pytest.raises(ValueError, match="different sample rates"):
+        HS_COEFF.combine(coeff_44k)
+
+
+def test_filter_single_channel_1d_input() -> None:
+    """Filter accepts a 1-D array for single-channel input, reshaping to (1, N)."""
+    filt = Filter(coeff=HS_COEFF, num_channels=1)
+    rng = np.random.default_rng(0)
+    samples = rng.standard_normal(480).astype(np.float64)
+    result = filt(samples)
+    assert result.ndim == 2
+    assert result.shape[0] == 1
+    assert result.shape[1] == 480
+
+
+def test_filter_group_single_channel_1d_input() -> None:
+    """FilterGroup accepts a 1-D array for single-channel input and produces the same values as 2-D."""
+    fg = FilterGroup(HS_COEFF, HP_COEFF, num_channels=1)
+    rng = np.random.default_rng(1)
+    samples = rng.standard_normal(480).astype(np.float64)
+
+    result = fg(samples)
+    assert result.ndim == 2
+    assert result.shape[0] == 1
+    assert result.shape[1] == 480
+
+    fg2 = FilterGroup(HS_COEFF, HP_COEFF, num_channels=1)
+    samples_2d = samples[np.newaxis, :]
+    result_2d = fg2(samples_2d)
+    assert result == pytest.approx(result_2d)
 
 
 @pytest.mark.benchmark(group='filter')

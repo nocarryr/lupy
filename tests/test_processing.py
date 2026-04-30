@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 
 from lupy import Meter, BlockProcessor
-from lupy.processing import SILENCE_DB
+from lupy.processing import SILENCE_DB, RunningSum, lk_log10, from_lk_log10, TruePeakProcessor
 from lupy.types import FloatArray, NumChannelsT, ChannelIndex, CurrentMeasurement
 from lupy.typeutils import is_array_of_shape
 
@@ -425,3 +425,83 @@ def test_block_processor_benchmark(benchmark, processor_bench_data):
         rounds=rounds[mode],
     )
     assert result == pytest.approx(-10, abs=0.1)
+
+
+def test_running_sum_comparisons() -> None:
+    """RunningSum comparison operators delegate to its value."""
+    rs = RunningSum()
+    rs.add(np.float64(5.0))
+    assert rs > np.float64(4.0)
+    assert rs >= np.float64(5.0)
+    assert rs < np.float64(6.0)
+    assert rs <= np.float64(5.0)
+
+
+def test_running_sum_eq_non_numeric() -> None:
+    """RunningSum.__eq__ returns NotImplemented for non-numeric types."""
+    rs = RunningSum()
+    assert rs.__eq__("not a number") is NotImplemented
+
+
+def test_running_sum_repr_str() -> None:
+    """RunningSum.__repr__ and __str__ include value and count."""
+    rs = RunningSum()
+    rs.add(np.float64(3.0))
+    assert 'RunningSum' in repr(rs)
+    assert 'value=3.0' in str(rs)
+    assert 'count=1' in str(rs)
+
+
+def test_lk_log10_ndarray_zeros() -> None:
+    """lk_log10 replaces zero elements in an ndarray with EPSILON before log10."""
+    x = np.array([0.0, 0.5, 1.0], dtype=np.float64)
+    result = lk_log10(x)
+    assert np.all(np.isfinite(result)), "zero inputs should not produce -inf"
+    assert result[1] == pytest.approx(lk_log10(np.float64(0.5)))
+    assert result[2] == pytest.approx(lk_log10(np.float64(1.0)))
+
+
+def test_from_lk_log10_roundtrip() -> None:
+    """from_lk_log10 is the inverse of lk_log10 for positive inputs."""
+    x = np.float64(0.5)
+    assert from_lk_log10(lk_log10(x)) == pytest.approx(float(x), rel=1e-9)
+
+
+def test_block_processor_zij() -> None:
+    """BlockProcessor.Zij returns per-channel mean-squared values for all processed blocks."""
+    sample_rate = 48000
+    gate_size = int(sample_rate * 0.4)
+    num_blocks = 3
+    processor = BlockProcessor(num_channels=2, gate_size=gate_size, sample_rate=sample_rate)
+    rng = np.random.default_rng(42)
+    for _ in range(num_blocks):
+        samples = (rng.standard_normal((2, gate_size)) * 0.5).astype(np.float64)
+        processor.process_block(samples)
+    zij = processor.Zij
+    assert zij.ndim == 2
+    assert zij.shape == (2, num_blocks)
+    assert np.all(zij >= 0)
+
+
+@pytest.mark.parametrize("gate_size", [int(48000 * 0.4), int(48000 * 0.1)])
+def test_block_processor_momentary_silence(gate_size: int) -> None:
+    """Momentary loudness is clamped to SILENCE_DB when the input is all zeros."""
+    sample_rate = 48000
+    processor = BlockProcessor(num_channels=2, gate_size=gate_size, sample_rate=sample_rate)
+    silence = np.zeros((2, gate_size), dtype=np.float64)
+    processor.process_block(silence)
+    assert processor.momentary_lkfs[0] == SILENCE_DB
+
+
+@pytest.mark.parametrize("gate_size", [int(48000 * 0.4), 128])
+def test_true_peak_processor_t_property(gate_size: int) -> None:
+    """TruePeakProcessor.t returns measurement times for processed blocks."""
+    sample_rate = 48000
+    proc = TruePeakProcessor(num_channels=2, gate_size=gate_size, sample_rate=sample_rate)
+    samples = np.zeros((2, gate_size), dtype=np.float64)
+    proc.process(samples)
+    proc.process(samples)
+    t = proc.t
+    assert len(t) == 2
+    assert t[0] == pytest.approx(0.0)
+    assert t[1] == pytest.approx(gate_size / sample_rate)
