@@ -1,9 +1,10 @@
 {
-  "last_run": "2026-04-30T00:06:47Z",
-  "last_run_id": "25140276984",
+  "last_run": "2026-04-30T02:10:00Z",
+  "last_run_id": "25143702491",
   "validated_commands": {
     "test": "python3 -m pytest tests/ -k 'not benchmark' --override-ini='addopts=' -p no:codspeed -q",
     "benchmark": "python3 -m pytest tests/test_processing.py tests/test_filters.py -k 'benchmark and block_processor' --override-ini='addopts=' -p no:codspeed --benchmark-warmup=on --benchmark-min-rounds=50 -q",
+    "benchmark_meter": "python3 -m pytest tests/test_processing.py -k 'benchmark and meter' --override-ini='addopts=' -p no:codspeed --benchmark-warmup=on --benchmark-min-rounds=50 -q",
     "typecheck": "uv run mypy",
     "install": "pip install -e . --break-system-packages && pip install pytest pytest-benchmark --break-system-packages",
     "note": "uv not available in CI runner; use pip install fallback above"
@@ -12,15 +13,17 @@
     "task1_commands": "2026-04-29",
     "task2_opportunities": "2026-04-30",
     "task3_implement": "2026-04-30",
-    "task4_maintain_prs": "2026-04-29",
-    "task5_comment_issues": "2026-04-28",
+    "task4_maintain_prs": "2026-04-30",
+    "task5_comment_issues": "2026-04-30",
     "task6_measurement_infra": "2026-04-28"
   },
   "open_prs": [
     {
-      "branch": "perf-assist/running-sum-windows",
+      "number": 100,
+      "branch": "perf-assist/running-sum-windows-3f789259c7fdaea4",
       "title": "[Perf Improver] perf: use incremental running sums for momentary and short-term windows",
-      "local_results": "momentary -6.2%, short_term -4.7%, lra -5.7%"
+      "local_results": "momentary -6.2%, short_term -4.7%, lra -5.7%",
+      "codspeed_status": "not yet run"
     }
   ],
   "closed_prs": [
@@ -37,7 +40,7 @@
     {
       "branch": "perf-assist/avoid-np-mean-small-arrays",
       "pr": 89,
-      "outcome": "CLOSED without merge. CodSpeed +3% individual, 1% overall. Lesson: Python dispatch reductions don't exceed 10% threshold for this scale."
+      "outcome": "CLOSED without merge. CodSpeed +3% individual, 1% overall."
     },
     {
       "branch": "perf-assist/incremental-lra",
@@ -48,24 +51,22 @@
   "optimization_backlog": [
     {
       "id": "running-sum-windows",
-      "desc": "PR submitted: incremental running sums for _calc_momentary (3-block) and _calc_short_term (30-block) windows",
+      "desc": "PR #100 submitted: incremental running sums for _calc_momentary (3-block) and _calc_short_term (30-block) windows",
       "impact": "momentary -6.2%, short_term -4.7%, lra -5.7% local",
-      "status": "PR submitted (branch: perf-assist/running-sum-windows)",
-      "notes": "Replaces np.mean on small slices with O(1) float accumulator. 4.8-5.1x faster per call. Numerically equivalent within float64 precision."
+      "status": "PR #100 open, CI clean",
+      "notes": "Replaces np.mean on small slices with O(1) float accumulator. 4.8-5.1x faster per call."
     },
     {
       "id": "lk_log10-math-scalar",
       "desc": "lk_log10() uses np.log10 for scalars; math.log10 is ~1.4x faster for scalar path. ~1% benchmark improvement only.",
       "impact": "~1% per benchmark mode (too small for CodSpeed, probably)",
-      "feasibility": "medium",
-      "notes": "Return type must stay np.float64. Smaller win."
+      "feasibility": "medium"
     },
     {
       "id": "calc-gating-incremental",
       "desc": "_calc_gating does O(block_index) numpy work per block when rel_threshold changes; O(n^2) total.",
       "impact": "Only affects long sessions (>1000 blocks).",
-      "feasibility": "low (complex)",
-      "notes": "Not CodSpeed-visible for short benchmarks."
+      "feasibility": "low (complex)"
     }
   ],
   "maintainer_instructions": [
@@ -73,13 +74,17 @@
   ],
   "perf_notes": [
     "CodSpeed 'does not alter performance' = overall improvement below 10% threshold. Individual benchmarks may still show meaningful gains.",
-    "Only algorithmic changes (O(n^2) -> O(n)) or large constant-factor changes reliably exceed 10% CodSpeed threshold.",
-    "np.sum(a*b) vs np.dot(a,b): for 2-element arrays, np.dot is 4.2x faster (avoids temp array + direct BLAS dispatch) - MERGED PR #98",
-    "np.mean on 3-30 element slices: 4.8-5.1x slower than Python float running sum - SUBMITTED PR running-sum-windows",
-    "np.square(full_block) reuse (PR #95): +7% in momentary/short_term/lra per CodSpeed individual benchmarks (MERGED)",
-    "math.log10 is 1.4x faster than np.log10 for full lk_log10 function (scalar path), only ~1% benchmark improvement",
+    "Only algorithmic changes or large constant-factor changes exceed 10% CodSpeed threshold reliably.",
+    "scipy _apply (upfirdn) ACCUMULATES into output buffer (out[i] += contribution), not overwrites. out[...]=0 zeroing in _UpFIRDn.apply_filter is NECESSARY.",
+    "numpy memory pool recycles same-size allocations very efficiently: np.empty(3MB) then free is ~0 overhead. Pre-allocated buffers do not help for same-size allocations.",
+    "TruePeakProcessor.process bottleneck: 55.6% CPU at 48kHz. All of it is in cython _apply FIR convolution. No wrapper-level wins possible.",
+    "sosfilt bottleneck: 22.98% CPU. Input copy (40KB x 46 calls/round) = ~1.6% max improvement, below threshold.",
+    "Benchmark call counts per round (48kHz, gate=19200, block=1024): 46 sosfilt calls, 2 TruePeakProcessor.process calls",
+    "n_out = gate_size * upsample_factor for all valid gate sizes (verified for up=4 and up=2).",
+    "np.sum(a*b) vs np.dot(a,b): for 2-element arrays, np.dot is 4.2x faster - MERGED PR #98",
+    "np.mean on 3-30 element slices: 4.8-5.1x slower than Python float running sum - SUBMITTED PR #100",
+    "np.square(full_block) reuse (PR #95): +7% in momentary/short_term/lra per CodSpeed - MERGED",
     "pytest-codspeed teardown (reset()) is NOT included in benchmark timing (moved to teardown fixture in PR #99)",
-    "Benchmark: 48kHz, 5 channels (2 active), gate_size=19200 (0.4s), ~46 blocks per round",
     "CodSpeed simulation mode counts CPU instructions - Python dispatch overhead matters significantly",
     "pip install fallback: pip install -e . --break-system-packages (uv not available in runner)"
   ],
@@ -90,6 +95,6 @@
   "infrastructure_notes": {
     "codspeed_threshold": "CodSpeed 'does not alter performance' = below 10% overall threshold. Individual benchmarks accessible via CodSpeed link.",
     "benchmark_coverage": "All 4 modes: integrated, momentary, short_term, lra. 48kHz, 5ch (2 active), gate_size=19200, ~46 blocks/round.",
-    "what_shows_in_codspeed": "Algorithmic changes (O(n^2) -> O(n)) or dispatch elimination for frequently-called operations. Sub-1% local improvements likely invisible in CodSpeed."
+    "what_shows_in_codspeed": "Algorithmic changes (O(n^2) -> O(n)) or dispatch elimination for frequently-called operations. Sub-2% local improvements likely invisible in CodSpeed."
   }
 }
