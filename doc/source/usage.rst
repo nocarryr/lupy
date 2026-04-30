@@ -38,6 +38,36 @@ we will be using `python-sounddevice`_.
 >>> meter = Meter(block_size=block_size, num_channels=1)
 
 
+Configuring Measurements
+------------------------
+
+By default all measurement types are enabled. You can selectively disable
+measurements you don't need to reduce processing overhead:
+
+>>> meter = Meter(block_size=block_size, num_channels=1,
+...               momentary_enabled=True,
+...               short_term_enabled=True,
+...               lra_enabled=True,
+...               true_peak_enabled=True)
+
+For example, if you only need :term:`Integrated Loudness` you can disable
+the others:
+
+>>> meter = Meter(block_size=block_size, num_channels=1,
+...               momentary_enabled=False,
+...               short_term_enabled=False,
+...               lra_enabled=False,
+...               true_peak_enabled=False)
+
+.. important::
+
+    :term:`Loudness Range` (LRA) calculation depends on
+    :term:`Short-Term Loudness`.  If *short_term_enabled* is ``False``,
+    *lra_enabled* must also be ``False``.  Passing
+    ``short_term_enabled=False, lra_enabled=True`` raises a
+    :exc:`ValueError`.
+
+
 Now we need to define a callback for the sample data. The samples in
 the callback's ``indata`` are shaped as ``(num_samples, num_channels)``
 so we need to swap the axes.
