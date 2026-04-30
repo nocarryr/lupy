@@ -387,3 +387,59 @@ def test_thread_safe_true_peak_sampler_read_write_clear():
 
     sampler.clear()
     assert sampler.samples_available == 0
+
+
+def test_slice_repr_str() -> None:
+    """Slice.__repr__ and __str__ reflect the current index."""
+    slc = Slice(step=1000, max_index=10)
+    assert str(slc) == '0'
+    assert repr(slc) == '<Slice: 0>'
+    slc.index = 5
+    assert str(slc) == '5'
+    assert repr(slc) == '<Slice: 5>'
+
+
+def test_slice_calc_shape_non_last_axis() -> None:
+    """Slice.calc_shape covers the non-last-axis branch with a 3-D array.
+
+    When axis != ndim - 1 the method replaces arr.shape[axis] with step and
+    removes the following dimension.  For shape (2, 4, 1) sliced along axis=1
+    the result should be (2, 4).
+    """
+    arr = np.zeros((2, 4, 1), dtype=np.float64)
+    slc = Slice(step=4, max_index=0)
+    shape = slc.calc_shape(arr, axis=1)
+    assert shape == (2, 4)
+    result = slc.slice(arr, axis=1)
+    assert result.shape == (2, 4)
+
+
+def test_sampler_write_float32() -> None:
+    """Sampler.write converts float32 input to float64 before filtering."""
+    block_size = 512
+    num_channels = 1
+    sample_rate = 48000
+    sampler = Sampler(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
+    rng = np.random.default_rng(0)
+    block_f32 = rng.random((num_channels, block_size)).astype(np.float32)
+    sampler.write(block_f32, apply_filter=True)
+    assert sampler.samples_available == block_size
+
+
+def test_true_peak_sampler_buffer_doubling() -> None:
+    """TruePeakSampler doubles bfr_len when lcm(block_size, gate_samples) == block_size.
+
+    gate_samples = 48000 * (1/100) = 480; block_size = 4800 = 10 * 480, so
+    lcm(4800, 480) = 4800 == block_size, triggering the doubling guard.
+    """
+    block_size = 4800
+    sample_rate = 48000
+    gate_duration = Fraction(1, 100)  # 10 ms → 480 samples at 48 kHz
+    sampler = TruePeakSampler(
+        block_size=block_size,
+        num_channels=1,
+        sample_rate=sample_rate,
+        gate_duration=gate_duration,
+    )
+    assert sampler.total_samples == block_size * 2
+    assert sampler.num_blocks == 2
