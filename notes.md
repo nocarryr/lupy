@@ -22,21 +22,22 @@
 - Keep type: ignore ONLY where the shape/type is intentionally wrong for the test (e.g. passing 1D to a 2D-expecting fn, float32 to float64-expecting fn)
 - Use NumChannelsT TypeVar and generic return types: `make_meter(...) -> Meter[NumChannelsT]`
 
-## Coverage Baseline (after 2026-04-28 run)
+## Coverage Baseline (after 2026-04-30 run)
 - meter.py: 100%
 - signalutils/sosfilt.py: 100%
-- signalutils/resample.py: 98%
+- signalutils/resample.py: 99%
 - typeutils.py: 99%
-- sampling.py: 96%
+- sampling.py: 98%
 - filters.py: 98%
 - processing.py: 99%
-- total: 98%
+- total: 99%
 
-## Remaining Gaps
-- signalutils/resample.py: 98% (lines 99, 194, 204)
-- sampling.py: 96% (lines 167, 232-235, 276, 279, 378, 403, 408, 475, 562)
-- processing.py: 99% (lines 386, 464 — degenerate _calc_gating/_calc_lra branches)
-- filters.py: 98% (lines 187, 229 — abstract NotImplementedError and trivial pass)
+## Remaining Gaps (all low-priority / intentionally skipped)
+- sampling.py line 167: defensive guard, dead code
+- sampling.py lines 378/403/408: abstract NotImplementedError bodies
+- resample.py line 99: n_post_pad += 1 loop — specialized numerical condition
+- processing.py lines 390, 454: degenerate _calc_gating/_calc_lra branches
+- filters.py lines 187, 229: abstract method body and trivial pass
 
 ## make_meter Pattern (from nocarryr review on PR #93)
 - When a factory helper is only called directly (not injected by pytest), use a plain module-level function, NOT a @pytest.fixture
