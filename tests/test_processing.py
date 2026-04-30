@@ -477,10 +477,10 @@ def test_block_processor_momentary_silence(gate_size: int) -> None:
     assert processor.momentary_lkfs[0] == SILENCE_DB
 
 
-def test_true_peak_processor_t_property() -> None:
+@pytest.mark.parametrize("gate_size", [int(48000 * 0.4), 128])
+def test_true_peak_processor_t_property(gate_size: int) -> None:
     """TruePeakProcessor.t returns measurement times for processed blocks."""
     sample_rate = 48000
-    gate_size = 128
     proc = TruePeakProcessor(num_channels=2, gate_size=gate_size, sample_rate=sample_rate)
     samples = np.zeros((2, gate_size), dtype=np.float64)
     proc.process(samples)
