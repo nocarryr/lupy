@@ -158,7 +158,7 @@ def _sorted_quantile(sorted_vals: list[float], lo: int, n: int, q: float) -> flo
     return v_lo + frac * (v_hi - v_lo)
 
 class BaseProcessor(ABC, Generic[NumChannelsT]):
-    """
+    """Abstract base class for audio measurement processors
     """
     num_channels: NumChannelsT
     """Number of audio channels"""
@@ -187,6 +187,27 @@ class BaseProcessor(ABC, Generic[NumChannelsT]):
 
 class BlockProcessor(BaseProcessor[NumChannelsT]):
     """Process audio samples and store the resulting loudness data
+
+    Arguments:
+        num_channels: Number of audio channels
+        gate_size: Length of one :term:`gating block` in samples
+        sample_rate: Sample rate of the audio data (default: 48000)
+        momentary_enabled: Enable :term:`Momentary Loudness` processing
+            (default: ``True``)
+        short_term_enabled: Enable :term:`Short-Term Loudness` processing
+            (default: ``True``)
+        lra_enabled: Enable :term:`Loudness Range` processing
+            (default: ``True``)
+
+    .. important::
+
+        If *short_term_enabled* is ``False``, *lra_enabled* must also be
+        ``False``.  :term:`Loudness Range` calculation depends on
+        :term:`Short-Term Loudness` values.
+
+    Raises:
+        ValueError: If *short_term_enabled* is ``False`` and *lra_enabled*
+            is ``True``
     """
 
     gate_size: int
