@@ -254,6 +254,8 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         self._above_rel_running_sum = RunningSum()
         self._lra_abs_power_running_sum = RunningSum()
         self._rel_threshold: Floating = np.float64(SILENCE_DB)
+        self._momentary_sum: float = 0.0
+        self._short_term_sum: float = 0.0
         self._momentary_lkfs: Float1dArray = self._block_data['m']
         self._short_term_lkfs: Float1dArray = self._block_data['s']
         self.integrated_lkfs = SILENCE_DB
@@ -341,6 +343,8 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         self.block_index = 0
         self.num_blocks = 0
         self._lra_sorted_abs_gated = []
+        self._momentary_sum = 0.0
+        self._short_term_sum = 0.0
 
     def __call__(self, samples: Float2dArray) -> None:
         self.process_block(samples)
@@ -393,43 +397,29 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
 
     def _calc_momentary(self):
         block_index = self.block_index
-        blocks = self._quarter_block_weighted_sums
-        if block_index < 2:
-            sl = slice(None, block_index+1)
-            count = block_index + 1
-        else:
-            end_ix = self.block_index+1
-            start_ix = end_ix - 3
-            sl = slice(start_ix, end_ix)
+        new_val = float(self._quarter_block_weighted_sums[block_index])
+        self._momentary_sum += new_val
+        if block_index >= 3:
+            self._momentary_sum -= float(self._quarter_block_weighted_sums[block_index - 3])
             count = 3
-        assert blocks.ndim == 1
-        blocks = blocks[sl]
-        assert blocks.size == count
-        r = lk_log10(np.mean(blocks))
+        else:
+            count = block_index + 1
+        r = lk_log10(np.float64(self._momentary_sum / count))
         if r < SILENCE_DB:
             r = SILENCE_DB
         self._momentary_lkfs[block_index] = r
 
-    def __calc_short_term(self, block_index: int) -> Floating:
-        num_blocks = 30    # 3 second window (100ms per block_index)
-        blocks = self._quarter_block_weighted_sums[:block_index+1]
-
-        if block_index < num_blocks:
-            sl = slice(None, block_index+1)
-            count = block_index + 1
-        else:
-            end_ix = block_index+1
-            start_ix = end_ix - num_blocks
-            sl = slice(start_ix, end_ix)
-            count = num_blocks
-        assert blocks.ndim == 1
-        blocks = blocks[sl]
-        assert blocks.size == count, f'{count=}, {blocks.size=}, {block_index=}, {sl=}'
-        return lk_log10(np.mean(blocks))
-
     def _calc_short_term(self):
         block_index = self.block_index
-        st = self.__calc_short_term(block_index)
+        num_blocks = 30
+        new_val = float(self._quarter_block_weighted_sums[block_index])
+        self._short_term_sum += new_val
+        if block_index >= num_blocks:
+            self._short_term_sum -= float(self._quarter_block_weighted_sums[block_index - num_blocks])
+            count = num_blocks
+        else:
+            count = block_index + 1
+        st = lk_log10(np.float64(self._short_term_sum / count))
         self._short_term_lkfs[block_index] = st
 
     def _calc_lra(self):
