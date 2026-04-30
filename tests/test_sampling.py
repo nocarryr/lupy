@@ -425,6 +425,9 @@ def test_sampler_write_float32() -> None:
     sampler.write(block_f32, apply_filter=True)
     assert sampler.samples_available == block_size
 
+    audio = sampler.read()
+    assert audio.dtype == np.float64
+
 
 def test_true_peak_sampler_buffer_doubling() -> None:
     """TruePeakSampler doubles bfr_len when lcm(block_size, gate_samples) == block_size.
