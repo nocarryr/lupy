@@ -505,3 +505,27 @@ def test_true_peak_processor_t_property(gate_size: int) -> None:
     assert len(t) == 2
     assert t[0] == pytest.approx(0.0)
     assert t[1] == pytest.approx(gate_size / sample_rate)
+
+
+# Upsample factors: 4x for <88.1kHz, 2x for >=88.1kHz (see TruePeakProcessor.__init__)
+@pytest.mark.benchmark(group='true_peak')
+@pytest.mark.parametrize('tp_sample_rate', [48000, 88200], ids=['48kHz-4x', '88kHz-2x'])
+def test_true_peak_processor_benchmark(benchmark, tp_sample_rate: int) -> None:
+    """Benchmark TruePeakProcessor.process — the dominant CPU bottleneck (~55% of Meter time).
+
+    Provides a measurement baseline for the polyphase FIR upsampling path so that
+    any future optimisation of TruePeakFilter / _UpFIRDn can be tracked here.
+    """
+    num_channels = 2
+    gate_size = 1024
+    proc = TruePeakProcessor(num_channels=num_channels, gate_size=gate_size, sample_rate=tp_sample_rate)
+    rng = np.random.default_rng(42)
+    samples = (rng.standard_normal((num_channels, gate_size)) * 0.5).astype(np.float64)
+
+    def bench() -> None:
+        proc.process(samples)
+
+    def teardown() -> None:
+        proc.reset()
+
+    benchmark.pedantic(bench, teardown=teardown, warmup_rounds=10, rounds=500)

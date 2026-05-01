@@ -275,8 +275,8 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         self._above_rel_running_sum = RunningSum()
         self._lra_abs_power_running_sum = RunningSum()
         self._rel_threshold: Floating = np.float64(SILENCE_DB)
-        self._momentary_sum = RunningSum()
-        self._short_term_sum = RunningSum()
+        self._momentary_sum_val: float = 0.0
+        self._short_term_sum_val: float = 0.0
         self._momentary_lkfs: Float1dArray = self._block_data['m']
         self._short_term_lkfs: Float1dArray = self._block_data['s']
         self.integrated_lkfs = SILENCE_DB
@@ -364,8 +364,8 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         self.block_index = 0
         self.num_blocks = 0
         self._lra_sorted_abs_gated = []
-        self._momentary_sum.clear()
-        self._short_term_sum.clear()
+        self._momentary_sum_val = 0.0
+        self._short_term_sum_val = 0.0
 
     def __call__(self, samples: Float2dArray) -> None:
         self.process_block(samples)
@@ -418,14 +418,13 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
 
     def _calc_momentary(self):
         block_index = self.block_index
-        new_val = self._quarter_block_weighted_sums[block_index]
-        self._momentary_sum.value += new_val
+        new_val = float(self._quarter_block_weighted_sums[block_index])
+        self._momentary_sum_val += new_val
         if block_index >= 3:
-            self._momentary_sum.value -= self._quarter_block_weighted_sums[block_index - 3]
-            self._momentary_sum.count = 3
+            self._momentary_sum_val -= float(self._quarter_block_weighted_sums[block_index - 3])
+            r = lk_log10(np.float64(self._momentary_sum_val / 3))
         else:
-            self._momentary_sum.count = block_index + 1
-        r = lk_log10(self._momentary_sum.mean)
+            r = lk_log10(np.float64(self._momentary_sum_val / (block_index + 1)))
         if r < SILENCE_DB:
             r = SILENCE_DB
         self._momentary_lkfs[block_index] = r
@@ -433,14 +432,13 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
     def _calc_short_term(self):
         block_index = self.block_index
         num_blocks = 30    # 3 second window (100ms per block_index)
-        new_val = self._quarter_block_weighted_sums[block_index]
-        self._short_term_sum.value += new_val
+        new_val = float(self._quarter_block_weighted_sums[block_index])
+        self._short_term_sum_val += new_val
         if block_index >= num_blocks:
-            self._short_term_sum.value -= self._quarter_block_weighted_sums[block_index - num_blocks]
-            self._short_term_sum.count = num_blocks
+            self._short_term_sum_val -= float(self._quarter_block_weighted_sums[block_index - num_blocks])
+            st = lk_log10(np.float64(self._short_term_sum_val / num_blocks))
         else:
-            self._short_term_sum.count = block_index + 1
-        st = lk_log10(self._short_term_sum.mean)
+            st = lk_log10(np.float64(self._short_term_sum_val / (block_index + 1)))
         self._short_term_lkfs[block_index] = st
 
     def _calc_lra(self):
