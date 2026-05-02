@@ -1,4 +1,4 @@
-# AGENTS.md
+# Agents
 
 ## Installation and Tooling (Agents)
 
@@ -79,9 +79,9 @@ Benchmarking is done using [pytest-codspeed](https://codspeed.io/docs/reference/
 uv run pytest --codspeed
 ```
 
-After running benchmarks, the results will be available in the `.codspeed/` directory as json files. The filename format is `results_<timestamp>.json`.
+After running benchmarks, the results will be available in the `.codspeed/` directory as JSON files. The filename format is `results_<timestamp>.json`.
 
-An example of the structure of the benchmark results json file is as follows:
+An example of the structure of the benchmark results JSON file is as follows:
 
 ```json
 {
@@ -104,7 +104,7 @@ An example of the structure of the benchmark results json file is as follows:
 The `benchmarks.stats` field contains various statistics about the benchmark results which can be useful for analysis.
 
 
-### Type checking
+### Type Checking
 
 Type checking is done using `mypy`. To run type checks, use the following command:
 
@@ -176,7 +176,7 @@ class ExampleClass:
     """
 
     def example_method(self, param1: int, param2: str) -> bool:
-        """An example method to demonstrate docstring formatting
+        """Demonstrate docstring formatting for a method
 
         This method serves as an example for how to format docstrings for
         methods in this project.
