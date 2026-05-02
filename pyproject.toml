@@ -53,6 +53,9 @@ exclude = ["tests*"]
 [tool.pytest.ini_options]
 addopts = "-n auto --dist=worksteal --doctest-modules"
 testpaths = ["tests", "src"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
 
 [dependency-groups]
 test = [

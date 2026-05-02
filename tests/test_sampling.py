@@ -169,6 +169,7 @@ def use_random(request) -> bool:
     return request.param
 
 
+@pytest.mark.slow
 def test_write(sample_rate, block_size, num_channels, random_samples, inc_samples, use_random):
     sampler = Sampler(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
     print(f'{sampler.bfr_shape=}')
