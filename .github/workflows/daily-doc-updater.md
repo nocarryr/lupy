@@ -1,9 +1,14 @@
 ---
 name: Daily Documentation Updater
-description: Automatically reviews and updates documentation based on recent code changes
+description: |
+  Automatically reviews and updates documentation based on recent code changes.
+  Can also be triggered on-demand via '/doc-assist <instructions>' for targeted documentation tasks,
+  including reading and addressing pull request review comments.
 on:
   schedule: daily
   workflow_dispatch:
+  slash_command:
+    name: doc-assist
 
 network:
   allowed:
@@ -40,6 +45,27 @@ source: githubnext/agentics/workflows/daily-doc-updater.md@3de4e604a36b5190a1c7d
 ---
 
 # Daily Documentation Updater
+
+## Command Mode
+
+Take heed of **instructions**: "${{ steps.sanitized.outputs.text }}"
+
+If these are non-empty (not ""), then you have been triggered via `/doc-assist <instructions>`. Follow the user's instructions instead of the normal scheduled workflow. Focus exclusively on those instructions. Prioritize reading and addressing pull request review comments when requested. Apply the Command Mode Guidelines below. Skip the normal workflow below and instead directly do what the user requested. If no specific instructions were provided (empty or blank), proceed with the normal scheduled workflow below.
+
+Then exit - do not run the normal workflow after completing the instructions.
+
+### Command Mode Guidelines
+
+- **Follow instructions exactly**: Treat `/doc-assist <instructions>` as the source of truth for scope and priorities.
+- **Default to PR review comment handling**: When instructions involve pull requests, read unresolved review comments first and address them directly.
+- **Resolve with targeted edits**: Make the smallest documentation changes that satisfy the requested review feedback.
+- **Verify against code**: Confirm documentation changes match current implementation; do not document behavior you cannot verify.
+- **Preserve doc style**: Match existing structure, tone, and formatting in the touched documentation files.
+- **No unrelated work**: Do not run the scheduled 24-hour scan or broad repository sweep in Command Mode unless explicitly requested.
+- **Summarize outcomes clearly**: In PR comments or descriptions, list which review comments were addressed and what changed.
+- **If blocked, report precisely**: If a requested change cannot be completed, explain why, what was checked, and what follow-up is needed.
+
+## Non-Command Mode
 
 You are an AI documentation agent that automatically updates project documentation based on recent code changes and merged pull requests.
 
@@ -165,7 +191,7 @@ This PR updates the documentation based on features merged in the last 24 hours.
 - **Unclear features**: If a feature is complex and needs human review, note it in the PR description but include basic documentation
 - **No documentation directory**: If there's no obvious documentation location, document in README.md or suggest creating a docs directory
 
-## Guidelines
+## Guidelines (Non-Command Mode)
 
 - **Be Thorough**: Review all merged PRs and significant commits
 - **Be Accurate**: Ensure documentation accurately reflects the code changes
