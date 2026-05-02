@@ -29,14 +29,14 @@
 - typeutils.py: 99%
 - sampling.py: 98%
 - filters.py: 98%
-- processing.py: 99%
+- processing.py: 99% (lines 411,475 after PR#105 Perf Improver refactor)
 - total: 99%
 
 ## Remaining Gaps (all low-priority / intentionally skipped)
 - sampling.py line 167: defensive guard, dead code
 - sampling.py lines 378/403/408: abstract NotImplementedError bodies
 - resample.py line 99: n_post_pad += 1 loop — specialized numerical condition
-- processing.py lines 390, 454: degenerate _calc_gating/_calc_lra branches
+- processing.py lines 411, 475: incremental gating fast-path and degenerate LRA branch (line numbers shifted after Perf Improver PR #105)
 - filters.py lines 187, 229: abstract method body and trivial pass
 
 ## make_meter Pattern (from nocarryr review on PR #93)

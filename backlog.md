@@ -16,7 +16,7 @@
 1. **sampling.py line 167**: defensive `ix = 0` when start_index negative — dead code under normal usage; skip
 2. **sampling.py lines 378, 403, 408**: abstract `raise NotImplementedError` bodies — unreachable via subclasses; skip
 3. **resample.py line 99**: `n_post_pad += 1` in `_design_poly_filter` — specialized numerical condition; skip
-4. **processing.py lines 390, 454**: degenerate `_calc_gating`/`_calc_lra` branches — likely untestable without unusual edge cases
+4. **processing.py lines 411, 475**: incremental gating fast-path and degenerate LRA branch (line numbers updated after Perf Improver PR #105) — likely untestable without unusual edge cases
 5. **filters.py lines 187, 229**: abstract method body and trivial pass; not worth testing
 
 ## Backlog Cursor
