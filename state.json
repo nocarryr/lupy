@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-05-01T00:04:29Z",
-  "last_run_id": "25195460096",
+  "last_run": "2026-05-02T00:04:34Z",
+  "last_run_id": "25238444205",
   "validated_commands": {
     "test": "python3 -m pytest tests/ -k 'not benchmark' --override-ini='addopts=' -p no:codspeed -q",
     "benchmark": "python3 -m pytest tests/test_processing.py tests/test_filters.py -k 'benchmark and block_processor' --override-ini='addopts=' -p no:codspeed --benchmark-warmup=on --benchmark-min-rounds=50 -q",
@@ -12,25 +12,25 @@
   },
   "tasks_last_run": {
     "task1_commands": "2026-04-29",
-    "task2_opportunities": "2026-04-30",
+    "task2_opportunities": "2026-05-02",
     "task3_implement": "2026-05-01",
-    "task4_maintain_prs": "2026-04-30",
+    "task4_maintain_prs": "2026-05-02",
     "task5_comment_issues": "2026-04-30",
     "task6_measurement_infra": "2026-05-01"
   },
   "open_prs": [
     {
-      "number": "TBD",
-      "branch": "perf-assist/flat-float-window-accumulators",
+      "number": 105,
+      "branch": "perf-assist/flat-float-window-accumulators-02b47c1f26f62ec4",
       "title": "[Perf Improver] perf: replace RunningSum with plain float accumulators for sliding windows",
       "local_results": "momentary -6.0%, short_term -6.1%, lra -6.8%",
-      "codspeed_status": "not yet run",
-      "note": "PR number TBD — branch pushed in this run (2026-05-01)"
+      "codspeed_status": "all CI green (tests 3.10-3.14, typecheck, CodSpeed, codecov)",
+      "note": "All 17 checks passing as of 2026-05-02. Awaiting maintainer review."
     }
   ],
   "closed_prs": [
     {
-      "branch": "perf-assist/running-sum-windows-3f789259c7fdaea4",
+      "branch": "perf-assist/flat-float-window-accumulators",
       "pr": 100,
       "outcome": "MERGED by nocarryr on 2026-04-30. Incremental running sums for momentary/short_term: momentary -6.2%, short_term -4.7%, lra -5.7%."
     },
@@ -58,9 +58,9 @@
   "optimization_backlog": [
     {
       "id": "flat-float-window-accumulators",
-      "desc": "Replace RunningSum property overhead with plain float for _calc_momentary and _calc_short_term. PR submitted 2026-05-01, branch perf-assist/flat-float-window-accumulators.",
+      "desc": "Replace RunningSum property overhead with plain float for _calc_momentary and _calc_short_term. PR #105 submitted 2026-05-01, all CI green as of 2026-05-02.",
       "impact": "momentary -6.0%, short_term -6.1%, lra -6.8% local",
-      "status": "PR submitted, awaiting review",
+      "status": "PR #105 open, all CI green, awaiting review",
       "notes": "Eliminates 4-6 property getter/setter accesses per block (equality checks, mean invalidation)."
     },
     {
@@ -98,8 +98,8 @@
     "n_out = gate_size * upsample_factor for all valid gate sizes (verified for up=4 and up=2).",
     "np.sum(a*b) vs np.dot(a,b): for 2-element arrays, np.dot is 4.2x faster - MERGED PR #98",
     "np.mean on 3-30 element slices: 4.8-5.1x slower than Python float running sum - MERGED PR #100",
-    "RunningSum property overhead: equality check setter + mean invalidation adds ~6 property accesses per _calc_momentary call. Flat float eliminates this - SUBMITTED PR (2026-05-01)",
-    "TruePeakProcessor benchmark baselines (gate_size=1024, 2ch): 48kHz=65.6μs/call, 88.2kHz=40.5μs/call",
+    "RunningSum property overhead: equality check setter + mean invalidation adds ~6 property accesses per _calc_momentary call. Flat float eliminates this - PR #105",
+    "TruePeakProcessor benchmark baselines (gate_size=1024, 2ch): 48kHz=65.6us/call, 88.2kHz=40.5us/call",
     "np.square(full_block) reuse (PR #95): +7% in momentary/short_term/lra per CodSpeed - MERGED",
     "pytest-codspeed teardown (reset()) is NOT included in benchmark timing (moved to teardown fixture in PR #99)",
     "CodSpeed simulation mode counts CPU instructions - Python dispatch overhead matters significantly",
@@ -111,8 +111,8 @@
   ],
   "infrastructure_notes": {
     "codspeed_threshold": "CodSpeed 'does not alter performance' = below 10% overall threshold. Individual benchmarks accessible via CodSpeed link.",
-    "benchmark_coverage": "All 4 block_processor modes: integrated, momentary, short_term, lra. Plus meter (4 sample rates). NEW: TruePeakProcessor standalone (48kHz 4x, 88.2kHz 2x).",
+    "benchmark_coverage": "All 4 block_processor modes: integrated, momentary, short_term, lra. Plus meter (4 sample rates). TruePeakProcessor standalone (48kHz 4x, 88.2kHz 2x).",
     "what_shows_in_codspeed": "Algorithmic changes (O(n^2) -> O(n)) or dispatch elimination for frequently-called operations. Sub-2% local improvements likely invisible in CodSpeed.",
-    "truepeak_benchmark_baselines": "gate_size=1024, 2ch: 48kHz=65.6μs/call, 88.2kHz=40.5μs/call (added 2026-05-01)"
+    "truepeak_benchmark_baselines": "gate_size=1024, 2ch: 48kHz=65.6us/call, 88.2kHz=40.5us/call (added 2026-05-01)"
   }
 }
