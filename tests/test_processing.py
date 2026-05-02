@@ -34,6 +34,7 @@ def build_samples(
     return samples
 
 
+@pytest.mark.slow
 def test_integrated_lkfs(sample_rate, block_size, all_channels, is_silent):
     num_channels, sine_channel = all_channels
     meter = Meter(
@@ -74,6 +75,7 @@ def test_integrated_lkfs(sample_rate, block_size, all_channels, is_silent):
 
 # https://tech.ebu.ch/docs/tech/tech3341.pdf Section 2.9
 # Stereo 1k (997 Hz) sine at -18 dBFS should read -18 LUFS
+@pytest.mark.slow
 def test_integrated_lkfs_neg18(sample_rate, block_size):
     num_channels = 2
     meter = Meter(
@@ -99,6 +101,7 @@ def test_integrated_lkfs_neg18(sample_rate, block_size):
     assert round(meter.integrated_lkfs, 2) == -18
 
 
+@pytest.mark.slow
 def test_compliance_cases(sample_rate, compliance_case):
     block_size = 128
     num_channels = compliance_case.num_channels
@@ -152,6 +155,7 @@ def test_compliance_cases(sample_rate, compliance_case):
         assert tp_min <= meter.true_peak_max <= tp_max
 
 
+@pytest.mark.slow
 def test_bs2217_compliance_cases(bs_2217_compliance_case):
     # This is separate from the other compliance cases since we're only
     # testing at 48k and only checking integrated LKFS
@@ -264,6 +268,7 @@ def test_meter_current_measurement(all_channels):
         write_index += 1
 
 
+@pytest.mark.slow
 def test_true_peak_gate_blocks(
     true_peak_gate_duration,
     sample_rate,
