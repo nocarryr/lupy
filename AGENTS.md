@@ -142,7 +142,10 @@ def example_function(
 
 ## Python Docstring Style
 
-- The first line of a docstring should be a short, concise summary of the function, method, or class's purpose. It should be written in the imperative mood and fit on a single line if possible, followed by a blank line before any further elaboration or parameter descriptions. No period should be used at the end of this first summary line.
+- The first line of a docstring should be a short, concise summary of the function, method, or class's purpose. It should fit on a single line if possible, followed by a blank line before any further elaboration or parameter descriptions. No period should be used at the end of this first summary line.
+  - For functions and methods, it should be written in the imperative mood.
+  - For classes, modules and attributes, it should be written in the descriptive mood.
+
 - Keep line lengths to a maximum of 85 characters.
 - Do not over-explain in docstrings; provide enough detail to clarify non-obvious behavior but avoid restating what is already clear from the function, method, or class signature.
 - Assume that Sphinx is used to generate documentation, so prefer using Sphinx-compatible cross-references and markup in docstrings, such as :class:, :meth:, :attr:, and :term: roles where appropriate.
