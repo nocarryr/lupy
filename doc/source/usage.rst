@@ -44,20 +44,29 @@ Configuring Measurements
 By default all measurement types are enabled. You can selectively disable
 measurements you don't need to reduce processing overhead:
 
->>> meter = Meter(block_size=block_size, num_channels=1,
-...               momentary_enabled=True,
-...               short_term_enabled=True,
-...               lra_enabled=True,
-...               true_peak_enabled=True)
+All ``*_enabled`` parameters default to ``True``, so they are not required
+when all measurements are desired:
+
+>>> meter = Meter(
+...     block_size=block_size,
+...     num_channels=1,
+...     momentary_enabled=True,
+...     short_term_enabled=True,
+...     lra_enabled=True,
+...     true_peak_enabled=True,
+... )
 
 For example, if you only need :term:`Integrated Loudness` you can disable
 the others:
 
->>> meter = Meter(block_size=block_size, num_channels=1,
-...               momentary_enabled=False,
-...               short_term_enabled=False,
-...               lra_enabled=False,
-...               true_peak_enabled=False)
+>>> meter = Meter(
+...     block_size=block_size,
+...     num_channels=1,
+...     momentary_enabled=False,
+...     short_term_enabled=False,
+...     lra_enabled=False,
+...     true_peak_enabled=False,
+... )
 
 .. important::
 
