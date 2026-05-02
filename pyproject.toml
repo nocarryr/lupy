@@ -72,8 +72,6 @@ dev = [
     {include-group = "test"},
     {include-group = "doc"},
     "ipython",
-    "jupyterlab",
-    "matplotlib",
 ]
 
 [tool.mypy]
