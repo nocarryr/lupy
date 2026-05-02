@@ -40,6 +40,10 @@ safe-outputs:
     labels: [documentation, automation]
     draft: false
     protected-files: fallback-to-issue
+  push-to-pull-request-branch:
+    target: "*"
+    title-prefix: "[docs] "
+    max: 4
 
 source: githubnext/agentics/workflows/daily-doc-updater.md@3de4e604a36b5190a1c7dc4719c7341500ba8a95
 ---
@@ -62,6 +66,7 @@ Then exit - do not run the normal workflow after completing the instructions.
 - **Verify against code**: Confirm documentation changes match current implementation; do not document behavior you cannot verify.
 - **Preserve doc style**: Match existing structure, tone, and formatting in the touched documentation files.
 - **No unrelated work**: Do not run the scheduled 24-hour scan or broad repository sweep in Command Mode unless explicitly requested.
+- **Pushing changes**: When addressing review comments on an existing PR branch, use `push-to-pull-request-branch` to push changes directly to that branch rather than creating a new PR. Only use `create-pull-request` if no suitable PR branch exists yet.
 - **Summarize outcomes clearly**: In PR comments or descriptions, list which review comments were addressed and what changed.
 - **If blocked, report precisely**: If a requested change cannot be completed, explain why, what was checked, and what follow-up is needed.
 
@@ -206,7 +211,8 @@ This PR updates the documentation based on features merged in the last 24 hours.
 - You have access to the edit tool to modify documentation files
 - You have access to GitHub tools to search and review code changes
 - You have access to bash commands to explore the documentation structure
-- The safe-outputs create-pull-request will automatically create a PR with your changes
+- The safe-outputs create-pull-request will automatically create a PR with new documentation changes
+- The safe-outputs push-to-pull-request-branch can be used to push changes to an existing PR branch if you need to make updates after the initial PR creation
 - Focus on user-facing features and changes that affect the developer experience
 - Respect the repository's existing documentation structure and style
 
