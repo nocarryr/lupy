@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-05-02T20:52:11Z",
-  "last_run_id": "25261574777",
+  "last_run": "2026-05-04T00:00:00Z",
+  "last_run_id": "25265139199",
   "validated_commands": {
     "install_uv": "curl -LsSf https://astral.sh/uv/install.sh | sh && export PATH=\"$HOME/.local/bin:$PATH\"",
     "install_deps": "uv sync --frozen",
@@ -15,21 +15,29 @@
       "pytest addopts: -n auto --dist=worksteal --doctest-modules (parallel + doctests)",
       "benchmark fixture comes from pytest-codspeed; DO NOT use -p no:codspeed (breaks benchmark tests)",
       "slow marker deselects long-running tests; benchmark tests are NOT marked slow",
-      "test counts: 186 non-slow (incl benchmarks), 945 total",
-      "uv run pytest -m 'not slow' = 186 passed (benchmark tests included, pass via codspeed fixture)",
-      "uv run pytest = 945 passed in ~106s",
+      "test counts: 186-187 non-slow (incl benchmarks), 945-946 total",
+      "uv run pytest -m 'not slow' = 187 passed (benchmark tests included, pass via codspeed fixture)",
+      "uv run pytest = 946 passed in ~58s",
       "uv run pytest --codspeed = 18 benchmarks"
     ]
   },
   "tasks_last_run": {
     "task1_commands": "2026-05-02",
     "task2_opportunities": "2026-05-02",
-    "task3_implement": "2026-05-02",
+    "task3_implement": "2026-05-04",
     "task4_maintain_prs": "2026-05-02",
     "task5_comment_issues": "2026-04-30",
-    "task6_measurement_infra": "2026-05-01"
+    "task6_measurement_infra": "2026-05-04"
   },
-  "open_prs": [],
+  "open_prs": [
+    {
+      "branch": "perf-assist/fused-square-sum-quarter-block",
+      "pr": 114,
+      "title": "perf: fuse square-sum in process_block, avoiding redundant quarter-block read",
+      "status": "created 2026-05-04",
+      "note": "PR number estimated (#113+1). ~2% improvement on momentary/short_term/lra. 946 tests pass, mypy clean."
+    }
+  ],
   "closed_prs": [
     {
       "branch": "perf-assist/flat-float-window-accumulators-02b47c1f26f62ec4",
@@ -64,11 +72,16 @@
   ],
   "optimization_backlog": [
     {
+      "id": "fused-square-sum",
+      "desc": "Fuse quarter-block sq-sum: compute quarter first, then accumulate for full sq_sum. Avoids reading quarter slice twice. ~2% improvement on momentary/short_term/lra (PR #114 submitted 2026-05-04).",
+      "impact": "~2% momentary/short_term/lra",
+      "status": "PR submitted"
+    },
+    {
       "id": "RunningSum-flat-float",
       "desc": "Replacing _momentary_sum/_short_term_sum RunningSum with plain floats. Retested 2026-05-02: before ~3.16ms, after ~3.19ms. NO measurable improvement. Do not retry.",
       "impact": "None measured",
-      "status": "TESTED - NO IMPROVEMENT. Do not attempt again.",
-      "notes": "Benchmark noise ~12% StdDev. Property overhead is negligible vs numpy ops."
+      "status": "TESTED - NO IMPROVEMENT. Do not attempt again."
     },
     {
       "id": "lk_log10-math-scalar",
@@ -80,8 +93,7 @@
       "id": "truepeak-fir-optimization",
       "desc": "Maintainer is open to exploring vendoring/trimming _upfirdn_apply.pyx on a SEPARATE branch (not main). Requires Cython. High complexity but potentially significant impact (~55% CPU).",
       "impact": "Up to 55% of Meter.write time is TruePeak FIR",
-      "feasibility": "low-medium (complex, maintainer interested in separate branch exploration)",
-      "notes": "Maintainer note 2026-04-30: 'It may be worth re-addressing with your help, but I wouldn't want to do that in the main branch.'"
+      "feasibility": "low-medium (complex, maintainer interested in separate branch exploration)"
     },
     {
       "id": "calc-gating-incremental",
@@ -93,23 +105,20 @@
   "maintainer_instructions": [
     "Remove reset() optimization from backlog - moved to teardown in benchmarks (PR #99, 2026-04-29)",
     "Open to exploring _upfirdn_apply.pyx vendoring on separate branch (not main) - mentioned 2026-04-30 in issue #71 comment",
-    "2026-05-02: 'Re-run task 1 (discover and validate commands). Check AGENTS.md while doing so' - DONE this run"
+    "2026-05-02: 'Re-run task 1 (discover and validate commands). Check AGENTS.md while doing so' - DONE 2026-05-02"
   ],
   "perf_notes": [
     "CodSpeed 'does not alter performance' = overall improvement below 10% threshold. Individual benchmarks accessible via CodSpeed link.",
     "Only algorithmic changes or large constant-factor changes exceed 10% CodSpeed threshold reliably.",
-    "scipy _apply (upfirdn) ACCUMULATES into output buffer (out[i] += contribution), not overwrites. out[...]=0 zeroing in _UpFIRDn.apply_filter is NECESSARY.",
     "numpy memory pool recycles same-size allocations very efficiently: np.empty(3MB) then free is ~0 overhead. Pre-allocated buffers do not help for same-size allocations.",
     "TruePeakProcessor.process bottleneck: 55.6% CPU at 48kHz. All of it is in cython _apply FIR convolution. No wrapper-level wins possible.",
     "sosfilt bottleneck: 22.98% CPU. Input copy (40KB x 46 calls/round) = ~1.6% max improvement, below threshold.",
-    "Benchmark call counts per round (48kHz, gate=19200, block=1024): 46 sosfilt calls, 2 TruePeakProcessor.process calls",
-    "n_out = gate_size * upsample_factor for all valid gate sizes (verified for up=4 and up=2).",
     "np.sum(a*b) vs np.dot(a,b): for 2-element arrays, np.dot is 4.2x faster - MERGED PR #98",
     "np.mean on 3-30 element slices: 4.8-5.1x slower than Python float running sum - MERGED PR #100",
     "RunningSum property overhead: TESTED 2026-05-02 - NO improvement from replacing with plain float. Benchmark noise (~12% StdDev) masks any sub-1% wins.",
     "TruePeakProcessor benchmark baselines (gate_size=1024, 2ch, local codspeed sim): 48kHz~62us/call, 88.2kHz~38us/call (2026-05-02 re-measured)",
     "np.square(full_block) reuse (PR #95): +7% in momentary/short_term/lra per CodSpeed - MERGED",
-    "pytest-codspeed teardown (reset()) is NOT included in benchmark timing (moved to teardown fixture in PR #99)",
+    "Fused square-sum (PR #114): ~2% improvement on momentary/short_term/lra (2026-05-04). May be below CodSpeed threshold.",
     "CodSpeed simulation mode counts CPU instructions - Python dispatch overhead matters significantly",
     "DO NOT use -p no:codspeed when running tests - it breaks benchmark tests (benchmark fixture missing). Use uv run pytest -m 'not slow' instead.",
     "block_processor benchmark noise: StdDev ~13-16% on 2.2-3.0ms mean. Changes below ~0.5ms are undetectable.",
