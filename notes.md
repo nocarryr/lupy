@@ -22,21 +22,22 @@
 - Keep type: ignore ONLY where the shape/type is intentionally wrong for the test (e.g. passing 1D to a 2D-expecting fn, float32 to float64-expecting fn)
 - Use NumChannelsT TypeVar and generic return types: `make_meter(...) -> Meter[NumChannelsT]`
 
-## Coverage Baseline (after 2026-04-30 run)
+## Coverage Baseline (after 2026-05-03 run)
 - meter.py: 100%
 - signalutils/sosfilt.py: 100%
 - signalutils/resample.py: 99%
 - typeutils.py: 99%
 - sampling.py: 98%
 - filters.py: 98%
-- processing.py: 99% (lines 411,475 after PR#105 Perf Improver refactor)
+- processing.py: 99% (lines 179,185,411,475 — all untestable abstract/dead-code)
 - total: 99%
 
 ## Remaining Gaps (all low-priority / intentionally skipped)
 - sampling.py line 167: defensive guard, dead code
 - sampling.py lines 378/403/408: abstract NotImplementedError bodies
 - resample.py line 99: n_post_pad += 1 loop — specialized numerical condition
-- processing.py lines 411, 475: incremental gating fast-path and degenerate LRA branch (line numbers shifted after Perf Improver PR #105)
+- processing.py lines 179, 185: abstract method raise NotImplementedError bodies (unreachable via subclasses)
+- processing.py lines 411, 475: incremental gating fast-path and degenerate LRA branch
 - filters.py lines 187, 229: abstract method body and trivial pass
 
 ## make_meter Pattern (from nocarryr review on PR #93)
