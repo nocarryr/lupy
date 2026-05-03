@@ -487,8 +487,19 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         # TODO: Check and raise exception if exceeding MAX_BLOCKS
         assert samples.shape == (self.num_channels, self.gate_size)
 
-        squared_samples: Float2dArray = np.square(samples)
-        sq_sum: Float1dArray = squared_samples.sum(axis=1)
+        if self.momentary_enabled or self.short_term_enabled:
+            # Compute sum-of-squares for the quarter block (last 100ms) first,
+            # then sum the rest and accumulate. This avoids allocating and reading
+            # back the full (num_channels, gate_size) squared intermediate twice.
+            quarter_sq_sum: Float1dArray = np.square(
+                samples[:, -self.pad_size:]
+            ).sum(axis=1)
+            sq_sum: Float1dArray = (
+                np.square(samples[:, :-self.pad_size]).sum(axis=1) + quarter_sq_sum
+            )
+            self._process_quarter_block(quarter_sq_sum)
+        else:
+            sq_sum = np.square(samples).sum(axis=1)
 
         _Zij = self._tg * sq_sum
 
@@ -503,8 +514,6 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
 
         self._calc_gating()
 
-        if self.momentary_enabled or self.short_term_enabled:
-            self._process_quarter_block(squared_samples)
         if self.momentary_enabled:
             self._calc_momentary()
         if self.short_term_enabled:
@@ -514,14 +523,12 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         self.block_index += 1
         self.num_blocks += 1
 
-    def _process_quarter_block(self, squared_samples: Float2dArray):
-        # Calculate the weighted squared-sums of the last 100ms segment within
-        # this 400ms block. (for use in momentary calculation)
-        # With an overlap of 75% in a 400ms block, the only
-        # "new" samples will be the last 100ms.
-        # squared_samples is the pre-computed element-wise square of the full block samples.
+    def _process_quarter_block(self, quarter_sq_sum: Float1dArray):
+        # Calculate the weighted squared-sum of the last 100ms segment within
+        # this 400ms block (for use in momentary/short-term calculation).
+        # quarter_sq_sum is the per-channel sum of squares for the final pad_size
+        # samples, already computed in process_block.
 
-        quarter_sq_sum: Float1dArray = squared_samples[:, -self.pad_size:].sum(axis=1)
         weighted_sum = self._tp * np.dot(quarter_sq_sum, self.weights)
         self._quarter_block_weighted_sums[self.block_index] = weighted_sum
 
