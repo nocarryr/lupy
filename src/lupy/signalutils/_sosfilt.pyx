@@ -1,3 +1,4 @@
+# https://github.com/scipy/scipy/blob/51bd5b6ec38fc5f47d6430fc2b83f39b7308489d/scipy/signal/_sosfilt.pyx
 cimport numpy as np
 cimport cython
 
@@ -11,14 +12,6 @@ ctypedef fused DTYPE_floating_t:
     long double
     # long double complex
 
-
-
-# Once Cython 3.0 is out, we can just do the following below:
-#
-#     with nogil(DTYPE_t is not object):
-#
-# But until then, we'll need two copies of the loops, one with
-# nogil and another with gil.
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
@@ -35,8 +28,7 @@ cdef void _sosfilt_float(const DTYPE_floating_t [:, ::1] sos,
     cdef DTYPE_floating_t x_new, x_cur
     cdef DTYPE_floating_t[:, ::1] zi_slice
 
-    # jumping through a few memoryview hoops to reduce array lookups,
-    # the original version is still in the gil version below.
+    # jumping through a few memoryview hoops to reduce array lookups
     for i in xrange(n_signals):
         zi_slice = zi[i, :, :]
         for n in xrange(n_samples):
@@ -56,6 +48,6 @@ cdef void _sosfilt_float(const DTYPE_floating_t [:, ::1] sos,
 def _sosfilt(const DTYPE_floating_t [:, ::1] sos,
              DTYPE_floating_t [:, ::1] x,
              DTYPE_floating_t [:, :, ::1] zi):
-    cdef DTYPE_floating_t const_1 = 1.0
-    with nogil:
-        _sosfilt_float(sos, x, zi, const_1)
+        cdef DTYPE_floating_t const_1 = 1.0
+        with nogil:
+            _sosfilt_float(sos, x, zi, const_1)
