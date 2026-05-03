@@ -4,8 +4,8 @@ from typing import Literal
 import numpy as np
 import numpy.typing as npt
 
-type DTYPE_t = np.floating|np.complexfloating
-type IntLike = int|np.integer
+DTYPE_t = np.floating|np.complexfloating
+IntLike = int|np.integer
 
 ModeName = Literal[
     'constant',
