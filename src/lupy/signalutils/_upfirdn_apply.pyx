@@ -81,175 +81,15 @@ def _output_len(np.int64_t len_h,
 # Signal extension modes
 ctypedef enum MODE:
     MODE_CONSTANT = 0
-    MODE_SYMMETRIC = 1       #  3 2 1 | 1 2 3 | 3 2 1
-    MODE_CONSTANT_EDGE = 2
-    MODE_SMOOTH = 3
-    MODE_PERIODIC = 4
-    MODE_REFLECT = 5         #  3 2 | 1 2 3 | 2 1
-    MODE_ANTISYMMETRIC = 6
-    MODE_ANTIREFLECT = 7
-    MODE_LINE = 8  # slope determined by first and last entries of the array
 
 
 cpdef MODE mode_enum(mode):
     if mode == 'constant':
         return MODE_CONSTANT
-    elif mode == 'symmetric':
-        return MODE_SYMMETRIC
-    elif mode == 'edge':
-        return MODE_CONSTANT_EDGE
-    elif mode == 'smooth':
-        return MODE_SMOOTH
-    elif mode == 'wrap':
-        return MODE_PERIODIC
-    elif mode == 'reflect':
-        return MODE_REFLECT
-    elif mode == 'antisymmetric':
-        return MODE_ANTISYMMETRIC
-    elif mode == 'antireflect':
-        return MODE_ANTIREFLECT
-    elif mode == 'line':
-        return MODE_LINE
     else:
         raise ValueError("Unknown mode: {}".format(mode))
 
 
-@cython.cdivision(True)  # faster modulo
-@cython.boundscheck(False)  # designed to stay within bounds
-@cython.wraparound(False)  # we don't use negative indexing
-cdef DTYPE_t _extend_left(
-    const DTYPE_t *x,
-    np.intp_t idx,
-    const np.intp_t len_x,
-    const MODE mode,
-    const DTYPE_t cval
-) noexcept nogil:
-    cdef DTYPE_t le = 0.
-    cdef DTYPE_t lin_slope = 0.
-
-    if mode == MODE_CONSTANT:
-        return cval
-
-    # note: idx will be < 0
-    elif mode == MODE_SYMMETRIC:
-        if (-idx) < len_x:
-            return x[-idx - 1]
-        else:
-            # general case for multiple reflections:
-            # the pattern repeats with periodicity 2*len_x
-            idx = (-idx - 1) % (2 * len_x)
-            if idx < len_x:
-                return x[idx]
-            else:
-                return x[len_x - 1 - (idx - len_x)]
-    elif mode == MODE_REFLECT:
-        if (-idx) < (len_x - 1):
-            return x[-idx]
-        else:
-            # general case for multiple reflections:
-            # the pattern repeats with periodicity 2*(len_x - 1)
-            idx = (-idx - 1) % (2 * (len_x - 1))
-            if idx < (len_x - 1):
-                return x[idx + 1]
-            else:
-                return x[len_x - 2 - (idx - (len_x - 1))]
-    elif mode == MODE_PERIODIC:
-        idx = (-idx - 1) % len_x
-        return x[len_x - idx - 1]
-    elif mode == MODE_SMOOTH:
-        return x[0] + idx * (x[1] - x[0])
-    elif mode == MODE_LINE:
-        lin_slope = (x[len_x - 1] - x[0]) / (len_x - 1)
-        return x[0] + idx * lin_slope
-    elif mode == MODE_ANTISYMMETRIC:
-        if (-idx) < len_x:
-            return -x[-idx - 1]
-        else:
-            idx = (-idx - 1) % (2 * len_x)
-            if idx < len_x:
-                return -x[idx]
-            else:
-                return x[len_x - 1 - (idx - len_x)]
-    elif mode == MODE_ANTIREFLECT:
-        if (-idx) < len_x:
-            return x[0] - (x[-idx] - x[0])
-        else:
-            le = x[0] + (x[0] - x[len_x - 1]) * ((-(idx) - 1) // (len_x - 1))
-            idx = (-idx - 1) % (2 * (len_x - 1))
-            if idx < (len_x - 1):
-                return le - (x[idx + 1] - x[0])
-            else:
-                return le - (x[len_x - 1] - x[len_x - 2 - (idx - (len_x - 1))])
-    elif mode == MODE_CONSTANT_EDGE:
-        return x[0]
-    else:
-        return -1.
-
-
-@cython.cdivision(True)  # faster modulo
-@cython.boundscheck(False)  # designed to stay within bounds
-@cython.wraparound(False)  # we don't use negative indexing
-cdef DTYPE_t _extend_right(
-    const DTYPE_t *x,
-    np.intp_t idx,
-    const np.intp_t len_x,
-    const MODE mode,
-    const DTYPE_t cval
-) noexcept nogil:
-    # note: idx will be >= len_x
-    cdef DTYPE_t re = 0.
-    cdef DTYPE_t lin_slope = 0.
-
-    if mode == MODE_CONSTANT:
-        return cval
-    elif mode == MODE_SYMMETRIC:
-        if idx < (2 * len_x):
-            return x[len_x - 1 - (idx - len_x)]
-        else:
-            idx = idx % (2 * len_x)
-            if idx < len_x:
-                return x[idx]
-            else:
-                return x[len_x - 1 - (idx - len_x)]
-    elif mode == MODE_REFLECT:
-        if idx < (2 * len_x - 1):
-            return x[len_x - 2 - (idx - len_x)]
-        else:
-            idx = idx % (2 * (len_x - 1))
-            if idx < (len_x - 1):
-                return x[idx]
-            else:
-                return x[len_x - 1 - (idx - (len_x - 1))]
-    elif mode == MODE_PERIODIC:
-        return x[idx % len_x]
-    elif mode == MODE_SMOOTH:
-        return x[len_x - 1] + (idx - len_x + 1) * (x[len_x - 1] - x[len_x - 2])
-    elif mode == MODE_LINE:
-        lin_slope = (x[len_x - 1] - x[0]) / (len_x - 1)
-        return x[len_x - 1] + (idx - len_x + 1) * lin_slope
-    elif mode == MODE_CONSTANT_EDGE:
-        return x[len_x - 1]
-    elif mode == MODE_ANTISYMMETRIC:
-        if idx < (2 * len_x):
-            return -x[len_x - 1 - (idx - len_x)]
-        else:
-            idx = idx % (2 * len_x)
-            if idx < len_x:
-                return x[idx]
-            else:
-                return -x[len_x - 1 - (idx - len_x)]
-    elif mode == MODE_ANTIREFLECT:
-        if idx < (2 * len_x - 1):
-            return x[len_x - 1] - (x[len_x - 2 - (idx - len_x)] - x[len_x - 1])
-        else:
-            re = x[len_x - 1] + (x[len_x - 1] - x[0]) * (idx // (len_x - 1) - 1)
-            idx = idx % (2 * (len_x - 1))
-            if idx < (len_x - 1):
-                return re + (x[idx] - x[0])
-            else:
-                return re + (x[len_x - 1] - x[len_x - 1 - (idx - (len_x - 1))])
-    else:
-        return -1.
 
 
 @cython.boundscheck(False)
@@ -285,9 +125,9 @@ cpdef _pad_test(np.ndarray[DTYPE_t] data, np.intp_t npre=0, np.intp_t npost=0,
     with nogil:
         for idx in range(-npre, len_x + npost, 1):
             if idx < 0:
-                xval = _extend_left(data_ptr, idx, len_x, _mode, 0.0)
+                xval = 0.0
             elif idx >= len_x:
-                xval = _extend_right(data_ptr, idx, len_x, _mode, 0.0)
+                xval = 0.0
             else:
                 xval = data_ptr[idx]
             out[cnt] = xval
@@ -498,10 +338,8 @@ cdef void _apply_impl(
             if ZeroPad_ft is IsZeroPad_t:
                 h_idx -= x_conv_idx
             else:
-                for x_conv_idx in range(x_conv_idx, 0):
-                    xval = _extend_left(x, x_conv_idx, len_x, mode, cval)
-                    out[y_idx] += xval * h_trans_flip[h_idx]
-                    h_idx += 1
+                xval = cval
+                h_idx += x_conv_idx
             x_conv_idx = 0
         for x_conv_idx in range(x_conv_idx, x_idx + 1):
             out[y_idx] = out[y_idx] + x[x_conv_idx] * h_trans_flip[h_idx]
@@ -526,14 +364,14 @@ cdef void _apply_impl(
                 if ZeroPad_ft is IsZeroPad_t:
                     xval = 0
                 else:
-                    xval = _extend_right(x, x_conv_idx, len_x, mode, cval)
+                    xval = cval
             elif x_conv_idx < 0:
                 # This condition is not compiled in at runtime.
                 # It's only applied to the matching fused type specialization.
                 if ZeroPad_ft is IsZeroPad_t:
                     xval = 0
                 else:
-                    xval = _extend_left(x, x_conv_idx, len_x, mode, cval)
+                    xval = cval
             else:
                 xval = x[x_conv_idx]
             out[y_idx] += xval * h_trans_flip[h_idx]

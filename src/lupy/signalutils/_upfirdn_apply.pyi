@@ -9,14 +9,6 @@ IntLike = int|np.integer
 
 ModeName = Literal[
     'constant',
-    'symmetric',
-    'constant_edge',
-    'smooth',
-    'periodic',
-    'reflect',
-    'antisymmetric',
-    'antireflect',
-    'line',
 ]
 
 
