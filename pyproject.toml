@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "cython>=0.29", "numpy<=2.2.6"]
+requires = ["setuptools", "cython>=0.29", "numpy<=2.4.4"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -10,15 +10,14 @@ authors = [
 ]
 description = "Python library for Audio Loudness measurements"
 readme = "README.rst"
-license = { file = "LICENSE" }
+license = "MIT"
 keywords = [
     "audio", "loudness", "r128", "ebur128",
     "bs1770", "bs1771", "tech3341", "tech3342"
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 classifiers = [
     "Development Status :: 4 - Beta",
-    "License :: OSI Approved :: MIT License",
     "Intended Audience :: Developers",
     "Natural Language :: English",
     "Operating System :: OS Independent",
@@ -27,20 +26,22 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
-    "numpy<=2.2.6",
-    "scipy<=1.15.3",
+    "numpy<=2.4.4",
+    "scipy<=1.17.1",
     "typing-extensions; python_version<'3.13'"
 ]
 
 [project.urls]
 Homepage = "https://github.com/nocarryr/lupy"
 Documentation = "https://lupy-nocarryr.readthedocs.io/"
+PyPI = "https://pypi.org/project/lupy/"
 
 
 
@@ -50,14 +51,21 @@ exclude = ["tests*"]
 
 
 [tool.pytest.ini_options]
-addopts = "-n auto --dist=worksteal"
-testpaths = ["tests"]
+addopts = "-n auto --dist=worksteal --doctest-modules"
+testpaths = ["tests", "src"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
 
 [dependency-groups]
 test = [
     "pytest",
     "pytest-xdist",
     "pytest-codspeed",
+    "mypy>=1.19.1",
+    "scipy-stubs; python_version>='3.10'",
+    "pytest-test-groups>=1.2.1",
+    "pytest-cov>=7.1.0",
 ]
 doc = [
     "sphinx",
@@ -68,6 +76,13 @@ dev = [
     {include-group = "doc"},
     "cython",
     "ipython",
-    "jupyterlab",
-    "matplotlib",
+]
+
+[tool.mypy]
+packages = "lupy"
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
 ]

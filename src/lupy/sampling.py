@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypeVar, NamedTuple
+from typing import TypeVar, Generic, NamedTuple
 import sys
 if sys.version_info < (3, 11):
     from typing_extensions import Self
@@ -53,6 +53,61 @@ class BufferShape(NamedTuple):
 
 
 class Slice:
+    """Helper class to manage slicing of overlapping array chunks
+
+    This can be used to slice overlapping or non-overlapping chunks
+    from an array, wrapping around the end of the array as needed.
+
+    For non-overlapping slices, set :attr:`overlap` to zero.
+
+    Arguments:
+        step: Length of each sliced array chunk
+        overlap: Number of elements to repeat for each sliced array chunk
+        max_index: Maximum index value before wrapping to zero
+        index_: Initial index value (default 0)
+
+
+    .. note::
+
+        The naming of :attr:`step` and :attr:`overlap` is somewhat
+        counter-intuitive.  :attr:`step` refers to the length of each
+        sliced chunk (what would typically be called "window size"), while
+        :attr:`overlap` refers to the number of elements to repeat between
+        chunks (what would typically be called "step size").
+
+
+    Examples:
+
+        Overlapping Slices:
+
+        >>> arr = np.arange(6)
+        >>> sl = Slice(step=4, overlap=2, max_index=0)
+        >>> sl.slice(arr, axis=0)       # index 0
+        array([0, 1, 2, 3])
+        >>> sl.increment(arr, axis=0)   # index 1
+        >>> sl.slice(arr, axis=0)
+        array([2, 3, 4, 5])
+        >>> sl.increment(arr, axis=0)
+        >>> sl.slice(arr, axis=0)       # index 2 (wraps around)
+        array([4, 5, 0, 1])
+        >>> sl.increment(arr, axis=0)
+        >>> sl.slice(arr, axis=0)       # index 0
+        array([0, 1, 2, 3])
+
+
+        Non-overlapping Slices:
+
+        >>> sl = Slice(step=3, overlap=0, max_index=1)
+        >>> sl.slice(arr, axis=0)       # index 0
+        array([0, 1, 2])
+        >>> sl.increment(arr, axis=0)
+        >>> sl.slice(arr, axis=0)       # index 1
+        array([3, 4, 5])
+        >>> sl.increment(arr, axis=0)
+        >>> sl.slice(arr, axis=0)       # index 0 (wraps around)
+        array([0, 1, 2])
+
+    """
     step: int
     """Length of each sliced array chunk
     (this would be better named "win_size")
@@ -61,6 +116,15 @@ class Slice:
     overlap: int
     """Number of elements to repeat for each sliced array chunk
     (this would be better named "step")
+    """
+
+    max_index: int
+    """Maximum :attr:`index` value before wrapping to zero when :attr:`overlap` is zero.
+
+    .. note::
+
+        This has no effect when :attr:`overlap` is non-zero, since the slice will
+        wrap around the end of the array as needed regardless of the index value.
     """
     def __init__(
         self,
@@ -78,10 +142,11 @@ class Slice:
 
     @property
     def index(self) -> int:
+        """The current index value"""
         return self._index
     @index.setter
     def index(self, value: int):
-        if value > self.max_index:
+        if value > self.max_index and self.overlap == 0:
             value = 0
         if value == self._index:
             return
@@ -91,25 +156,40 @@ class Slice:
 
     @property
     def start_index(self) -> int:
+        """The starting index of the current slice"""
         ix = self._start_index
         if ix is None:
-            ix = self._start_index = self.index * self.overlap
+            if self.overlap != 0:
+                ix = self._start_index = self.index * self.overlap
+            else:
+                ix = self._start_index = self.index * self.step
             if ix < 0:
                 ix = 0
         return ix
 
     @property
     def end_index(self) -> int:
+        """The ending index of the current slice"""
         ix = self._end_index
         if ix is None:
             ix = self._end_index = self.start_index + self.step
         return ix
 
     def increment(self, x: AnyArray, axis: int) -> None:
+        """Increment the slice to the next position, wrapping around the end
+        of the array as needed
+
+        Arguments:
+            x: The array being sliced
+            axis: The axis along which to slice
+        """
         if self.index == 0:
             self.index += 1
             return
-        start_ix = self.start_index + self.overlap
+        if self.overlap != 0:
+            start_ix = self.start_index + self.overlap
+        else:
+            start_ix = self.start_index + self.step
         if start_ix >= x.shape[axis]:
             self.index = 0
         else:
@@ -118,14 +198,32 @@ class Slice:
             self._end_index = None
 
     def is_wrapped(self, x: AnyArray, axis: int) -> bool:
+        """Whether the current slice wraps around the end of the array
+
+        Arguments:
+            x: The array being sliced
+            axis: The axis along which to slice
+        """
         return self.end_index > x.shape[axis]
 
     def indices(self, arr_len: int) -> IndexArray:
+        """Get an index array for the current slice, wrapping around
+        the end of the array as needed
+
+        Arguments:
+            arr_len: Length of the array being sliced
+        """
         a = np.arange(self.step, dtype=np.intp) + self.start_index
         a[a>=arr_len] -= arr_len
         return a
 
-    def _calc_shape(self, x: AnyArray, axis: int):
+    def calc_shape(self, x: AnyArray, axis: int) -> tuple[int, ...]:
+        """Calculate the shape of the sliced array along the specified axis
+
+        Arguments:
+            x: The array being sliced
+            axis: The axis along which to slice
+        """
         ndim = x.ndim
         if axis == ndim - 1:
             new_shape = list(x.shape[:-1])
@@ -137,13 +235,25 @@ class Slice:
             del new_shape[axis + 1]
         return tuple(new_shape)
 
-    def _build_slice_array(self, x: AnyArray, axis: int):
+    def build_slice_array(self, x: AnyArray, axis: int) -> tuple[slice|IndexArray, ...]:
+        """Build a tuple of slices/indices for slicing the array along
+        the specified axis
+
+        If the slice wraps around the end of the array, an index array
+        will be used for that axis.  Otherwise, a standard slice will be used.
+
+        Arguments:
+            x: The array being sliced
+            axis: The axis along which to slice
+        """
+        start_ix: int|None
         start_ix, end_ix = self.start_index, self.end_index
         if start_ix == 0:
             start_ix = None
         sl_arr: list[slice|IndexArray] = [
             slice(None, None, None) for _ in range(x.ndim)
         ]
+        ax_slice: slice|IndexArray
         if self.is_wrapped(x, axis):
             ax_slice = self.indices(x.shape[axis])
         else:
@@ -152,8 +262,14 @@ class Slice:
         return tuple(sl_arr)
 
     def slice(self, x: AnyArray, axis: int) -> AnyArray:
-        sl_arr = self._build_slice_array(x, axis)
-        new_shape = self._calc_shape(x, axis)
+        """Get the current slice of the array along the specified axis
+
+        Arguments:
+            x: The array being sliced
+            axis: The axis along which to slice
+        """
+        sl_arr = self.build_slice_array(x, axis)
+        new_shape = self.calc_shape(x, axis)
         return np.reshape(x[sl_arr], new_shape)
 
     def __repr__(self) -> str:
@@ -210,14 +326,14 @@ def calc_buffer_length(sample_rate: int, block_size: int) -> BufferShape:
 
 
 
-class BaseSampler(ABC):
+class BaseSampler(ABC, Generic[NumChannelsT]):
     sample_rate: Fraction
     """The sample rate of the input data"""
 
     block_size: int
     """Sample length per call to :meth:`write`"""
 
-    num_channels: int
+    num_channels: NumChannelsT
     """Number of channels"""
 
     sample_array: Float2dArray
@@ -227,7 +343,7 @@ class BaseSampler(ABC):
     """View of :attr:`sample_array` with shape
     ``(num_channels, block_size, sample_array.shape[1] // block_size)``
     """
-    def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
+    def __init__(self, block_size: int, num_channels: NumChannelsT, sample_rate: int = 48000) -> None:
         self.block_size = block_size
         self.sample_rate = Fraction(sample_rate, 1)
         self.num_channels = num_channels
@@ -300,7 +416,7 @@ class BaseSampler(ABC):
         self.write_slice.index = 0
 
 
-class Sampler(BaseSampler):
+class Sampler(BaseSampler[NumChannelsT]):
     """Allows input data to be stored in chunks of a specified length
     and read out in windowed segments as needed for :term:`gating block`
     calculations.
@@ -311,11 +427,11 @@ class Sampler(BaseSampler):
     and shape ``(num_channels, gate_size, sample_array.shape[1] // gate_size)``
     """
 
-    filter: FilterGroup
+    filter: FilterGroup[NumChannelsT]
     """A :class:`~.filters.FilterGroup` with both stages of the pre-filter
     defined in :term:`BS 1770`
     """
-    def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
+    def __init__(self, block_size: int, num_channels: NumChannelsT, sample_rate: int = 48000) -> None:
         super().__init__(block_size, num_channels, sample_rate)
         self.gate_view = self.sample_array.view()
         self.gate_slice = Slice(
@@ -385,40 +501,65 @@ class Sampler(BaseSampler):
         self.filter.reset()
 
 
-class TruePeakSampler(BaseSampler):
+class TruePeakSampler(BaseSampler[NumChannelsT]):
     """A :class:`Sampler` subclass for use with true peak sampling
 
     This sampler writes in the same way as :class:`Sampler`, but reads
-    are not overlapping and are always 400ms in length.
+    are not overlapping.
 
-    This is not a requirement for :term:`True Peak` sampling, but was chosen
-    so that reads are aligned with that of the :class:`Sampler` class.
+    The length of each read is determined by :attr:`gate_duration`.
 
     """
     gate_view: Float3dArray
-    """A non-sliding view of :attr:`~BaseSampler.sample_array` with shape
+    """View of :attr:`~BaseSampler.sample_array` with shape
     ``(num_channels, num_gate_blocks, gate_size)``
     """
-    def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
+    gate_duration: Fraction
+    """Duration of each read in seconds. Default is 400ms.
+
+    The chosen duration must be divisible by the sample rate.
+    Shorter durations (e.g., 100ms) may be used for faster updates and *should*
+    not affect the accuracy of the true peak measurement (within reason).
+
+    The durations tested and confirmed to be accurate are: ``100ms, 200ms, 400ms, 800ms``.
+    """
+    def __init__(
+        self,
+        block_size: int,
+        num_channels: NumChannelsT,
+        sample_rate: int = 48000,
+        gate_duration: Fraction = Fraction(4, 10)
+    ) -> None:
+        self.gate_duration = gate_duration
         super().__init__(block_size, num_channels, sample_rate)
-        num_gate_blocks = self.bfr_shape.num_gate_blocks
         self.gate_view = np.reshape(
             self.sample_array,
-            (num_channels, num_gate_blocks, self.gate_size)
+            (num_channels, self.num_gate_blocks, self.gate_size)
         )
-        self.gate_slice = Slice(self.gate_size, max_index=num_gate_blocks-1)
+        self.gate_slice = Slice(
+            step=self.gate_size,
+            overlap=0,
+            max_index=self.num_gate_blocks-1,
+        )
 
     @property
     def gate_size(self) -> int:
-        """Length of one block of read samples (400ms)"""
+        """Length of each read in samples, depending on :attr:`gate_duration`"""
         return self.bfr_shape.gate_size
+
+    @property
+    def num_gate_blocks(self) -> int:
+        """Number of :attr:`gate_size` blocks that can be stored in the internal buffer"""
+        return self.bfr_shape.num_gate_blocks
 
     def _calc_buffer_shape(self) -> BufferShape:
         fs = self.sample_rate
-        gate_time = Fraction(4, 10)
+        gate_time = self.gate_duration
         assert (fs * gate_time) % 1 == 0
         gate_samples = int(fs * gate_time)
         bfr_len = math.lcm(self.block_size, gate_samples)
+        if bfr_len == self.block_size:
+            bfr_len *= 2
         assert bfr_len > self.block_size
         num_blocks = bfr_len // self.block_size
         assert bfr_len % gate_samples == 0
@@ -486,10 +627,10 @@ class LockContext:
         self.release()
 
 
-class ThreadSafeSampler(Sampler, LockContext):
+class ThreadSafeSampler(Sampler[NumChannelsT], LockContext):
     """A :class:`Sampler` subclass for use with threaded reads and writes
     """
-    def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
+    def __init__(self, block_size: int, num_channels: NumChannelsT, sample_rate: int = 48000) -> None:
         super().__init__(block_size, num_channels, sample_rate)
         self._lock = threading.RLock()
 
@@ -505,11 +646,17 @@ class ThreadSafeSampler(Sampler, LockContext):
         with self:
             super()._clear()
 
-class ThreadSafeTruePeakSampler(TruePeakSampler, LockContext):
+class ThreadSafeTruePeakSampler(TruePeakSampler[NumChannelsT], LockContext):
     """A :class:`TruePeakSampler` subclass for use with threaded reads and writes
     """
-    def __init__(self, block_size: int, num_channels: int, sample_rate: int = 48000) -> None:
-        super().__init__(block_size, num_channels, sample_rate)
+    def __init__(
+        self,
+        block_size: int,
+        num_channels: NumChannelsT,
+        sample_rate: int = 48000,
+        gate_duration: Fraction = Fraction(4, 10)
+    ) -> None:
+        super().__init__(block_size, num_channels, sample_rate, gate_duration)
         self._lock = threading.RLock()
 
     def _write(self, samples: Float2dArray|Float2dArray32) -> None:

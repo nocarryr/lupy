@@ -1,12 +1,12 @@
 from __future__ import annotations
-from typing import NamedTuple, cast
+from typing import Generic, NamedTuple, cast
 import math
 
 import numpy as np
 from scipy.signal import firwin
 
 from ._upfirdn_apply import _output_len, _apply, mode_enum
-from ..types import Float1dArray, Float2dArray
+from ..types import Float1dArray, Float2dArray, NumChannelsT
 from ..typeutils import ensure_1d_array, ensure_2d_array
 
 
@@ -27,31 +27,39 @@ class ResamplePolyParams(NamedTuple):
     result_slice: tuple[slice, ...]
     """Slice object to extract the valid output samples from the
     polyphase upfirdn filtering step."""
+
+
 # Adapted from:
 # https://github.com/scipy/scipy/blob/87c46641a8b3b5b47b81de44c07b840468f7ebe7/scipy/signal/_signaltools.py#L3363-L3384
 #
 def calc_tp_fir_win(upsample_factor: int) -> Float1dArray:
     """Calculate an appropriate low-pass FIR filter for over-sampling
 
-    The method matches that of :func:`scipy.signal.resample_poly`
+    The method matches what is done in :func:`scipy.signal.resample_poly`,
+    but with the following adjustments:
+
+    - The downsampling factor is fixed as 1 (no downsampling) since only
+      upsampling is required for :term:`True Peak` detection.
+    - The FIR filter length is ``8 * upsample_factor + 1`` instead of ``10 * upsample_factor + 1``.
+      This is a minimal length that still performs well for true peak detection,
+      but is much more efficient than the default length used by
+      :func:`scipy.signal.resample_poly`.
+
     """
 
-    up, down = upsample_factor, 1
-    g_ = math.gcd(up, down)
-    up //= g_
-    down //= g_
-    max_rate = max(up, down)
+    max_rate = upsample_factor
     f_c = 1 / max_rate
-    half_len = 10 * max_rate
+    numtaps = 8 * max_rate + 1
 
     # Casting to str because firwin's type hints are not compatible with the
     # implementation.
     window = cast(str, ('kaiser', 5.0))
     h = firwin(
-        half_len + 1,       # len == 41 with upsample factor of 4
+        numtaps,       # len == 33 with upsample factor of 4
         f_c,
         window=window
     )
+    assert isinstance(h, np.ndarray)
     h = h.astype(np.float64)
     return ensure_1d_array(h)
 
@@ -104,7 +112,7 @@ def calc_resample_poly_params(
     )
 
 
-class ResamplePoly:
+class ResamplePoly(Generic[NumChannelsT]):
     """Polyphase resampler using FIR window
 
     Precomputes parameters for efficient repeated resampling.
@@ -122,7 +130,7 @@ class ResamplePoly:
         self,
         up: int,
         down: int,
-        num_channels: int,
+        num_channels: NumChannelsT,
         window: Float1dArray,
         num_input_samples: int = DEFAULT_INPUT_SAMPLES,
     ) -> None:
@@ -151,7 +159,7 @@ class ResamplePoly:
         )
 
     @property
-    def num_channels(self) -> int:
+    def num_channels(self) -> NumChannelsT:
         """Number of channels"""
         return self._num_channels
 
@@ -186,12 +194,12 @@ class ResamplePoly:
         return self.params.n_out
 
     @property
-    def input_shape(self) -> tuple[int, int]:
+    def input_shape(self) -> tuple[NumChannelsT, int]:
         """Expected input shape for :meth:`apply`"""
         return (self.num_channels, self.num_input_samples)
 
     @property
-    def output_shape(self) -> tuple[int, int]:
+    def output_shape(self) -> tuple[NumChannelsT, int]:
         """Output shape for :meth:`apply`"""
         return (self.num_channels, self.num_output_samples)
 
@@ -240,7 +248,7 @@ def _pad_h(h: Float1dArray, up: int) -> Float1dArray:
 # Adapted from:
 # https://github.com/scipy/scipy/blob/e29dcb65a2040f04819b426a04b60d44a8f69c04/scipy/signal/_upfirdn.py#L72-L104
 #
-class _UpFIRDn:
+class _UpFIRDn(Generic[NumChannelsT]):
     """Helper for resampling."""
     mode = mode_enum('constant')
     dtype = np.dtype(np.float64)
@@ -250,7 +258,7 @@ class _UpFIRDn:
         h: Float1dArray,
         up: int,
         down: int,
-        input_shape: tuple[int, int]
+        input_shape: tuple[NumChannelsT, int]
     ) -> None:
         if h.ndim != 1 or h.size == 0:
             raise ValueError('h must be 1-D with non-zero length')

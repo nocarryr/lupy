@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from typing import Callable
+from typing import overload
 import os
+from fractions import Fraction
 import numpy as np
 import pytest
 
-from lupy.types import FloatArray
-from compliance_cases import ComplianceBase, cases_by_name, all_cases
+from lupy.types import FloatArray, ShapeT, NumChannels, ChannelIndex
+from compliance_cases import (
+    ComplianceBase, cases_by_name, all_cases, true_peak_cases,
+    bs_2217_compliance_cases,
+)
 
 IS_CI = 'CI' in os.environ
 
@@ -32,15 +36,16 @@ def inc_samples():
         return a
     return gen
 
-@pytest.fixture
-def lkfs_1k_sine() -> Callable[[int, int, float], FloatArray]:
-    # def gen(count: int, sample_rate: int, amp: float = 1):
-    #     fc = 997
-    #     t = np.arange(count) / sample_rate
-    #     return amp * np.sin(2 * np.pi * fc * t)
-    return gen_1k_sine
 
-def gen_1k_sine(count: int, sample_rate: int, amp: float = 1):
+@overload
+def gen_1k_sine(count: int, sample_rate: int, amp: float) -> FloatArray[tuple[int]]: ...
+@overload
+def gen_1k_sine(count: int, sample_rate: int, amp: FloatArray[ShapeT]) -> FloatArray[ShapeT]: ...
+def gen_1k_sine(
+    count: int,
+    sample_rate: int,
+    amp: float|FloatArray[ShapeT] = 1
+) -> FloatArray[ShapeT] | FloatArray[tuple[int]]:
     fc = 997
     t = np.arange(count) / sample_rate
     return amp * np.sin(2 * np.pi * fc * t)
@@ -50,7 +55,16 @@ def block_size(request) -> int:
     return request.param
 
 @pytest.fixture(params=[1, 2, 3, 5])
-def num_channels(request) -> int:
+def num_channels(request) -> NumChannels:
+    return request.param
+
+@pytest.fixture(params=[
+    Fraction(1, 10),
+    Fraction(2, 10),
+    Fraction(4, 10),
+    Fraction(8, 10),
+])
+def true_peak_gate_duration(request) -> Fraction:
     return request.param
 
 # @pytest.fixture(params=[0, 1, 2])
@@ -66,7 +80,7 @@ def num_channels(request) -> int:
     (3, 0), (3, 1), (3, 2),
     (5, 0), (5, 1), (5, 2),
 ])
-def front_channels(request) -> tuple[int, int]:
+def front_channels(request) -> tuple[NumChannels, ChannelIndex]:
     return request.param
 
 @pytest.fixture(params=[
@@ -75,7 +89,7 @@ def front_channels(request) -> tuple[int, int]:
     (3, 0), (3, 1), (3, 2),
     (5, 0), (5, 1), (5, 2), (5, 3), (5, 4),
 ])
-def all_channels(request) -> tuple[int, int]:
+def all_channels(request) -> tuple[NumChannels, ChannelIndex]:
     return request.param
 
 @pytest.fixture(
@@ -92,8 +106,22 @@ def tech_3341_compliance_case(request) -> ComplianceBase:
 def tech_3342_compliance_case(request) -> ComplianceBase:
     return request.param
 
+
+@pytest.fixture(
+    params=bs_2217_compliance_cases.values(),
+    ids=list(bs_2217_compliance_cases.keys())
+)
+def bs_2217_compliance_case(request) -> ComplianceBase:
+    return request.param
+
+
 @pytest.fixture(params=all_cases.values(), ids=list(all_cases.keys()))
 def compliance_case(request) -> ComplianceBase:
+    return request.param
+
+
+@pytest.fixture(params=true_peak_cases.values(), ids=list(true_peak_cases.keys()))
+def true_peak_compliance_case(request) -> ComplianceBase:
     return request.param
 
 

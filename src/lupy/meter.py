@@ -1,10 +1,12 @@
 from __future__ import annotations
-from typing import Union, cast
+from typing import Generic, Union, cast
+from fractions import Fraction
 
 import numpy as np
 
 from .sampling import Sampler, TruePeakSampler
-from .processing import BlockProcessor, TruePeakProcessor
+from .processing import BlockProcessor, TruePeakProcessor, SILENCE_DB
+from .arraytypes import MeterArray, TruePeakArray
 from .types import *
 from .typeutils import is_2d_array, ensure_2d_array
 
@@ -14,32 +16,51 @@ __all__ = ('Meter',)
 FloatDtypeT = Union[np.dtype[np.float32], np.dtype[np.float64]]
 
 
-class Meter:
+class Meter(Generic[NumChannelsT]):
     """
 
     Arguments:
         block_size: Number of input samples per call to :meth:`write`
         num_channels: Number of audio channels
         sampler_class: The class to use for the :attr:`sampler`
+        tp_sampler_class: The class to use for the :attr:`true_peak_sampler`
         sample_rate: The sample rate of the audio data
+        true_peak_gate_duration: The processing duration for the
+            :attr:`true_peak_processor` in seconds.
+            See :attr:`TruePeakSampler.gate_duration <.sampling.TruePeakSampler.gate_duration>`
+            for details.
+        true_peak_enabled: Whether to enable :term:`True Peak` processing (default: ``True``)
+        momentary_enabled: Whether to enable :term:`Momentary Loudness` processing (default: ``True``)
+        short_term_enabled: Whether to enable :term:`Short-Term Loudness` processing (default: ``True``)
+        lra_enabled: Whether to enable :term:`Loudness Range` processing (default: ``True``)
+
+    .. important::
+
+        If *short_term_enabled* is ``False``, *lra_enabled* must also be ``False``.
+        This is because :term:`Loudness Range` calculation depends on
+        :term:`Short-Term Loudness` values.
+
+    Raises:
+        ValueError: If *short_term_enabled* is ``False`` and *lra_enabled* is ``True``
+
     """
 
     block_size: int
     """The number of input samples per call to :meth:`write`"""
 
-    num_channels: int
+    num_channels: NumChannelsT
     """Number of audio channels"""
 
-    sampler: Sampler
+    sampler: Sampler[NumChannelsT]
     """The :class:`~.sampling.Sampler` instance to buffer input data"""
 
-    true_peak_sampler: TruePeakSampler
+    true_peak_sampler: TruePeakSampler[NumChannelsT]
     """Sample buffer to hold un-filtered samples for :attr:`true_peak_processor`"""
 
-    processor: BlockProcessor
+    processor: BlockProcessor[NumChannelsT]
     """The :class:`~.processing.BlockProcessor` to perform the calulations"""
 
-    true_peak_processor: TruePeakProcessor
+    true_peak_processor: TruePeakProcessor[NumChannelsT]
     """The :class:`~.processing.TruePeakProcessor`"""
 
     sample_rate: int
@@ -47,10 +68,15 @@ class Meter:
     def __init__(
         self,
         block_size: int,
-        num_channels: int,
+        num_channels: NumChannelsT,
         sampler_class: type[Sampler] = Sampler,
         tp_sampler_class: type[TruePeakSampler] = TruePeakSampler,
-        sample_rate: int = 48000
+        sample_rate: int = 48000,
+        true_peak_gate_duration: Fraction = Fraction(4, 10),
+        true_peak_enabled: bool = True,
+        momentary_enabled: bool = True,
+        short_term_enabled: bool = True,
+        lra_enabled: bool = True,
     ) -> None:
         self.block_size = block_size
         self.num_channels = num_channels
@@ -64,17 +90,47 @@ class Meter:
             block_size=block_size,
             num_channels=num_channels,
             sample_rate=sample_rate,
+            gate_duration=true_peak_gate_duration,
         )
         self.processor = BlockProcessor(
             num_channels=num_channels,
             gate_size=self.sampler.gate_size,
             sample_rate=sample_rate,
+            momentary_enabled=momentary_enabled,
+            short_term_enabled=short_term_enabled,
+            lra_enabled=lra_enabled,
         )
         self.true_peak_processor = TruePeakProcessor(
             num_channels=num_channels,
+            gate_size=self.true_peak_sampler.gate_size,
             sample_rate=sample_rate,
         )
         self._paused = False
+        self._true_peak_enabled = true_peak_enabled
+
+    @property
+    def true_peak_enabled(self) -> bool:
+        """Whether :term:`True Peak` processing is enabled (read-only)
+        """
+        return self._true_peak_enabled
+
+    @property
+    def momentary_enabled(self) -> bool:
+        """Whether :term:`Momentary Loudness` processing is enabled (read-only)
+        """
+        return self.processor.momentary_enabled
+
+    @property
+    def short_term_enabled(self) -> bool:
+        """Whether :term:`Short-Term Loudness` processing is enabled (read-only)
+        """
+        return self.processor.short_term_enabled
+
+    @property
+    def lra_enabled(self) -> bool:
+        """Whether :term:`Loudness Range` processing is enabled (read-only)
+        """
+        return self.processor.lra_enabled
 
     @property
     def paused(self) -> bool:
@@ -86,7 +142,11 @@ class Meter:
         """Whether there is enough room on the internal buffer for at least
         one call to :meth:`write`
         """
-        return self.sampler.can_write() and self.true_peak_sampler.can_write()
+        if self.paused:
+            return False
+        return self.sampler.can_write() and (
+            not self.true_peak_enabled or self.true_peak_sampler.can_write()
+        )
 
     def can_process(self) -> bool:
         """Whether there are enough samples in the internal buffer for at least
@@ -94,7 +154,10 @@ class Meter:
         """
         if self.paused:
             return False
-        return self.sampler.can_read() or self.true_peak_sampler.can_read()
+        return (
+            self.sampler.can_read() or
+            (self.true_peak_enabled and self.true_peak_sampler.can_read())
+        )
 
     def write(
         self,
@@ -109,7 +172,8 @@ class Meter:
         if self.paused:
             return
         self.sampler.write(samples)
-        self.true_peak_sampler.write(samples, apply_filter=False)
+        if self.true_peak_enabled:
+            self.true_peak_sampler.write(samples, apply_filter=False)
         if process and self.can_process():
             self.process(process_all=process_all)
 
@@ -157,7 +221,7 @@ class Meter:
         if self.sampler.can_read():
             samples = self.sampler.read()
             self.processor(samples)
-        if self.true_peak_sampler.can_read():
+        if self.true_peak_enabled and self.true_peak_sampler.can_read():
             tp_samples = self.true_peak_sampler.read()
             assert is_2d_array(tp_samples)
             self.true_peak_processor(tp_samples)
@@ -169,7 +233,8 @@ class Meter:
         self.sampler.clear()
         self.true_peak_sampler.clear()
         self.processor.reset()
-        self.true_peak_processor.reset()
+        if self.true_peak_enabled:
+            self.true_peak_processor.reset()
 
     def set_paused(self, paused: bool) -> None:
         """Pause or unpause processing
@@ -182,7 +247,8 @@ class Meter:
         self._paused = paused
         if paused:
             self.sampler.clear()
-            self.true_peak_sampler.clear()
+            if self.true_peak_enabled:
+                self.true_peak_sampler.clear()
 
     @property
     def integrated_lkfs(self) -> Floating:
@@ -191,20 +257,67 @@ class Meter:
 
     @property
     def lra(self) -> float:
-        """The current :term:`Loudness Range`"""
+        """The current :term:`Loudness Range`
+
+        If :attr:`lra_enabled` is ``False``, this will always return ``0.0``.
+        """
         return self.processor.lra
 
     @property
     def block_data(self) -> MeterArray:
         """A structured array of measurement values with
-        dtype :obj:`~.types.MeterDtype`
+        dtype :obj:`~.arraytypes.MeterDtype`
         """
         return self.processor.block_data
+
+    @property
+    def current_measurement(self) -> CurrentMeasurement[NumChannelsT]:
+        """The current measurement values as a :class:`~.CurrentMeasurement` instance
+
+        This is a snapshot of the most recent measurement values for each metric
+        as of the last processed gating block.
+
+        It provides the latest values for:
+
+        - The :attr:`measurement time <t>` for the last processed gating block
+        - The :attr:`momentary_lkfs`
+        - :attr:`short_term_lkfs`
+        - :attr:`integrated_lkfs`
+        - :attr:`lra`
+        - :attr:`true_peak_current`
+        - The maximum of the :attr:`true_peak_current` array
+
+
+        If no gating blocks have been processed yet, the values returned will
+        correspond to their initial silence states.
+
+        """
+        block_data = self.block_data
+        if block_data.size == 0:
+            m = s = SILENCE_DB
+            t = 0
+        else:
+            m = block_data['m'][-1]
+            s = block_data['s'][-1]
+            t = block_data['t'][-1]
+        tp_current = self.true_peak_current
+        return CurrentMeasurement(
+            momentary=m,
+            short_term=s,
+            integrated=self.integrated_lkfs,
+            lra=self.lra,
+            time=t,
+            true_peak_current=tp_current,
+            true_peak_max=tp_current.max(),
+        )
 
     @property
     def momentary_lkfs(self) -> Float1dArray:
         """:term:`Momentary Loudness` for each 100ms block, averaged over 400ms
         (not gated)
+
+        If :attr:`momentary_enabled` is ``False``, this will return an array of
+        zeroes.
         """
         return self.processor.momentary_lkfs
 
@@ -212,6 +325,9 @@ class Meter:
     def short_term_lkfs(self) -> Float1dArray:
         """:term:`Short-Term Loudness` for each 100ms block, averaged over 3 seconds
         (not gated)
+
+        If :attr:`short_term_enabled` is ``False``, this will return an array of
+        zeroes.
         """
         return self.processor.short_term_lkfs
 
@@ -223,11 +339,25 @@ class Meter:
         return self.processor.t
 
     @property
+    def true_peak_array(self) -> TruePeakArray[NumChannelsT]:
+        """A structured array of :term:`True Peak` measurement values with
+        dtype :obj:`~.arraytypes.TruePeakDtype`
+        """
+        return self.true_peak_processor.tp_array
+
+    @property
     def true_peak_max(self) -> Floating:
-        """Maximum :term:`True Peak` value detected"""
+        """Maximum :term:`True Peak` value detected
+
+        If :attr:`true_peak_enabled` is ``False``, this will always return ``-inf``.
+        """
         return self.true_peak_processor.max_peak
 
     @property
-    def true_peak_current(self) -> Float1dArray:
-        """:term:`True Peak` values per channel from the last processing period"""
+    def true_peak_current(self) -> np.ndarray[tuple[NumChannelsT], np.dtype[np.float64]]:
+        """:term:`True Peak` values per channel from the last processing period
+
+        If :attr:`true_peak_enabled` is ``False``, this will always return
+        an array of ``-inf`` values.
+        """
         return self.true_peak_processor.current_peaks

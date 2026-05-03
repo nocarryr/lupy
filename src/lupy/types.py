@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import TypeVar, Literal, Any
+from typing import TypeVar, Generic, Literal, Any
 import sys
 if sys.version_info < (3, 11):
     from typing_extensions import TypeAlias
 else:
     from typing import TypeAlias
+from dataclasses import dataclass
 
 import numpy as np
 import numpy.typing as npt
@@ -13,54 +14,39 @@ import numpy.typing as npt
 
 
 __all__ = (
-    'Floating', 'Complex', 'MeterDtype', 'MeterArray', 'SosCoeff', 'SosZI',
+    'Floating', 'Complex', 'SosCoeff', 'SosZI',
     'AnyArray', 'BoolArray', 'IndexArray', 'FloatArray', 'ComplexArray',
     'Float1dArray', 'Float2dArray', 'Float3dArray', 'Float2dArray32', 'AnyFloatArray',
     'AnyNdArray', 'Any1dArray', 'Any2dArray', 'Any3dArray', 'ShapeT',
+    'NumChannels', 'NumChannelsT', 'ChannelIndex', 'ChannelIndexT',
+    'CurrentMeasurement',
 )
 
+NumChannels = Literal[1, 2, 3, 5]
+"""Number of audio channels supported by the meter (1, 2, 3, or 5)."""
+NumChannelsT = TypeVar('NumChannelsT', bound=NumChannels)
+"""TypeVar bound to :data:`NumChannels`."""
+ChannelIndex = Literal[0, 1, 2, 3, 4]
+"""Zero-based index for an audio channel, valid for channel counts up to 5 (``0`` through ``4``)."""
+ChannelIndexT = TypeVar('ChannelIndexT', bound=ChannelIndex)
+"""TypeVar bound to :data:`ChannelIndex`."""
 
 Floating = np.floating
 Complex = np.complex128
 
-MeterDtype = np.dtype([
-    ('t', np.float64),
-    ('m', np.float64),
-    ('s', np.float64),
-])
-"""Structured data type for loudness results
 
-.. attribute:: t
-    :type: numpy.float64
 
-    The time in seconds for each measurement
-
-.. attribute:: m
-    :type: numpy.float64
-
-    The :term:`Momentary Loudness` at time :attr:`t`
-
-.. attribute:: s
-    :type: numpy.float64
-
-    The :term:`Short-Term Loudness` at time :attr:`t`
-
-"""
-
-_AnyDtype: TypeAlias = np.dtype[Any]
+DType_t = TypeVar("DType_t", bound=np.dtype[Any])
 DType_co = TypeVar("DType_co", bound=np.dtype[Any], covariant=True)
 """"""
 
-_1D: TypeAlias = tuple[int]
-_2D: TypeAlias = tuple[int, int]
-_3D: TypeAlias = tuple[int, int, int]
 
-ShapeT = TypeVar('ShapeT', _1D, _2D, _3D)
+ShapeT = TypeVar('ShapeT', bound=tuple[int,...])
 ShapeT_co = TypeVar('ShapeT_co', bound=tuple[int,...], covariant=True)
 
-_1DArray = np.ndarray[_1D, DType_co]
-_2DArray = np.ndarray[_2D, DType_co]
-_3DArray = np.ndarray[_3D, DType_co]
+_1DArray = np.ndarray[tuple[int], DType_co]
+_2DArray = np.ndarray[tuple[int, int], DType_co]
+_3DArray = np.ndarray[tuple[int, int, int], DType_co]
 
 
 # type AnyNdArray[_St: (tuple[int,...]), _Dt: (_AnyDtype)] = np.ndarray[_St, _Dt]
@@ -100,7 +86,21 @@ SosZI = np.ndarray[tuple[int, int, Literal[2]], np.dtype[np.float64]]
 """Array representing initial conditions for second-order sections filtering"""
 
 
-class MeterArray(npt.NDArray[np.void]):
-    """Array with dtype :obj:`MeterDtype`
-    """
-    pass
+# TODO: Revert to NamedTuple when Python 3.10 support is dropped
+@dataclass(frozen=True)
+class CurrentMeasurement(Generic[NumChannelsT]):
+    """Represents the current measurement state for a gating block"""
+    time: float|Floating
+    """The measurement time for this gating block"""
+    momentary: float|Floating
+    """The :term:`Momentary Loudness` for this gating block"""
+    short_term: float|Floating
+    """The :term:`Short-Term Loudness` for this gating block"""
+    integrated: float|Floating
+    """The :term:`Integrated Loudness` for this gating block"""
+    lra: float|Floating
+    """The :term:`Loudness Range` for this gating block"""
+    true_peak_current: np.ndarray[tuple[NumChannelsT], np.dtype[np.float64]]
+    """The :term:`True Peak` value for each channel for this gating block"""
+    true_peak_max: float|Floating
+    """The maximum :term:`True Peak` value across all channels for this gating block"""
