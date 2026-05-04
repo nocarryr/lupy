@@ -138,6 +138,16 @@ def from_lk_log10(
 ) -> FloatArray|np.floating:
     return 10 ** ((x + offset) / 10)
 
+def square_and_sum(a: Float2dArray) -> Float1dArray:
+    """Compute the per-row sum-of-squares of a 2-D array
+
+    Equivalent to ``np.square(a).sum(axis=1)`` but avoids allocating the
+    intermediate ``(rows, cols)`` squared array, which can be large when
+    *a* has many columns.
+    """
+    return np.einsum('ij,ij->i', a, a)
+
+
 def _sorted_quantile(sorted_vals: list[float], lo: int, n: int, q: float) -> float:
     """Compute a quantile from a pre-sorted list slice using linear interpolation.
 
@@ -488,18 +498,16 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         assert samples.shape == (self.num_channels, self.gate_size)
 
         if self.momentary_enabled or self.short_term_enabled:
-            # Use einsum to compute per-channel sum-of-squares without allocating
-            # a temporary (num_channels, N) intermediate array.
-            quarter_sq_sum: Float1dArray = np.einsum(
-                'ij,ij->i', samples[:, -self.pad_size:], samples[:, -self.pad_size:]
-            )
+            # Compute sum-of-squares for the quarter block (last 100ms) first,
+            # then sum the rest and accumulate. This avoids allocating and reading
+            # back the full (num_channels, gate_size) squared intermediate twice.
+            quarter_sq_sum: Float1dArray = square_and_sum(samples[:, -self.pad_size:])
             sq_sum: Float1dArray = (
-                np.einsum('ij,ij->i', samples[:, :-self.pad_size], samples[:, :-self.pad_size])
-                + quarter_sq_sum
+                square_and_sum(samples[:, :-self.pad_size]) + quarter_sq_sum
             )
             self._process_quarter_block(quarter_sq_sum)
         else:
-            sq_sum = np.einsum('ij,ij->i', samples, samples)
+            sq_sum = square_and_sum(samples)
 
         _Zij = self._tg * sq_sum
 
