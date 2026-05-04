@@ -488,18 +488,18 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         assert samples.shape == (self.num_channels, self.gate_size)
 
         if self.momentary_enabled or self.short_term_enabled:
-            # Compute sum-of-squares for the quarter block (last 100ms) first,
-            # then sum the rest and accumulate. This avoids allocating and reading
-            # back the full (num_channels, gate_size) squared intermediate twice.
-            quarter_sq_sum: Float1dArray = np.square(
-                samples[:, -self.pad_size:]
-            ).sum(axis=1)
+            # Use einsum to compute per-channel sum-of-squares without allocating
+            # a temporary (num_channels, N) intermediate array.
+            quarter_sq_sum: Float1dArray = np.einsum(
+                'ij,ij->i', samples[:, -self.pad_size:], samples[:, -self.pad_size:]
+            )
             sq_sum: Float1dArray = (
-                np.square(samples[:, :-self.pad_size]).sum(axis=1) + quarter_sq_sum
+                np.einsum('ij,ij->i', samples[:, :-self.pad_size], samples[:, :-self.pad_size])
+                + quarter_sq_sum
             )
             self._process_quarter_block(quarter_sq_sum)
         else:
-            sq_sum = np.square(samples).sum(axis=1)
+            sq_sum = np.einsum('ij,ij->i', samples, samples)
 
         _Zij = self._tg * sq_sum
 
