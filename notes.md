@@ -22,23 +22,21 @@
 - Keep type: ignore ONLY where the shape/type is intentionally wrong for the test (e.g. passing 1D to a 2D-expecting fn, float32 to float64-expecting fn)
 - Use NumChannelsT TypeVar and generic return types: `make_meter(...) -> Meter[NumChannelsT]`
 
-## Coverage Baseline (after 2026-05-03 run)
+## Coverage Baseline (after 2026-05-04 run)
 - meter.py: 100%
 - signalutils/sosfilt.py: 100%
-- signalutils/resample.py: 99%
-- typeutils.py: 99%
-- sampling.py: 98%
-- filters.py: 98%
-- processing.py: 99% (lines 179,185,411,475 — all untestable abstract/dead-code)
+- signalutils/resample.py: 99% (line 99)
+- typeutils.py: 99% (line 14 — typing_extensions import, covered on Python 3.12 in CI)
+- sampling.py: 99% (lines 6, 167)
+- filters.py: 99% (lines 6, 229)
+- processing.py: 99% (lines 6, 421, 485)
+- types.py: 99% (line 6)
 - total: 99%
 
-## Remaining Gaps (all low-priority / intentionally skipped)
-- sampling.py line 167: defensive guard, dead code
-- sampling.py lines 378/403/408: abstract NotImplementedError bodies
-- resample.py line 99: n_post_pad += 1 loop — specialized numerical condition
-- processing.py lines 179, 185: abstract method raise NotImplementedError bodies (unreachable via subclasses)
-- processing.py lines 411, 475: incremental gating fast-path and degenerate LRA branch
-- filters.py lines 187, 229: abstract method body and trivial pass
+## Notes on Version-Conditional Imports
+- Lines like `from typing_extensions import Self` (Python < 3.11 branch) show uncovered locally on 3.12
+- These ARE covered in multi-version CI (Python 3.10 run) and combined in Codecov
+- Not a problem; no action needed
 
 ## make_meter Pattern (from nocarryr review on PR #93)
 - When a factory helper is only called directly (not injected by pytest), use a plain module-level function, NOT a @pytest.fixture
