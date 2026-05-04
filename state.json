@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-05-04T00:03:30Z",
-  "last_run_id": "25294604223",
+  "last_run": "2026-05-04T02:08:17Z",
+  "last_run_id": "25297573522",
   "validated_commands": {
     "install_uv": "curl -LsSf https://astral.sh/uv/install.sh | sh && export PATH=\"$HOME/.local/bin:$PATH\"",
     "install_deps": "uv sync --frozen",
@@ -31,11 +31,11 @@
   },
   "open_prs": [
     {
-      "branch": "perf-assist/einsum-sq-sum",
+      "branch": "perf-assist/einsum-sq-sum-712f4e3facd29d42",
       "pr": 117,
       "title": "perf: use np.einsum for sum-of-squares to avoid temporary array allocation",
-      "status": "created 2026-05-04",
-      "note": "16-26% improvement. integrated -26%, momentary -17%, short_term -18%, lra -18%. 946 tests pass, mypy clean."
+      "status": "updated 2026-05-04 (review feedback addressed)",
+      "note": "CodSpeed: integrated +45%, momentary/short_term/lra +35-37%. Added square_and_sum helper per maintainer review."
     }
   ],
   "closed_prs": [
@@ -78,9 +78,9 @@
   "optimization_backlog": [
     {
       "id": "einsum-sq-sum",
-      "desc": "Use np.einsum('ij,ij->i', x, x) instead of np.square(x).sum(axis=1) in process_block(). Avoids allocating intermediate (num_channels, N) array. 16-26% improvement locally. PR submitted 2026-05-04.",
-      "impact": "integrated -26%, momentary -17%, short_term -18%, lra -18%",
-      "status": "PR submitted"
+      "desc": "Use square_and_sum() helper (wrapping np.einsum('ij,ij->i', x, x)) in process_block(). PR #117 submitted + review feedback addressed (added helper function, restored comments).",
+      "impact": "CodSpeed: integrated +45%, momentary/short_term/lra +35-37%",
+      "status": "PR submitted + review addressed"
     },
     {
       "id": "RunningSum-flat-float",
@@ -110,7 +110,8 @@
   "maintainer_instructions": [
     "Remove reset() optimization from backlog - moved to teardown in benchmarks (PR #99, 2026-04-29)",
     "Open to exploring _upfirdn_apply.pyx vendoring on separate branch (not main) - mentioned 2026-04-30 in issue #71 comment",
-    "2026-05-02: 'Re-run task 1 (discover and validate commands). Check AGENTS.md while doing so' - DONE 2026-05-02"
+    "2026-05-02: 'Re-run task 1 (discover and validate commands). Check AGENTS.md while doing so' - DONE 2026-05-02",
+    "2026-05-04: 'Read and address review comments in #117' - DONE. Added square_and_sum() module-level helper, restored original comments."
   ],
   "perf_notes": [
     "CodSpeed 'does not alter performance' = overall improvement below 10% threshold. Individual benchmarks accessible via CodSpeed link.",
@@ -124,7 +125,7 @@
     "TruePeakProcessor benchmark baselines (gate_size=1024, 2ch, local codspeed sim): 48kHz~62us/call, 88.2kHz~38us/call (2026-05-02 re-measured)",
     "np.square(full_block) reuse (PR #95): +7% in momentary/short_term/lra per CodSpeed - MERGED",
     "Fused square-sum (PR #114): ~2% improvement on momentary/short_term/lra (2026-05-03 MERGED).",
-    "einsum('ij,ij->i', x, x) vs np.square(x).sum(axis=1): einsum avoids intermediate allocation, 16-26% faster locally (2026-05-04). PR submitted.",
+    "square_and_sum() helper (PR #117): wraps np.einsum('ij,ij->i', a, a), avoids temporary (num_channels, N) array. CodSpeed: +45% integrated, +35-37% others. Review: add module-level helper for clarity.",
     "CodSpeed simulation mode counts CPU instructions - Python dispatch overhead matters significantly",
     "DO NOT use -p no:codspeed when running tests - it breaks benchmark tests (benchmark fixture missing). Use uv run pytest -m 'not slow' instead.",
     "block_processor benchmark noise: StdDev ~13-16% on 2.2-3.0ms mean. Changes below ~0.5ms are undetectable.",
