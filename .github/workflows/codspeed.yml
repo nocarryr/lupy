@@ -23,10 +23,6 @@ jobs:
   benchmarks:
     name: Run benchmarks
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v6
       - name: Install uv
@@ -42,5 +38,5 @@ jobs:
       - name: Run benchmarks
         uses: CodSpeedHQ/action@v4
         with:
-          run: uv run py.test tests/ --codspeed --test-group=${{ matrix.shard }} --test-group-count=4
+          run: uv run py.test tests/ --codspeed
           mode: simulation

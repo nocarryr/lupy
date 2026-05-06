@@ -64,7 +64,6 @@ test = [
     "pytest-codspeed",
     "mypy>=1.19.1",
     "scipy-stubs; python_version>='3.10'",
-    "pytest-test-groups>=1.2.1",
     "pytest-cov>=7.1.0",
 ]
 doc = [
