@@ -10,6 +10,7 @@
 - conftest.py has fixtures: random_samples, inc_samples, block_size, num_channels, sample_rate, etc.
 - Compliance test cases in compliance_cases.py
 - benchmark tests use `benchmark` fixture from pytest-codspeed
+- **random_samples fixture uses fixed seed (seed=42)** since PR #121 merged 2026-05-06 — deterministic tests
 
 ## CRITICAL Maintainer Preferences
 - NO section-separator comment blocks (--- style) in test files
@@ -22,7 +23,7 @@
 - Keep type: ignore ONLY where the shape/type is intentionally wrong for the test (e.g. passing 1D to a 2D-expecting fn, float32 to float64-expecting fn)
 - Use NumChannelsT TypeVar and generic return types: `make_meter(...) -> Meter[NumChannelsT]`
 
-## Coverage Baseline (after 2026-05-04 run)
+## Coverage Baseline (after 2026-05-06 run)
 - meter.py: 100%
 - signalutils/sosfilt.py: 100%
 - signalutils/resample.py: 99% (line 99)
