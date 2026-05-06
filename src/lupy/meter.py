@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Generic, Union, cast
+from typing import Generic, Union
 from fractions import Fraction
 
 import numpy as np
@@ -8,7 +8,7 @@ from .sampling import Sampler, TruePeakSampler
 from .processing import BlockProcessor, TruePeakProcessor, SILENCE_DB
 from .arraytypes import MeterArray, TruePeakArray
 from .types import *
-from .typeutils import is_2d_array, ensure_2d_array
+from .typeutils import is_2d_array, ensure_2d_array, is_float64_array
 
 __all__ = ('Meter',)
 
@@ -188,15 +188,36 @@ class Meter(Generic[NumChannelsT]):
         num_blocks = num_samples // self.block_size
         if num_samples % self.block_size != 0:
             num_samples = num_blocks * self.block_size
-            samples = ensure_2d_array(samples[:,:num_samples])
-        block_samples = np.reshape(samples, (self.num_channels, num_blocks, self.block_size))
+            samples = ensure_2d_array(samples[:, :num_samples])
+
+        samples_f64: Float2dArray
+        if not is_float64_array(samples):
+            samples_f64 = samples.astype(np.float64)
+        else:
+            samples_f64 = ensure_2d_array(samples)
+
+        filtered = self.sampler.filter(samples_f64)
+        # ``block_filtered``: BS1770-filtered signal for loudness sampling.
+        # ``block_unfiltered``: original float64 signal for true-peak sampling
+        # (true peak must operate on the unfiltered samples).
+        # Both are shaped (num_channels, num_blocks, block_size) for iteration.
+        block_filtered = np.reshape(
+            filtered, (self.num_channels, num_blocks, self.block_size)
+        )
+        block_unfiltered = np.reshape(
+            samples_f64, (self.num_channels, num_blocks, self.block_size)
+        )
 
         write_index = 0
         while write_index < num_blocks:
             while self.can_write() and write_index < num_blocks:
-                _block_samples = ensure_2d_array(block_samples[:,write_index,:])
-                _block_samples = cast('Float2dArray|Float2dArray32', _block_samples)
-                self.write(_block_samples)
+                _filtered = ensure_2d_array(block_filtered[:, write_index, :])
+                self.sampler.write(_filtered, apply_filter=False)
+                if self.true_peak_enabled:
+                    _unfiltered = ensure_2d_array(block_unfiltered[:, write_index, :])
+                    self.true_peak_sampler.write(_unfiltered, apply_filter=False)
+                if self.can_process():
+                    self.process(process_all=True)
                 write_index += 1
 
     def process(self, process_all: bool = True) -> None:
