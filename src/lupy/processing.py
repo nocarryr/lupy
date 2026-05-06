@@ -12,7 +12,10 @@ import bisect
 import numpy as np
 
 from .arraytypes import MeterArray, TruePeakArray
-from .types import *
+from .types import (
+    NumChannelsT, Float1dArray, Float2dArray, Any1dArray,
+    Floating, FloatArray,
+)
 from .typeutils import ensure_nd_array, build_meter_array, build_true_peak_array
 from .filters import TruePeakFilter
 

@@ -4,7 +4,7 @@ import numpy as np
 from scipy import signal
 import pytest
 
-from lupy.filters import HS_COEFF, HP_COEFF, Coeff, Filter, FilterGroup, TruePeakFilter
+from lupy.filters import HS_COEFF, HP_COEFF, Filter, FilterGroup, TruePeakFilter
 
 
 

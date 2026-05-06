@@ -64,7 +64,7 @@ def test_short_term_disabled_and_lra_enabled_raises():
 
     # LRA requires short-term to be enabled which raises an error.
     with pytest.raises(ValueError) as excinfo:
-        meter = Meter(
+        _ = Meter(
             block_size=block_size,
             num_channels=num_channels,
             sample_rate=sample_rate,

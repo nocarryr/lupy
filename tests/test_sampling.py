@@ -217,9 +217,9 @@ def test_write(sample_rate, block_size, num_channels, random_samples, inc_sample
         T_g = .4
         overlap = .75
         step = 1 - overlap
-        l = int(T_g * (j * step    ) * sampler.sample_rate)
-        u = int(T_g * (j * step + 1) * sampler.sample_rate)
-        return l, u
+        start = int(T_g * (j * step    ) * sampler.sample_rate)
+        end = int(T_g * (j * step + 1) * sampler.sample_rate)
+        return start, end
 
     def read_block():
         nonlocal src_data_index
