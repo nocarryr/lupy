@@ -197,6 +197,10 @@ class Meter(Generic[NumChannelsT]):
             samples_f64 = ensure_2d_array(samples)
 
         filtered = self.sampler.filter(samples_f64)
+        # ``block_filtered``: BS1770-filtered signal for loudness sampling.
+        # ``block_unfiltered``: original float64 signal for true-peak sampling
+        # (true peak must operate on the unfiltered samples).
+        # Both are shaped (num_channels, num_blocks, block_size) for iteration.
         block_filtered = np.reshape(
             filtered, (self.num_channels, num_blocks, self.block_size)
         )
