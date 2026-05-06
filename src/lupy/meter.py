@@ -7,7 +7,10 @@ import numpy as np
 from .sampling import Sampler, TruePeakSampler
 from .processing import BlockProcessor, TruePeakProcessor, SILENCE_DB
 from .arraytypes import MeterArray, TruePeakArray
-from .types import *
+from .types import (
+    NumChannelsT, Float1dArray, Float2dArray, Float2dArray32, Any2dArray,
+    CurrentMeasurement, Floating,
+)
 from .typeutils import is_2d_array, ensure_2d_array, is_float64_array
 
 __all__ = ('Meter',)

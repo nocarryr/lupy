@@ -48,7 +48,7 @@ def test_integrated_lkfs(sample_rate, block_size, all_channels, is_silent):
     )
 
     N, Fs = meter.sampler.total_samples, int(meter.sample_rate)
-    num_blocks, gate_size = meter.sampler.num_blocks, meter.sampler.gate_size
+    gate_size = meter.sampler.gate_size
 
     src_data = build_samples(N, num_channels, Fs, (sine_channel,), 1)
     assert src_data.shape == (num_channels, N)
@@ -89,7 +89,7 @@ def test_integrated_lkfs_neg18(sample_rate, block_size):
     )
 
     N, Fs = meter.sampler.total_samples, int(meter.sample_rate)
-    num_blocks, gate_size = meter.sampler.num_blocks, meter.sampler.gate_size
+    gate_size = meter.sampler.gate_size
 
     sine_channels = (0, 1)
     amp = 10 ** (-18/20)

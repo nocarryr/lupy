@@ -13,7 +13,10 @@ import threading
 
 import numpy as np
 
-from .types import *
+from .types import (
+    NumChannelsT, Float2dArray, Float3dArray, AnyArray, IndexArray,
+    FloatArray, Float2dArray32,
+)
 from .typeutils import ensure_2d_array, is_float64_array
 from .filters import FilterGroup, HS_COEFF, HP_COEFF
 

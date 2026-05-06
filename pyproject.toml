@@ -66,6 +66,7 @@ test = [
     "scipy-stubs; python_version>='3.10'",
     "pytest-test-groups>=1.2.1",
     "pytest-cov>=7.1.0",
+    "ruff>=0.15.12",
 ]
 doc = [
     "sphinx",
@@ -79,6 +80,11 @@ dev = [
 
 [tool.mypy]
 packages = "lupy"
+
+
+[tool.ruff]
+include = ["pyproject.toml", "src/**/*.py", "src/**/*.pyi", "tests/**/*.py"]
+
 
 [tool.coverage.report]
 exclude_lines = [

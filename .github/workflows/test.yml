@@ -39,6 +39,8 @@ jobs:
         run: uv sync --frozen --no-dev --group test
       - name: Run type checks
         run: uv run mypy
+      - name: Run lint checks
+        run: uv run ruff check
 
   test:
     runs-on: ubuntu-latest
