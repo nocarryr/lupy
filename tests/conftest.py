@@ -15,7 +15,7 @@ from compliance_cases import (
 IS_CI = 'CI' in os.environ
 
 nan = np.nan
-rng = np.random.default_rng()
+rng = np.random.default_rng(seed=42)
 
 
 @pytest.fixture
