@@ -196,11 +196,13 @@ class Meter(Generic[NumChannelsT]):
         else:
             samples_f64 = ensure_2d_array(samples)
 
+        # Apply the BS1770 pre-filter directly here (instead of in the sampler).
+        # We can do this here as long as `apply_filter` is set to False
+        # when writing to the sampler.
+        #
+        # The original (unfiltered) samples are still written to the true peak sampler
+        # without modification.
         filtered = self.sampler.filter(samples_f64)
-        # ``block_filtered``: BS1770-filtered signal for loudness sampling.
-        # ``block_unfiltered``: original float64 signal for true-peak sampling
-        # (true peak must operate on the unfiltered samples).
-        # Both are shaped (num_channels, num_blocks, block_size) for iteration.
         block_filtered = np.reshape(
             filtered, (self.num_channels, num_blocks, self.block_size)
         )
