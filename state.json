@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-05-05T00:00:00Z",
-  "last_run_id": "25350381459",
+  "last_run": "2026-05-06T00:00:00Z",
+  "last_run_id": "25409038899",
   "validated_commands": {
     "install_uv": "curl -LsSf https://astral.sh/uv/install.sh | sh && export PATH=\"$HOME/.local/bin:$PATH\"",
     "install_deps": "uv sync --frozen",
@@ -23,19 +23,20 @@
   },
   "tasks_last_run": {
     "task1_commands": "2026-05-02",
-    "task2_opportunities": "2026-05-05",
+    "task2_opportunities": "2026-05-06",
     "task3_implement": "2026-05-05",
-    "task4_maintain_prs": "2026-05-05",
+    "task4_maintain_prs": "2026-05-06",
     "task5_comment_issues": "2026-04-30",
-    "task6_measurement_infra": "2026-05-04"
+    "task6_measurement_infra": "2026-05-04",
+    "task7_monthly": "2026-05-06"
   },
   "open_prs": [
     {
-      "branch": "perf-assist/batch-sosfilt-write-all",
+      "branch": "perf-assist/batch-sosfilt-write-all-fd6c8fb0f6e7ba74",
       "pr": 119,
       "title": "Batch BS1770 filter pass in write_all (avoid N sosfilt calls)",
-      "status": "submitted 2026-05-05",
-      "note": "Pre-filter all write_all samples in 1 sosfilt call vs 46. Micro: 1.85x faster filter step. Expected ~10% CodSpeed on test_meter_benchmark."
+      "status": "submitted 2026-05-05; review comment addressed 2026-05-06",
+      "note": "CodSpeed confirmed: 88200Hz +23.6%, 96000Hz +17.55%, 44100/48000Hz +11.5%. Review comment addressed (explanatory comment added above block_filtered/block_unfiltered creation explaining BS1770 vs TruePeak split)."
     }
   ],
   "closed_prs": [
@@ -78,9 +79,15 @@
   "optimization_backlog": [
     {
       "id": "batch-sosfilt-write-all",
-      "desc": "Pre-filter all write_all samples in single FilterGroup call vs per-block. PR #119 submitted.",
-      "impact": "Micro: 1.85x faster filter step. ~10% expected on meter benchmark.",
-      "status": "PR submitted"
+      "desc": "Pre-filter all write_all samples in single FilterGroup call vs per-block. PR #119 submitted and awaiting merge.",
+      "impact": "CodSpeed confirmed: 88200Hz +23.6%, 96000Hz +17.55%, 44100/48000Hz +11.5%.",
+      "status": "PR awaiting merge"
+    },
+    {
+      "id": "reset-partial-zeroing",
+      "desc": "BlockProcessor.reset() zeros full MAX_BLOCKS=144000 arrays (e.g. _Zij, _block_weighted_sums) even after short sessions. Only block_data views use the sliced property. Optimization: zero only [:block_index] for the large arrays.",
+      "impact": "No CodSpeed impact (reset not in benchmarks). Real-world: meaningful for users measuring many short clips.",
+      "feasibility": "medium - need to verify all read paths are gated by block_index"
     },
     {
       "id": "RunningSum-flat-float",
@@ -96,8 +103,8 @@
     },
     {
       "id": "truepeak-fir-optimization",
-      "desc": "Vendoring/trimming _upfirdn_apply.pyx. High complexity, maintainer exploring in PR #116.",
-      "impact": "Up to 55% of Meter.write",
+      "desc": "Vendoring/trimming _upfirdn_apply.pyx. Post-PR#119, TruePeak FIR is ~34% of write_all time. Maintainer exploring in PR #116.",
+      "impact": "Up to 34% of Meter.write (dominant bottleneck after PR#119 merged)",
       "feasibility": "low-medium (Cython, maintainer exploring)"
     },
     {
@@ -109,13 +116,16 @@
   ],
   "maintainer_instructions": [
     "Open to exploring _upfirdn_apply.pyx vendoring on separate branch (PR #116 explores this)",
-    "2026-05-04: 'Read and address review comments in #117' - DONE"
+    "2026-05-04: 'Read and address review comments in #117' - DONE",
+    "2026-05-05: 'Add explanatory comment above block_filtered/block_unfiltered in write_all' - DONE"
   ],
   "perf_notes": [
     "CodSpeed threshold ~10% CPU instruction improvement to register as meaningful.",
-    "sosfilt is ~23% of Meter.write time. Batching in write_all: 46 calls -> 1 = 1.85x faster filter step = ~10% expected full-pipeline gain.",
+    "sosfilt is ~23% of Meter.write time. Batching in write_all: 46 calls -> 1 = 1.85x faster filter step. CodSpeed: +11-23% across all meter benchmarks (PR #119).",
     "FilterGroup handles arbitrary-length arrays (IIR state maintained). Batching is numerically identical to per-block (verified atol=1e-10).",
-    "TruePeakProcessor bottleneck: 55.6% CPU (Cython FIR). No Python-level wins possible.",
+    "Post-PR#119 profile (48kHz, 1s, 10 runs): TruePeak FIR 34%, sosfilt 14%, reset 10%, _write 6%, processing 6%. TruePeak FIR is now dominant.",
+    "TruePeakProcessor uses scipy._upfirdn_apply._apply (Cython). Already compiled. No Python-level speedup possible.",
+    "BlockProcessor.reset() zeros FULL 144000-element arrays for _Zij, _block_weighted_sums, _quarter_block_weighted_sums, _block_loudness, _blocks_above_abs/rel_thresh. block_data views already use sliced property (efficient). Others wasted for short sessions.",
     "numpy memory pool recycles same-size allocations: pre-allocated buffers do not help.",
     "np.einsum('ij,ij->i', a, a) = sum-of-squares without temp array. PR #117: +45%/+35-37% CodSpeed.",
     "RunningSum->float: NO improvement (tested 2026-05-02). Do not retry.",
