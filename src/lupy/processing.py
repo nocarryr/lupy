@@ -360,15 +360,16 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
     def reset(self) -> None:
         """Reset all measurement data
         """
+        n = self.block_index
         self.block_data['m'][:] = 0
         self.block_data['s'][:] = 0
-        self._Zij[...] = 0
-        self._block_weighted_sums[:] = 0
-        self._quarter_block_weighted_sums[:] = 0
-        self._block_loudness[:] = 0
+        self._Zij[:, :n] = 0
+        self._block_weighted_sums[:n] = 0
+        self._quarter_block_weighted_sums[:n] = 0
+        self._block_loudness[:n] = 0
         self._rel_threshold = SILENCE_DB
-        self._blocks_above_abs_thresh[:] = False
-        self._blocks_above_rel_thresh[:] = False
+        self._blocks_above_abs_thresh[:n] = False
+        self._blocks_above_rel_thresh[:n] = False
         self._above_rel_running_sum.clear()
         self._above_abs_running_sum.clear()
         self._lra_abs_power_running_sum.clear()
