@@ -170,7 +170,18 @@ class Meter(Generic[NumChannelsT]):
     ) -> None:
         """Store input data into the internal buffer
 
-        The input data must be of shape ``(num_channels, block_size)``
+        The input data must be of shape ``(num_channels, block_size)``.
+
+        Arguments:
+            samples: Audio data of shape ``(num_channels, block_size)``.
+                Both float32 and float64 dtypes are accepted.
+            process: If ``True`` (the default), :meth:`process` will be
+                called automatically after writing if samples are available.
+                Set to ``False`` to defer processing — useful when writing
+                from a time-sensitive callback and processing on a separate
+                thread.
+            process_all: Passed directly to :meth:`process` when *process*
+                is ``True``.  Has no effect when *process* is ``False``.
         """
         if self.paused:
             return
@@ -183,8 +194,18 @@ class Meter(Generic[NumChannelsT]):
     def write_all(self, samples: Any2dArray[FloatDtypeT]) -> None:
         """Write an arbitrary number of samples and process them
 
+        Both float32 and float64 dtypes are accepted.  If *samples* is
+        float32 it will be converted to float64 before processing.
+
         If the number of samples is not a multiple of :attr:`block_size`, the
         samples will be truncated to the nearest multiple.
+
+        .. note::
+
+            This method applies the :term:`BS 1770` pre-filter in a single
+            pass over all input data before iterating over blocks.  This is
+            more efficient than calling :meth:`write` once per block when
+            processing large buffers.
         """
         num_samples = samples.shape[1]
         assert samples.shape[0] == self.num_channels
