@@ -2,8 +2,8 @@ from __future__ import annotations
 from typing import cast
 
 import numpy as np
-from scipy.signal._sosfilt import _sosfilt
 
+from ._sosfilt import _sosfilt
 from ..types import (
     Float2dArray,
     SosZI,

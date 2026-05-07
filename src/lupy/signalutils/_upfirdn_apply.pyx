@@ -1,0 +1,384 @@
+# -*- coding: utf-8 -*-
+
+# Code adapted from "upfirdn" python library with permission:
+#
+# Copyright (c) 2009, Motorola, Inc
+#
+# All Rights Reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+#
+# * Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright
+# notice, this list of conditions and the following disclaimer in the
+# documentation and/or other materials provided with the distribution.
+#
+# * Neither the name of Motorola nor the names of its contributors may be
+# used to endorse or promote products derived from this software without
+# specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+# IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+cimport cython
+cimport numpy as np
+import numpy as np
+from cython import bint  # boolean integer type
+from libc.stdlib cimport malloc, free
+from libc.string cimport memset
+
+np.import_array()
+
+ctypedef double complex double_complex
+ctypedef float complex float_complex
+
+ctypedef int IsZeroPad_t
+ctypedef float IsNotZeroPad_t
+
+# This fused type is being used as a flag for the inner `_apply_impl`
+# to avoid unnecessary condition checks at runtime.
+ctypedef fused ZeroPad_ft:
+    IsZeroPad_t
+    IsNotZeroPad_t
+
+
+ctypedef fused DTYPE_t:
+    # Eventually we could add "object", too, but then we'd lose the "nogil"
+    # on the _apply_impl function.
+    float
+    float_complex
+    double
+    double_complex
+
+cdef struct ArrayInfo:
+    np.intp_t * shape
+    np.intp_t * strides
+    np.intp_t ndim
+
+
+def _output_len(np.int64_t len_h,
+                np.int64_t in_len,
+                np.int64_t up,
+                np.int64_t down):
+    """The output length that results from a given input"""
+    # ceil(((in_len - 1) * up + len_h) / down), but using integer arithmetic
+    return (((in_len - 1) * up + len_h) - 1) // down + 1
+
+
+# Signal extension modes
+ctypedef enum MODE:
+    MODE_CONSTANT = 0
+
+
+cpdef MODE mode_enum(mode):
+    if mode == 'constant':
+        return MODE_CONSTANT
+    else:
+        raise ValueError("Unknown mode: {}".format(mode))
+
+
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef _pad_test(np.ndarray[DTYPE_t] data, np.intp_t npre=0, np.intp_t npost=0,
+                object mode=0):
+    """1D test function for signal extension modes.
+
+    Returns ``data extended by ``npre``, ``npost`` at the beginning, end.
+    """
+    cdef np.intp_t idx
+    cdef np.intp_t cnt = 0
+    cdef np.intp_t len_x = data.size
+    cdef np.intp_t len_out = npre + len_x + npost
+    cdef DTYPE_t xval
+    cdef DTYPE_t [::1] out
+    cdef DTYPE_t* data_ptr
+    cdef MODE _mode
+    _mode = mode_enum(mode)
+
+    if DTYPE_t is float:
+        out = np.zeros((len_out,), dtype=np.float32)
+    elif DTYPE_t is float_complex:
+        out = np.zeros((len_out,), dtype=np.complex64)
+    elif DTYPE_t is double:
+        out = np.zeros((len_out,), dtype=np.float64)
+    elif DTYPE_t is double_complex:
+        out = np.zeros((len_out,), dtype=np.complex128)
+    else:
+        raise ValueError("unsupported dtype")
+
+    data_ptr = <DTYPE_t*> data.data
+    with nogil:
+        for idx in range(-npre, len_x + npost, 1):
+            if idx < 0:
+                xval = 0.0
+            elif idx >= len_x:
+                xval = 0.0
+            else:
+                xval = data_ptr[idx]
+            out[cnt] = xval
+            cnt += 1
+    return np.asarray(out)
+
+
+def _apply(
+    np.ndarray data,
+    const DTYPE_t [::1] h_trans_flip,
+    np.ndarray out,
+    const np.intp_t up,
+    const np.intp_t down,
+    const np.intp_t axis,
+    const np.intp_t mode,
+    const DTYPE_t cval
+):
+    cdef ArrayInfo data_info, output_info
+    cdef np.intp_t len_h = h_trans_flip.shape[0]
+    cdef DTYPE_t *data_ptr
+    cdef DTYPE_t *out_ptr
+    cdef int retval
+    cdef np.intp_t len_out = out.shape[axis]
+    cdef bint zpad = (mode == MODE_CONSTANT and cval == 0)
+    cdef IsZeroPad_t zpad_flag = 0
+    cdef IsNotZeroPad_t not_zpad_flag = 1
+
+    data_info.ndim = data.ndim
+    data_info.strides = <np.intp_t *> data.strides
+    data_info.shape = <np.intp_t *> data.shape
+
+    output_info.ndim = out.ndim
+    output_info.strides = <np.intp_t *> out.strides
+    output_info.shape = <np.intp_t *> out.shape
+
+    data_ptr = <DTYPE_t*> data.data
+    out_ptr = <DTYPE_t*> out.data
+
+    with nogil:
+        # Select the proper specialization for zero-padding
+        if zpad:
+            retval = _apply_axis_inner(data_ptr, data_info,
+                                       h_trans_flip, len_h,
+                                       out_ptr, output_info,
+                                       up, down, axis, <MODE>mode, cval, len_out,
+                                       zpad_flag)
+        else:
+            retval = _apply_axis_inner(data_ptr, data_info,
+                                       h_trans_flip, len_h,
+                                       out_ptr, output_info,
+                                       up, down, axis, <MODE>mode, cval, len_out,
+                                       not_zpad_flag)
+    if retval == 1:
+        raise ValueError("failure in _apply_axis_inner: data and output arrays"
+                         " must have the same number of dimensions.")
+    elif retval == 2:
+        raise ValueError(
+            ("failure in _apply_axis_inner: axis = {}, ".format(axis) +
+             "but data_info.ndim is only {}.".format(data_info.ndim)))
+    elif retval == 3 or retval == 4:
+        raise MemoryError()
+
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef int _apply_axis_inner(
+    const DTYPE_t* data,
+    const ArrayInfo data_info,
+    const DTYPE_t [::1] h_trans_flip,
+    const np.intp_t len_h,
+    DTYPE_t* output,
+    const ArrayInfo output_info,
+    const np.intp_t up,
+    const np.intp_t down,
+    const np.intp_t axis,
+    const MODE mode,
+    const DTYPE_t cval,
+    const np.intp_t len_out,
+    ZeroPad_ft zpad
+) noexcept nogil:
+    cdef np.intp_t i
+    cdef np.intp_t num_loops = 1
+    cdef bint make_temp_data, make_temp_output
+    cdef DTYPE_t* temp_data = NULL
+    cdef DTYPE_t* temp_output = NULL
+    cdef size_t row_size_bytes = 0
+
+    if data_info.ndim != output_info.ndim:
+        return 1
+    if axis >= data_info.ndim:
+        return 2
+
+    make_temp_data = data_info.strides[axis] != sizeof(DTYPE_t);
+    make_temp_output = output_info.strides[axis] != sizeof(DTYPE_t);
+    if make_temp_data:
+        temp_data = <DTYPE_t*>malloc(data_info.shape[axis] * sizeof(DTYPE_t))
+        if not temp_data:
+            free(temp_data)
+            return 3
+    if make_temp_output:
+        row_size_bytes = output_info.shape[axis] * sizeof(DTYPE_t)
+        temp_output = <DTYPE_t*>malloc(row_size_bytes)
+        if not temp_output:
+            free(temp_data)
+            free(temp_output)
+            return 4
+
+    for i in range(output_info.ndim):
+        if i != axis:
+            num_loops *= output_info.shape[i]
+
+    # strides in number of elements rather than number of bytes
+    cdef np.intp_t idx_stride = data_info.strides[axis] / sizeof(DTYPE_t)
+    cdef np.intp_t idx_stride_out = output_info.strides[axis] / sizeof(DTYPE_t)
+
+    cdef np.intp_t j
+    cdef np.intp_t data_offset
+    cdef np.intp_t output_offset
+    cdef DTYPE_t* data_row
+    cdef DTYPE_t* output_row
+    cdef np.intp_t reduced_idx
+    cdef np.intp_t j_rev
+    cdef np.intp_t axis_idx
+    cdef DTYPE_t* tmp_ptr = NULL
+    for i in range(num_loops):
+        data_offset = 0
+        output_offset = 0
+        # Calculate offset into linear buffer
+        reduced_idx = i
+        for j in range(output_info.ndim):
+            j_rev = output_info.ndim - 1 - j
+            if j_rev != axis:
+                axis_idx = reduced_idx % output_info.shape[j_rev]
+                reduced_idx /= output_info.shape[j_rev]
+                data_offset += (axis_idx * data_info.strides[j_rev])
+                output_offset += (axis_idx * output_info.strides[j_rev])
+
+        # Copy to temporary data if necessary
+        if make_temp_data:
+            # Offsets are byte offsets, so need to cast to char and back
+            tmp_ptr = <DTYPE_t *>((<char *> data) + data_offset)
+            for j in range(data_info.shape[axis]):
+                temp_data[j] = tmp_ptr[idx_stride*j]
+
+        # Select temporary or direct output and data
+        if make_temp_data:
+            data_row = temp_data
+        else:
+            data_row = <DTYPE_t *>((<char *>data) + data_offset)
+        if make_temp_output:
+            output_row = temp_output
+            memset(output_row, 0, row_size_bytes)
+        else:
+            output_row = <DTYPE_t *>((<char *>output) + output_offset)
+
+        # call 1D upfirdn
+        _apply_impl(data_row, data_info.shape[axis],
+                    h_trans_flip, len_h, output_row, up, down, mode, cval,
+                    len_out, zpad)
+
+        # Copy from temporary output if necessary
+        if make_temp_output:
+            tmp_ptr = <DTYPE_t *>((<char *>output) + output_offset)
+            for j in range(output_info.shape[axis]):
+                tmp_ptr[idx_stride_out*j] = output_row[j]
+
+    # cleanup
+    free(temp_data)
+    free(temp_output)
+    return 0
+
+
+@cython.cdivision(True)  # faster modulo
+@cython.boundscheck(False)  # designed to stay within bounds
+@cython.wraparound(False)  # we don't use negative indexing
+cdef void _apply_impl(
+    const DTYPE_t *x,
+    const np.intp_t len_x,
+    const DTYPE_t [::1] h_trans_flip,
+    const np.intp_t len_h,
+    DTYPE_t *out,
+    const np.intp_t up,
+    const np.intp_t down,
+    const MODE mode,
+    const DTYPE_t cval,
+    const np.intp_t len_out,
+    ZeroPad_ft zpad
+) noexcept nogil:
+    cdef np.intp_t h_per_phase = len_h // up
+    cdef np.intp_t padded_len = len_x + h_per_phase - 1
+    cdef np.intp_t x_idx = 0
+    cdef np.intp_t y_idx = 0
+    cdef np.intp_t h_idx = 0
+    cdef np.intp_t t = 0
+    cdef np.intp_t x_conv_idx = 0
+    cdef DTYPE_t xval
+
+    if len_out == 0:
+        return
+
+    while x_idx < len_x:
+        h_idx = t * h_per_phase
+        x_conv_idx = x_idx - h_per_phase + 1
+        if x_conv_idx < 0:
+            # This condition is not compiled in at runtime.
+            # It's only applied to the matching fused type specialization.
+            if ZeroPad_ft is IsZeroPad_t:
+                h_idx -= x_conv_idx
+            else:
+                xval = cval
+                h_idx += x_conv_idx
+            x_conv_idx = 0
+        for x_conv_idx in range(x_conv_idx, x_idx + 1):
+            out[y_idx] = out[y_idx] + x[x_conv_idx] * h_trans_flip[h_idx]
+            h_idx += 1
+        # store and increment
+        y_idx += 1
+        if y_idx >= len_out:
+            return
+        t += down
+        x_idx += t // up
+        # which phase of the filter to use
+        t = t % up
+
+    # Use a second simplified loop to flush out the last bits
+    while x_idx < padded_len:
+        h_idx = t * h_per_phase
+        x_conv_idx = x_idx - h_per_phase + 1
+        for x_conv_idx in range(x_conv_idx, x_idx + 1):
+            if x_conv_idx >= len_x:
+                # This condition is not compiled in at runtime.
+                # It's only applied to the matching fused type specialization.
+                if ZeroPad_ft is IsZeroPad_t:
+                    xval = 0
+                else:
+                    xval = cval
+            elif x_conv_idx < 0:
+                # This condition is not compiled in at runtime.
+                # It's only applied to the matching fused type specialization.
+                if ZeroPad_ft is IsZeroPad_t:
+                    xval = 0
+                else:
+                    xval = cval
+            else:
+                xval = x[x_conv_idx]
+            out[y_idx] += xval * h_trans_flip[h_idx]
+            h_idx += 1
+        y_idx += 1
+        if y_idx >= len_out:
+            return
+        t += down
+        x_idx += t // up
+        t = t % up
