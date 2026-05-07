@@ -284,3 +284,35 @@ def test_write_all_truncates_non_multiple():
     assert meter.sampler.samples_available == num_full_blocks * meter.block_size
     # Not enough data for even one gating block, so no blocks were processed
     assert len(meter.block_data) == 0
+
+
+def test_write_triggers_auto_process() -> None:
+    """write() with default process=True auto-processes when can_process is True"""
+    meter = make_meter()
+    block = build_samples(meter.block_size, meter.sample_rate, meter.num_channels)
+
+    blocks_before_threshold = meter.sampler.gate_size // meter.block_size - 1
+    for _ in range(blocks_before_threshold):
+        meter.write(block, process=False)
+
+    assert not meter.can_process()
+    assert len(meter.block_data) == 0
+
+    meter.write(block)
+
+    assert len(meter.block_data) >= 1
+
+
+def test_write_all_float32_input() -> None:
+    """write_all converts float32 input to float64 and yields the same result"""
+    meter_f64 = make_meter()
+    meter_f32 = make_meter()
+
+    N = meter_f64.sampler.total_samples
+    src_f64 = build_samples(N, meter_f64.sample_rate, meter_f64.num_channels)
+    src_f32 = src_f64.astype(np.float32)
+
+    meter_f64.write_all(src_f64)
+    meter_f32.write_all(src_f32)
+
+    assert round(meter_f64.integrated_lkfs, 1) == round(meter_f32.integrated_lkfs, 1)
