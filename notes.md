@@ -23,14 +23,14 @@
 - Keep type: ignore ONLY where the shape/type is intentionally wrong for the test (e.g. passing 1D to a 2D-expecting fn, float32 to float64-expecting fn)
 - Use NumChannelsT TypeVar and generic return types: `make_meter(...) -> Meter[NumChannelsT]`
 
-## Coverage Baseline (after 2026-05-06 run)
-- meter.py: 100%
+## Coverage Baseline (after 2026-05-07 run, PR #125 pending)
+- meter.py: 100% (after PR #125: lines 181, 198 now covered)
 - signalutils/sosfilt.py: 100%
 - signalutils/resample.py: 99% (line 99)
 - typeutils.py: 99% (line 14 — typing_extensions import, covered on Python 3.12 in CI)
 - sampling.py: 99% (lines 6, 167)
-- filters.py: 99% (lines 6, 229)
-- processing.py: 99% (lines 6, 421, 485)
+- filters.py: 99% (lines 6, 231)
+- processing.py: 99% (lines 6, 425, 489)
 - types.py: 99% (line 6)
 - total: 99%
 
@@ -44,3 +44,7 @@
 - Add explicit keyword args for test variants (e.g., `true_peak_enabled: bool = True`) instead of `**kwargs`
 - Use NumChannelsT TypeVar: `def make_meter(num_channels: NumChannelsT = 2, ...) -> Meter[NumChannelsT]:`
 - Fixtures are appropriate only when pytest needs to inject them as parameters
+
+## Ruff Linting (added PR #122, 2026-05-06)
+- `uv run ruff check` must pass; run before committing
+- ruff configured in pyproject.toml
