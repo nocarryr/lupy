@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-05-07T00:03:00Z",
-  "last_run_id": "25468020351",
+  "last_run": "2026-05-08T00:00:00Z",
+  "last_run_id": "25528834250",
   "validated_commands": {
     "install_uv": "curl -LsSf https://astral.sh/uv/install.sh | sh && export PATH=\"$HOME/.local/bin:$PATH\"",
     "install_deps": "uv sync --frozen",
@@ -9,41 +9,54 @@
     "benchmark": "uv run pytest --codspeed",
     "typecheck": "uv run mypy",
     "quick_start": "uv sync --frozen && uv run pytest -m \"not slow\" && uv run mypy",
+    "cython_branch_build": "git checkout experiment-cythonize-filters && uv sync --frozen && uv run python setup.py build_ext --inplace",
     "notes": [
       "uv installable via curl; needs PATH update after install",
       "uv sync --frozen installs exact pinned deps from uv.lock",
       "pytest addopts: -n auto --dist=worksteal --doctest-modules (parallel + doctests)",
       "benchmark fixture comes from pytest-codspeed; DO NOT use -p no:codspeed (breaks benchmark tests)",
       "slow marker deselects long-running tests; benchmark tests are NOT marked slow",
-      "test counts: 187 non-slow (incl benchmarks), 946 total",
+      "test counts: 187 non-slow (incl benchmarks) on main, 946 total",
       "uv run pytest -m 'not slow' = 187 passed (benchmark tests included, pass via codspeed fixture)",
       "uv run pytest = 946 passed in ~62s",
-      "uv run pytest --codspeed = 18 benchmarks"
+      "uv run pytest --codspeed = 18+ benchmarks"
     ]
   },
   "tasks_last_run": {
     "task1_commands": "2026-05-02",
-    "task2_opportunities": "2026-05-07",
-    "task3_implement": "2026-05-07",
+    "task2_opportunities": "2026-05-08",
+    "task3_implement": "2026-05-08",
     "task4_maintain_prs": "2026-05-07",
-    "task5_comment_issues": "2026-04-30",
-    "task6_measurement_infra": "2026-05-04",
-    "task7_monthly": "2026-05-07"
+    "task5_comment_issues": "2026-05-08",
+    "task6_measurement_infra": "2026-05-08",
+    "task7_monthly": "2026-05-08"
   },
   "open_prs": [
     {
-      "branch": "perf-assist/partial-reset-block-processor",
-      "pr": 122,
-      "title": "Partial zeroing in BlockProcessor.reset() — zero only used array ranges",
-      "status": "submitted 2026-05-07",
-      "note": "Not in CodSpeed benchmarks. Real-world: 40-60x faster reset for short sessions. 187 tests pass, mypy/ruff clean."
+      "branch": "perf-assist/math-log10-scalar",
+      "pr": 126,
+      "title": "Use math.log10 for scalar path in lk_log10",
+      "status": "submitted 2026-05-08",
+      "note": "1.35x speedup on scalar calls, ~35 µs/s at 48kHz. Below CodSpeed threshold but legitimate hot-path improvement. 187 tests pass, mypy/ruff clean."
+    },
+    {
+      "branch": "perf-assist/bs1770-benchmark",
+      "pr": 127,
+      "title": "Add BS1770-only meter benchmark (true_peak_enabled=False)",
+      "status": "submitted 2026-05-08",
+      "note": "Task 6: adds 4 new benchmarks isolating BS1770 from TruePeak (~63% wall-clock). Control baseline for Cython vendoring comparison. 191 tests pass, mypy/ruff clean."
     }
   ],
   "closed_prs": [
     {
+      "branch": "perf-assist/partial-reset-block-processor-ae0b51a8b681278e",
+      "pr": 123,
+      "outcome": "MERGED by nocarryr on 2026-05-07. Partial zeroing in BlockProcessor.reset(). 40-60x faster reset for short sessions."
+    },
+    {
       "branch": "perf-assist/batch-sosfilt-write-all-fd6c8fb0f6e7ba74",
       "pr": 119,
-      "outcome": "MERGED by nocarryr on 2026-05-06. Batch BS1770 filter in write_all. CodSpeed confirmed: 88200Hz +23.6%, 96000Hz +17.55%, 44100/48000Hz +11.5%."
+      "outcome": "MERGED by nocarryr on 2026-05-06. Batch BS1770 filter in write_all. CodSpeed: 88200Hz +23.6%, 96000Hz +17.55%, 44100/48000Hz +11.5%."
     },
     {
       "branch": "perf-assist/einsum-sq-sum-712f4e3facd29d42",
@@ -53,7 +66,7 @@
     {
       "branch": "perf-assist/fused-square-sum-quarter-block",
       "pr": 114,
-      "outcome": "MERGED by nocarryr on 2026-05-03. Fused square-sum. ~2% improvement."
+      "outcome": "MERGED by nocarryr on 2026-05-03. Fused square-sum."
     },
     {
       "branch": "perf-assist/flat-float-window-accumulators-02b47c1f26f62ec4",
@@ -66,39 +79,17 @@
       "outcome": "MERGED. Incremental running sums."
     },
     {
-      "branch": "perf-assist/lk-log10-math-scalar",
-      "pr": 98,
-      "outcome": "MERGED. np.dot for channel-weighted sums."
-    },
-    {
-      "branch": "perf-assist/single-sq-pass",
-      "pr": 95,
-      "outcome": "MERGED. CodSpeed: +7%."
-    },
-    {
       "branch": "perf-assist/incremental-lra",
       "pr": 72,
-      "outcome": "MERGED. O(n^2)->O(n) LRA. +37% CodSpeed."
+      "outcome": "MERGED. O(n^2)->O(n) LRA."
     }
   ],
   "optimization_backlog": [
     {
-      "id": "partial-reset-block-processor",
-      "desc": "BlockProcessor.reset() partial-zeroing: zero only [:block_index] for large arrays. PR #122 submitted 2026-05-07.",
-      "impact": "40-60x faster reset for short sessions. Not in CodSpeed (reset not benchmarked).",
-      "status": "PR awaiting review"
-    },
-    {
       "id": "truepeak-fir-optimization",
-      "desc": "Vendoring/trimming _upfirdn_apply.pyx. TruePeak FIR is ~34% of write_all time. Maintainer exploring in PR #116.",
-      "impact": "Up to 34% of Meter.write (dominant bottleneck after PR#119 merged)",
+      "desc": "Vendoring/trimming _upfirdn_apply.pyx. TruePeak FIR is ~63% of wall-clock time. Maintainer exploring in PR #116.",
+      "impact": "Up to 63% of Meter.write_all (dominant bottleneck)",
       "feasibility": "low-medium (Cython, maintainer exploring)"
-    },
-    {
-      "id": "lk_log10-math-scalar",
-      "desc": "lk_log10() scalar path via math.log10. ~1% only, below CodSpeed threshold.",
-      "impact": "~1%",
-      "feasibility": "not worth doing"
     },
     {
       "id": "calc-gating-incremental",
@@ -108,31 +99,30 @@
     }
   ],
   "maintainer_notes": [
-    "PR #120 (revert-codspeed-parallel) open: maintainer investigating CodSpeed benchmark instability with parallel runs",
-    "PR #121 merged 2026-05-06: fixed RNG seed in random_samples fixture to make benchmarks deterministic",
-    "2026-05-04: 'Read and address review comments in #117' - DONE",
-    "2026-05-05: 'Add explanatory comment above block_filtered/block_unfiltered in write_all' - DONE"
+    "PR #120 (revert-codspeed-parallel) open draft: maintainer investigating CodSpeed benchmark instability",
+    "2026-05-07: Maintainer asked how to run Perf Improver on Cython branch (#116). Responded 2026-05-08 with /perf-assist option, local build steps, and CI workflow approach.",
+    "Cython branch build: git checkout experiment-cythonize-filters && uv sync --frozen && uv run python setup.py build_ext --inplace"
   ],
   "perf_notes": [
     "CodSpeed threshold ~10% CPU instruction improvement to register as meaningful.",
-    "BlockProcessor.reset() full 144K-element zeroing: ~136 µs. Partial (10-block session): ~3 µs (41x speedup). PR #122.",
+    "TruePeak FIR dominance: ~63% wall-clock (3.52ms total vs 1.32ms BS1770-only at 48kHz).",
+    "lk_log10 scalar: math.log10 is 1.35x faster than np.log10 for scalar np.float64 (490ns -> 364ns). PR #126.",
     "sosfilt batching in write_all: 46 calls -> 1 = 1.85x faster filter step. CodSpeed: +11-23% (PR #119 merged).",
-    "Post-PR#119 profile (48kHz, 1s, 10 runs): TruePeak FIR 34%, sosfilt 14%, reset 10%, _write 6%, processing 6%.",
-    "TruePeakProcessor uses scipy._upfirdn_apply._apply (Cython). No Python-level speedup possible.",
+    "BlockProcessor.reset() partial zeroing: ~136 µs full -> ~3 µs for 10-block session (41x). PR #123 merged.",
     "np.einsum('ij,ij->i', a, a) = sum-of-squares without temp array. PR #117: +45%/+35-37% CodSpeed.",
     "RunningSum->float: NO improvement (tested 2026-05-02). Do not retry.",
-    "CodSpeed simulation mode counts CPU instructions - Python dispatch overhead matters.",
     "DO NOT use -p no:codspeed when running tests - breaks benchmark fixture.",
-    "random_samples fixture now uses fixed seed (PR #121 merged 2026-05-06) - benchmarks more deterministic."
+    "random_samples fixture uses fixed seed (PR #121 merged) - benchmarks more deterministic."
   ],
   "checked_off_items": [
     "perf-assist/incremental-lra PR (checked off 2026-04)",
     "PR #95 single-sq-pass review (checked off 2026-04)",
-    "PR #119 merge (checked off 2026-05-06)"
+    "PR #119 merge (checked off 2026-05-06)",
+    "PR #123 merge (checked off 2026-05-07)"
   ],
   "infrastructure_notes": {
     "codspeed_threshold": "~10% CPU instruction improvement to register as meaningful",
-    "benchmark_coverage": "18 benchmarks: block_processor (4 modes), meter (4 rates), TruePeakProcessor (48kHz 4x, 88.2kHz 2x), filter benchmarks",
+    "benchmark_coverage": "22+ benchmarks after PR #127: block_processor (4 modes), meter (4 rates each with/without TP), TruePeakProcessor (48kHz 4x, 88.2kHz 2x), filter benchmarks",
     "codspeed_instability": "Maintainer investigating in PR #120 (parallel runs cause instability); PR #121 fixed RNG seed"
   }
 }
