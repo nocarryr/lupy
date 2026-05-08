@@ -172,7 +172,7 @@ def convert_wav_to_npz(wav_file: Path, npz_dir: Path, base_meta: FileMeta) -> tu
     )
     return npz_file, meta_full
 
-def convert_all_wav_to_npz():
+def convert_all_wav_to_npz() -> None:
     NPZ_DIR.mkdir(exist_ok=True)
     metadata = load_metadata(META_FILE)
     all_meta_full: dict[str, FileMetaFull] = {}

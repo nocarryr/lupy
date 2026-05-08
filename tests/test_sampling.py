@@ -320,7 +320,7 @@ def test_thread_safe_sampler_lock_context():
         pass  # context manager should not raise
 
 
-def test_thread_safe_sampler_concurrent_writes():
+def test_thread_safe_sampler_concurrent_writes() -> None:
     """Multiple threads can write concurrently without raising exceptions.
 
     Each thread uses its own RNG seeded by its index to avoid shared-state

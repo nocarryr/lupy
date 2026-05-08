@@ -14,7 +14,7 @@ def bench_sample_rate(request) -> int:
 
 
 @pytest.mark.parametrize('coeff', [HS_COEFF, HP_COEFF])
-def test_filter_requantize(coeff, sample_rate):
+def test_filter_requantize(coeff, sample_rate) -> None:
     orig_sample_rate = coeff.sample_rate
     quantized = coeff.as_sample_rate(sample_rate)
 
@@ -68,7 +68,7 @@ def test_filter_group_single_channel_1d_input() -> None:
 
 
 @pytest.mark.benchmark(group='filter')
-def test_filter_benchmark(benchmark, random_samples, num_channels, bench_sample_rate):
+def test_filter_benchmark(benchmark, random_samples, num_channels, bench_sample_rate) -> None:
     sample_rate = bench_sample_rate
     block_size = sample_rate // 100
     assert sample_rate % block_size == 0
@@ -88,7 +88,7 @@ def test_filter_benchmark(benchmark, random_samples, num_channels, bench_sample_
     benchmark(bench)
 
 @pytest.mark.benchmark(group='truepeak_filter')
-def test_truepeak_filter_benchmark(benchmark, random_samples, num_channels, bench_sample_rate):
+def test_truepeak_filter_benchmark(benchmark, random_samples, num_channels, bench_sample_rate) -> None:
     sample_rate = bench_sample_rate
     up_sample = 4 if sample_rate < 88200 else 2
     block_size = sample_rate // 100

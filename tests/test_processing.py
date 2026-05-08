@@ -35,7 +35,7 @@ def build_samples(
 
 
 @pytest.mark.slow
-def test_integrated_lkfs(sample_rate, block_size, all_channels, is_silent):
+def test_integrated_lkfs(sample_rate, block_size, all_channels, is_silent) -> None:
     num_channels, sine_channel = all_channels
     meter = Meter(
         block_size=block_size,
@@ -76,7 +76,7 @@ def test_integrated_lkfs(sample_rate, block_size, all_channels, is_silent):
 # https://tech.ebu.ch/docs/tech/tech3341.pdf Section 2.9
 # Stereo 1k (997 Hz) sine at -18 dBFS should read -18 LUFS
 @pytest.mark.slow
-def test_integrated_lkfs_neg18(sample_rate, block_size):
+def test_integrated_lkfs_neg18(sample_rate, block_size) -> None:
     num_channels = 2
     meter = Meter(
         block_size=block_size,
@@ -102,7 +102,7 @@ def test_integrated_lkfs_neg18(sample_rate, block_size):
 
 
 @pytest.mark.slow
-def test_compliance_cases(sample_rate, compliance_case):
+def test_compliance_cases(sample_rate, compliance_case) -> None:
     block_size = 128
     num_channels = compliance_case.num_channels
     meter = Meter(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
@@ -156,7 +156,7 @@ def test_compliance_cases(sample_rate, compliance_case):
 
 
 @pytest.mark.slow
-def test_bs2217_compliance_cases(bs_2217_compliance_case):
+def test_bs2217_compliance_cases(bs_2217_compliance_case) -> None:
     # This is separate from the other compliance cases since we're only
     # testing at 48k and only checking integrated LKFS
     sample_rate = 48000
@@ -199,7 +199,7 @@ def test_bs2217_compliance_cases(bs_2217_compliance_case):
     assert lufs - tol <= integrated <= lufs + tol
 
 
-def test_meter_current_measurement(all_channels):
+def test_meter_current_measurement(all_channels) -> None:
     num_channels, sine_channel = all_channels
     silent_channels_ix = np.array(
         [i for i in range(num_channels) if i != sine_channel],
@@ -273,7 +273,7 @@ def test_true_peak_gate_blocks(
     true_peak_gate_duration,
     sample_rate,
     true_peak_compliance_case
-):
+) -> None:
     block_size = 128
     num_channels = true_peak_compliance_case.num_channels
     meter = Meter(
@@ -317,7 +317,7 @@ def test_true_peak_gate_blocks(
 
 
 @pytest.mark.benchmark(group='meter')
-def test_meter_benchmark(sample_rate, random_samples, benchmark):
+def test_meter_benchmark(sample_rate, random_samples, benchmark) -> None:
     block_size = 1024
     num_channels = 2
     meter = Meter(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
@@ -401,7 +401,7 @@ def processor_bench_data(request) -> tuple[np.ndarray, int, BlockProcessor, Proc
 
 
 @pytest.mark.benchmark(group='block_processor')
-def test_block_processor_benchmark(benchmark, processor_bench_data):
+def test_block_processor_benchmark(benchmark, processor_bench_data) -> None:
     samples, num_gate_blocks, processor, mode = processor_bench_data
 
     def bench():
