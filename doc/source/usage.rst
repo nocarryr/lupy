@@ -254,4 +254,30 @@ Direct Access
 
 
 
+Batch Processing
+----------------
+
+For offline or batch use cases where you need to measure multiple audio clips
+in sequence, use :meth:`Meter.write_all` to write an entire clip at once, then
+read the result and call :meth:`Meter.reset` before measuring the next clip.
+
+:meth:`~Meter.write_all` accepts sample arrays of any length and handles
+writing and processing internally.  The samples may be ``float32`` or
+``float64``; ``float32`` arrays are converted automatically.
+
+>>> results = []
+>>> for clip_samples in list_of_clips:
+...     meter.write_all(clip_samples)
+...     results.append(meter.integrated_lkfs)
+...     meter.reset()
+
+.. note::
+
+    :meth:`Meter.reset` is optimised for short sessions: it only clears the
+    portion of internal buffers that was actually written, so the cost of a
+    reset scales with the length of the clip rather than the maximum supported
+    duration.  This makes it efficient to call :meth:`~Meter.reset` repeatedly
+    when batch-measuring many short clips.
+
+
 .. _python-sounddevice: https://python-sounddevice.readthedocs.io/en/0.4.7/examples.html
