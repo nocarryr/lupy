@@ -8,6 +8,7 @@ else:
     from typing import Self
 from abc import ABC, abstractmethod
 import bisect
+import math
 
 import numpy as np
 
@@ -126,10 +127,10 @@ def lk_log10(
         return r
     if isinstance(x, np.ndarray):
         x[np.less_equal(x, 0)] = EPSILON
-    elif x <= 0:
+        return offset + base * np.log10(x)
+    if x <= 0:
         x = EPSILON
-    r = offset + base * np.log10(x)
-    return r
+    return np.float64(offset + base * math.log10(float(x)))
 
 @overload
 def from_lk_log10(x: FloatArray, offset: float = 0.691) -> FloatArray: ...
