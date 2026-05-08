@@ -22,6 +22,7 @@ BS2217_METAFILE = BS2217_ROOT / 'meta.json'
 nan = np.nan
 
 BitDepth = Literal[16, 24, 32]
+_BitDepthOpts: tuple[BitDepth, ...] = (16, 24, 32)
 _NumChannelsOpts: tuple[NumChannels, ...] = (1, 2, 3, 5)
 NumChannelsWithLFE = Union[NumChannels, Literal[6]]
 _NumChannelsWithLFEOpts: tuple[NumChannelsWithLFE, ...] = (1, 2, 3, 5, 6)
@@ -43,8 +44,8 @@ def load_bs2217_metadata() -> dict[str, BS2217FileMeta]:
         data = json.load(f)
     result: dict[str, BS2217FileMeta] = {}
     for item in data.values():
-        bit_depth: int|BitDepth = int(item['bit_depth'])
-        assert bit_depth in (16, 24, 32)
+        bit_depth = int(item['bit_depth'])
+        assert bit_depth in _BitDepthOpts
         num_channels = int(item['num_channels'])
         assert num_channels in _NumChannelsWithLFEOpts
         meta = BS2217FileMeta(
