@@ -1,11 +1,11 @@
 from __future__ import annotations
-from typing import Iterable
+from typing import Iterable, Literal
 
 import pytest
 import numpy as np
 
 from lupy import Meter
-from lupy.types import NumChannelsT
+from lupy.types import NumChannelsT, NumChannels
 from lupy.typeutils import is_array_of_shape
 
 from conftest import gen_1k_sine
@@ -15,10 +15,10 @@ from conftest import gen_1k_sine
 def build_samples(
     num_samples: int,
     sample_rate: int,
-    num_channels: NumChannelsT = 2,
+    num_channels: NumChannelsT|Literal[2] = 2,
     sine_channels: Iterable[int]|None = (0, 1),
     sine_amp: float = 10 ** (-18/20),
-) -> np.ndarray[tuple[NumChannelsT, int], np.dtype[np.float64]]:
+) -> np.ndarray[tuple[NumChannelsT|Literal[2], int], np.dtype[np.float64]]:
     samples = np.zeros((num_channels, num_samples), dtype=np.float64)
     assert is_array_of_shape(samples, (num_channels, num_samples))
     if sine_channels is not None:
@@ -31,7 +31,7 @@ def build_samples(
 def test_momentary_disabled() -> None:
     sample_rate = 48000
     block_size = 128
-    num_channels = 2
+    num_channels: NumChannels = 2
     meter = Meter(
         block_size=block_size,
         num_channels=num_channels,
@@ -60,7 +60,7 @@ def test_momentary_disabled() -> None:
 def test_short_term_disabled_and_lra_enabled_raises() -> None:
     sample_rate = 48000
     block_size = 128
-    num_channels = 2
+    num_channels: NumChannels = 2
 
     # LRA requires short-term to be enabled which raises an error.
     with pytest.raises(ValueError) as excinfo:
@@ -77,7 +77,7 @@ def test_short_term_disabled_and_lra_enabled_raises() -> None:
 def test_short_term_disabled() -> None:
     sample_rate = 48000
     block_size = 128
-    num_channels = 2
+    num_channels: NumChannels = 2
 
     meter = Meter(
         block_size=block_size,
@@ -108,7 +108,7 @@ def test_short_term_disabled() -> None:
 def test_lra_disabled() -> None:
     sample_rate = 48000
     block_size = 128
-    num_channels = 2
+    num_channels: NumChannels = 2
     meter = Meter(
         block_size=block_size,
         num_channels=num_channels,
@@ -137,7 +137,7 @@ def test_lra_disabled() -> None:
 def test_true_peak_disabled() -> None:
     sample_rate = 48000
     block_size = 128
-    num_channels = 2
+    num_channels: NumChannels = 2
     meter = Meter(
         block_size=block_size,
         num_channels=num_channels,
@@ -164,10 +164,10 @@ def test_true_peak_disabled() -> None:
 
 def make_meter(
     block_size: int = 128,
-    num_channels: NumChannelsT = 2,
+    num_channels: NumChannelsT|Literal[2] = 2,
     sample_rate: int = 48000,
     true_peak_enabled: bool = True,
-) -> Meter[NumChannelsT]:
+) -> Meter[NumChannelsT|Literal[2]]:
     return Meter(
         block_size=block_size,
         num_channels=num_channels,

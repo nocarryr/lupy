@@ -6,7 +6,7 @@ import numpy as np
 
 from lupy import Meter, BlockProcessor
 from lupy.processing import SILENCE_DB, RunningSum, lk_log10, from_lk_log10, TruePeakProcessor
-from lupy.types import FloatArray, NumChannelsT, ChannelIndex, CurrentMeasurement
+from lupy.types import FloatArray, NumChannels, NumChannelsT, ChannelIndex, CurrentMeasurement
 from lupy.typeutils import is_array_of_shape
 
 from conftest import gen_1k_sine
@@ -77,7 +77,7 @@ def test_integrated_lkfs(sample_rate, block_size, all_channels, is_silent) -> No
 # Stereo 1k (997 Hz) sine at -18 dBFS should read -18 LUFS
 @pytest.mark.slow
 def test_integrated_lkfs_neg18(sample_rate, block_size) -> None:
-    num_channels = 2
+    num_channels: NumChannels = 2
     meter = Meter(
         block_size=block_size,
         num_channels=num_channels,
@@ -91,7 +91,7 @@ def test_integrated_lkfs_neg18(sample_rate, block_size) -> None:
     N, Fs = meter.sampler.total_samples, int(meter.sample_rate)
     gate_size = meter.sampler.gate_size
 
-    sine_channels = (0, 1)
+    sine_channels: tuple[ChannelIndex, ...] = (0, 1)
     amp = 10 ** (-18/20)
     src_data = build_samples(N, num_channels, Fs, sine_channels, amp)
     meter.write_all(src_data)
@@ -319,7 +319,7 @@ def test_true_peak_gate_blocks(
 @pytest.mark.benchmark(group='meter')
 def test_meter_benchmark(sample_rate, random_samples, benchmark) -> None:
     block_size = 1024
-    num_channels = 2
+    num_channels: NumChannels = 2
     meter = Meter(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
 
     N = sample_rate * 1
@@ -521,7 +521,7 @@ def test_true_peak_processor_benchmark(benchmark, tp_sample_rate: int) -> None:
     Provides a measurement baseline for the polyphase FIR upsampling path so that
     any future optimisation of TruePeakFilter / _UpFIRDn can be tracked here.
     """
-    num_channels = 2
+    num_channels: NumChannels = 2
     gate_size = 1024
     proc = TruePeakProcessor(num_channels=num_channels, gate_size=gate_size, sample_rate=tp_sample_rate)
     rng = np.random.default_rng(42)
