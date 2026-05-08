@@ -470,7 +470,17 @@ class Sampler(BaseSampler[NumChannelsT]):
         """Store input data into the internal buffer, optionally applying the
         :attr:`pre-filter <filter>`
 
-        The input data must be of shape ``(num_channels, block_size)``
+        The input data must be of shape ``(num_channels, block_size)``.
+
+        Arguments:
+            samples: Audio data of shape ``(num_channels, block_size)``.
+                Both float32 and float64 dtypes are accepted.  If
+                *apply_filter* is ``True`` and *samples* is float32, it
+                will be converted to float64 before filtering.
+            apply_filter: If ``True`` (the default) the :attr:`BS 1770
+                pre-filter <filter>` is applied before buffering the
+                samples.  Pass ``False`` when the samples have already
+                been filtered externally (e.g. by :meth:`~.meter.Meter.write_all`).
         """
         assert samples.shape == (self.num_channels, self.block_size)
         if apply_filter:
