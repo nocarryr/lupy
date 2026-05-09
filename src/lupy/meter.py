@@ -202,10 +202,8 @@ class Meter(Generic[NumChannelsT]):
 
         .. note::
 
-            This method applies the :term:`BS 1770` pre-filter in a single
-            pass over all input data before iterating over blocks.  This is
-            more efficient than calling :meth:`write` once per block when
-            processing large buffers.
+            This method is more efficient than calling :meth:`write` once
+            per block when processing large buffers.
         """
         num_samples = samples.shape[1]
         assert samples.shape[0] == self.num_channels

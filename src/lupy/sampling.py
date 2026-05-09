@@ -480,7 +480,7 @@ class Sampler(BaseSampler[NumChannelsT]):
             apply_filter: If ``True`` (the default) the :attr:`BS 1770
                 pre-filter <filter>` is applied before buffering the
                 samples.  Pass ``False`` when the samples have already
-                been filtered externally (e.g. by :meth:`~.meter.Meter.write_all`).
+                been filtered externally.
         """
         assert samples.shape == (self.num_channels, self.block_size)
         if apply_filter:
