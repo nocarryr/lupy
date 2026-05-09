@@ -22,13 +22,14 @@
 - Use `ensure_*` functions from lupy.typeutils instead of type: ignore — e.g. `validate_sos(ensure_2d_array(sos))` lets mypy narrow the type without type: ignore
 - Keep type: ignore ONLY where the shape/type is intentionally wrong for the test (e.g. passing 1D to a 2D-expecting fn, float32 to float64-expecting fn)
 - Use NumChannelsT TypeVar and generic return types: `make_meter(...) -> Meter[NumChannelsT]`
+- **PR #128 merged 2026-05-09**: mypy now type-checks ALL test files (21 source files total, up from 11). All test functions must have proper type annotations.
 
-## Coverage Baseline (after 2026-05-07 run, PR #125 pending)
-- meter.py: 100% (after PR #125: lines 181, 198 now covered)
+## Coverage Baseline (after 2026-05-09 run, PR #125 merged)
+- meter.py: 100%
 - signalutils/sosfilt.py: 100%
 - signalutils/resample.py: 99% (line 99)
 - typeutils.py: 99% (line 14 — typing_extensions import, covered on Python 3.12 in CI)
-- sampling.py: 99% (lines 6, 167)
+- sampling.py: 99% (lines 6, 170)
 - filters.py: 99% (lines 6, 231)
 - processing.py: 99% (lines 6, 425, 489)
 - types.py: 99% (line 6)
@@ -48,3 +49,8 @@
 ## Ruff Linting (added PR #122, 2026-05-06)
 - `uv run ruff check` must pass; run before committing
 - ruff configured in pyproject.toml
+
+## mypy on Tests (added PR #128, 2026-05-09)
+- `uv run mypy` now checks 21 source files including all test modules
+- All test functions must have return type annotations (-> None)
+- All parameters must be annotated

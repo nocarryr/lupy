@@ -1,15 +1,15 @@
 {
-  "last_run": "2026-05-08T11:14:26Z",
-  "run_id": "25552467085",
-  "tasks_completed": ["task1", "task4", "task6", "task7"],
+  "last_run": "2026-05-09T11:10:22Z",
+  "run_id": "25599642865",
+  "tasks_completed": ["task1", "task2", "task5", "task7"],
   "last_tasks": {
-    "task1": "2026-05-08",
-    "task2": "2026-05-07",
+    "task1": "2026-05-09",
+    "task2": "2026-05-09",
     "task3": "2026-05-07",
     "task4": "2026-05-08",
-    "task5": "2026-05-06",
+    "task5": "2026-05-09",
     "task6": "2026-05-08",
-    "task7": "2026-05-08"
+    "task7": "2026-05-09"
   },
   "open_prs": [],
   "maintainer_priorities": [
@@ -21,7 +21,8 @@
     "nocarryr wants type: ignore avoided and clean type annotations",
     "nocarryr: use ensure_* functions from lupy.typeutils instead of type: ignore where the array IS the right shape/type but mypy cannot narrow it",
     "nocarryr: use NumChannelsT TypeVar and Meter[NumChannelsT] generic return type for factory helpers",
-    "nocarryr: tests should assert concrete expected values, not tautological property-to-property comparisons"
+    "nocarryr: tests should assert concrete expected values, not tautological property-to-property comparisons",
+    "PR #128 (merged 2026-05-09): mypy now type-checks ALL test files — all test functions must have return type annotations and parameter annotations"
   ],
   "checked_off_items": [
     "PR #86 (closed by maintainer; [x] checked in monthly summary)",
