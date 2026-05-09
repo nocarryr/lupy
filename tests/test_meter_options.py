@@ -1,11 +1,11 @@
 from __future__ import annotations
-from typing import Iterable
+from typing import Iterable, Literal
 
 import pytest
 import numpy as np
 
 from lupy import Meter
-from lupy.types import NumChannelsT
+from lupy.types import NumChannelsT, NumChannels
 from lupy.typeutils import is_array_of_shape
 
 from conftest import gen_1k_sine
@@ -15,10 +15,10 @@ from conftest import gen_1k_sine
 def build_samples(
     num_samples: int,
     sample_rate: int,
-    num_channels: NumChannelsT = 2,
+    num_channels: NumChannelsT|Literal[2] = 2,
     sine_channels: Iterable[int]|None = (0, 1),
     sine_amp: float = 10 ** (-18/20),
-) -> np.ndarray[tuple[NumChannelsT, int], np.dtype[np.float64]]:
+) -> np.ndarray[tuple[NumChannelsT|Literal[2], int], np.dtype[np.float64]]:
     samples = np.zeros((num_channels, num_samples), dtype=np.float64)
     assert is_array_of_shape(samples, (num_channels, num_samples))
     if sine_channels is not None:
@@ -28,10 +28,10 @@ def build_samples(
 
 
 
-def test_momentary_disabled():
+def test_momentary_disabled() -> None:
     sample_rate = 48000
     block_size = 128
-    num_channels = 2
+    num_channels: NumChannels = 2
     meter = Meter(
         block_size=block_size,
         num_channels=num_channels,
@@ -57,10 +57,10 @@ def test_momentary_disabled():
     assert current_measurement.momentary == 0.0
 
 
-def test_short_term_disabled_and_lra_enabled_raises():
+def test_short_term_disabled_and_lra_enabled_raises() -> None:
     sample_rate = 48000
     block_size = 128
-    num_channels = 2
+    num_channels: NumChannels = 2
 
     # LRA requires short-term to be enabled which raises an error.
     with pytest.raises(ValueError) as excinfo:
@@ -74,10 +74,10 @@ def test_short_term_disabled_and_lra_enabled_raises():
     assert 'lra' in str(excinfo.value).lower() and 'short-term' in str(excinfo.value).lower()
 
 
-def test_short_term_disabled():
+def test_short_term_disabled() -> None:
     sample_rate = 48000
     block_size = 128
-    num_channels = 2
+    num_channels: NumChannels = 2
 
     meter = Meter(
         block_size=block_size,
@@ -105,10 +105,10 @@ def test_short_term_disabled():
     assert current_measurement.short_term == 0.0
 
 
-def test_lra_disabled():
+def test_lra_disabled() -> None:
     sample_rate = 48000
     block_size = 128
-    num_channels = 2
+    num_channels: NumChannels = 2
     meter = Meter(
         block_size=block_size,
         num_channels=num_channels,
@@ -134,10 +134,10 @@ def test_lra_disabled():
     assert current_measurement.lra == 0.0
 
 
-def test_true_peak_disabled():
+def test_true_peak_disabled() -> None:
     sample_rate = 48000
     block_size = 128
-    num_channels = 2
+    num_channels: NumChannels = 2
     meter = Meter(
         block_size=block_size,
         num_channels=num_channels,
@@ -164,10 +164,10 @@ def test_true_peak_disabled():
 
 def make_meter(
     block_size: int = 128,
-    num_channels: NumChannelsT = 2,
+    num_channels: NumChannelsT|Literal[2] = 2,
     sample_rate: int = 48000,
     true_peak_enabled: bool = True,
-) -> Meter[NumChannelsT]:
+) -> Meter[NumChannelsT|Literal[2]]:
     return Meter(
         block_size=block_size,
         num_channels=num_channels,
@@ -176,7 +176,7 @@ def make_meter(
     )
 
 
-def test_set_paused_blocks_writes():
+def test_set_paused_blocks_writes() -> None:
     """Writes are discarded while paused; can_write and can_process return False."""
     meter = make_meter()
     meter.set_paused(True)
@@ -190,7 +190,7 @@ def test_set_paused_blocks_writes():
     assert meter.sampler.samples_available == 0
 
 
-def test_set_paused_clears_buffer():
+def test_set_paused_clears_buffer() -> None:
     """Buffered samples are cleared when the meter is paused."""
     meter = make_meter()
     # Write enough blocks to have some buffered data
@@ -202,7 +202,7 @@ def test_set_paused_clears_buffer():
     assert meter.sampler.samples_available == 0
 
 
-def test_set_paused_noop_if_same_state():
+def test_set_paused_noop_if_same_state() -> None:
     """set_paused is idempotent: calling with the current state does nothing."""
     meter = make_meter()
     block = build_samples(meter.block_size, meter.sample_rate)
@@ -213,7 +213,7 @@ def test_set_paused_noop_if_same_state():
     assert meter.sampler.samples_available == samples_before
 
 
-def test_set_paused_resume():
+def test_set_paused_resume() -> None:
     """Unpausing allows writes to proceed again."""
     meter = make_meter()
     meter.set_paused(True)
@@ -222,7 +222,7 @@ def test_set_paused_resume():
     assert meter.can_write()
 
 
-def test_reset_with_true_peak_enabled():
+def test_reset_with_true_peak_enabled() -> None:
     """reset() reinitialises the true-peak processor when true_peak_enabled."""
     meter = make_meter(true_peak_enabled=True)
     N = meter.sampler.total_samples
@@ -236,7 +236,7 @@ def test_reset_with_true_peak_enabled():
     assert meter.true_peak_processor.tp_array.size == 0
 
 
-def test_process_single_block():
+def test_process_single_block() -> None:
     """process(process_all=False) processes exactly one gating block."""
     meter = make_meter()
 
@@ -254,7 +254,7 @@ def test_process_single_block():
 
 
 
-def test_current_measurement_empty():
+def test_current_measurement_empty() -> None:
     """current_measurement returns silence defaults before any block is processed."""
     from lupy.processing import SILENCE_DB
     meter = make_meter()
@@ -265,7 +265,7 @@ def test_current_measurement_empty():
     assert m.time == 0
 
 
-def test_write_all_truncates_non_multiple():
+def test_write_all_truncates_non_multiple() -> None:
     """write_all discards trailing samples that don't fill a complete block.
 
     With an input length of ``3 * block_size + extra`` (well below gate_size),

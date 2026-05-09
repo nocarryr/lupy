@@ -10,6 +10,7 @@ from lupy.sampling import (
     Sampler, TruePeakSampler, ThreadSafeSampler, ThreadSafeTruePeakSampler,
     calc_buffer_length, Slice,
 )
+from lupy.types import NumChannels
 
 
 
@@ -320,7 +321,7 @@ def test_thread_safe_sampler_lock_context():
         pass  # context manager should not raise
 
 
-def test_thread_safe_sampler_concurrent_writes():
+def test_thread_safe_sampler_concurrent_writes() -> None:
     """Multiple threads can write concurrently without raising exceptions.
 
     Each thread uses its own RNG seeded by its index to avoid shared-state
@@ -328,7 +329,7 @@ def test_thread_safe_sampler_concurrent_writes():
     to guarantee that at least one gate-sized read is possible afterwards.
     """
     block_size = 128
-    num_channels = 1
+    num_channels: NumChannels = 1
     sample_rate = 48000
     sampler = ThreadSafeSampler(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
 
@@ -418,7 +419,7 @@ def test_slice_calc_shape_non_last_axis() -> None:
 def test_sampler_write_float32() -> None:
     """Sampler.write converts float32 input to float64 before filtering."""
     block_size = 512
-    num_channels = 1
+    num_channels: NumChannels = 1
     sample_rate = 48000
     sampler = Sampler(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
     rng = np.random.default_rng(0)

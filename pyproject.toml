@@ -79,7 +79,7 @@ dev = [
 ]
 
 [tool.mypy]
-packages = "lupy"
+files = ["src/lupy/", "tests/**/*.py"]
 
 
 [tool.ruff]
