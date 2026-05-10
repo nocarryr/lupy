@@ -24,16 +24,16 @@
 - Use NumChannelsT TypeVar and generic return types: `make_meter(...) -> Meter[NumChannelsT]`
 - **PR #128 merged 2026-05-09**: mypy now type-checks ALL test files (21 source files total, up from 11). All test functions must have proper type annotations.
 
-## Coverage Baseline (after 2026-05-09 run, PR #125 merged)
-- meter.py: 100%
+## Coverage Baseline (after 2026-05-10 run)
+- meter.py: 100% (restored after gaps from partial-reset and mypy PRs)
 - signalutils/sosfilt.py: 100%
 - signalutils/resample.py: 99% (line 99)
 - typeutils.py: 99% (line 14 — typing_extensions import, covered on Python 3.12 in CI)
 - sampling.py: 99% (lines 6, 170)
 - filters.py: 99% (lines 6, 231)
-- processing.py: 99% (lines 6, 425, 489)
+- processing.py: 99% (lines 6, 425, 475, 489)
 - types.py: 99% (line 6)
-- total: 99%
+- total: 99% (8 missed lines, all dead/untestable)
 
 ## Notes on Version-Conditional Imports
 - Lines like `from typing_extensions import Self` (Python < 3.11 branch) show uncovered locally on 3.12
