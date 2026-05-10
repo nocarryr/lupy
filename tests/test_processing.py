@@ -499,6 +499,36 @@ def test_block_processor_momentary_silence(gate_size: int) -> None:
 
 
 @pytest.mark.parametrize("gate_size", [int(48000 * 0.4), 128])
+def test_block_processor_t_property(gate_size: int) -> None:
+    """BlockProcessor.t returns measurement timestamps for each processed gate block."""
+    sample_rate = 48000
+    num_blocks = 3
+    processor = BlockProcessor(num_channels=2, gate_size=gate_size, sample_rate=sample_rate)
+    samples = np.zeros((2, gate_size), dtype=np.float64)
+    for _ in range(num_blocks):
+        processor.process_block(samples)
+    t = processor.t
+    dt = (gate_size / 4) / sample_rate
+    assert len(t) == num_blocks
+    assert t[0] == pytest.approx(0.0)
+    assert t[1] == pytest.approx(dt)
+    assert t[2] == pytest.approx(2 * dt)
+
+
+def test_block_processor_len() -> None:
+    """len(BlockProcessor) returns the number of processed gate blocks."""
+    sample_rate = 48000
+    gate_size = 128
+    processor = BlockProcessor(num_channels=2, gate_size=gate_size, sample_rate=sample_rate)
+    samples = np.zeros((2, gate_size), dtype=np.float64)
+    assert len(processor) == 0
+    processor.process_block(samples)
+    assert len(processor) == 1
+    processor.process_block(samples)
+    assert len(processor) == 2
+
+
+@pytest.mark.parametrize("gate_size", [int(48000 * 0.4), 128])
 def test_true_peak_processor_t_property(gate_size: int) -> None:
     """TruePeakProcessor.t returns measurement times for processed blocks."""
     sample_rate = 48000

@@ -316,3 +316,20 @@ def test_write_all_float32_input() -> None:
     meter_f32.write_all(src_f32)
 
     assert round(meter_f64.integrated_lkfs, 1) == round(meter_f32.integrated_lkfs, 1)
+
+
+def test_meter_t_property() -> None:
+    """Meter.t returns measurement timestamps for each processed gate block."""
+    meter = make_meter(true_peak_enabled=False)
+    gate_size = meter.sampler.gate_size
+    sample_rate = int(meter.sample_rate)
+
+    N = meter.sampler.total_samples
+    src_data = build_samples(N, sample_rate, meter.num_channels)
+    meter.write_all(src_data)
+
+    t = meter.t
+    dt = (gate_size / 4) / sample_rate
+    assert len(t) > 1
+    assert t[0] == pytest.approx(0.0)
+    assert t[1] == pytest.approx(dt)
