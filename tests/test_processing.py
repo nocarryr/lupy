@@ -317,10 +317,24 @@ def test_true_peak_gate_blocks(
 
 
 @pytest.mark.benchmark(group='meter')
-def test_meter_benchmark(sample_rate, random_samples, benchmark) -> None:
+@pytest.mark.parametrize('true_peak_enabled', [
+    pytest.param(True, id=pytest.HIDDEN_PARAM),
+    pytest.param(False, id='true_peak_disabled'),
+])
+def test_meter_benchmark(
+    sample_rate,
+    random_samples,
+    benchmark,
+    true_peak_enabled: bool,
+) -> None:
     block_size = 1024
     num_channels: NumChannels = 2
-    meter = Meter(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
+    meter = Meter(
+        block_size=block_size,
+        num_channels=num_channels,
+        sample_rate=sample_rate,
+        true_peak_enabled=true_peak_enabled,
+    )
 
     N = sample_rate * 1
     if N % block_size != 0:
@@ -348,7 +362,6 @@ def test_meter_benchmark(sample_rate, random_samples, benchmark) -> None:
         warmup_rounds=10,
         rounds=rounds.get(sample_rate, 200),
     )
-
 
 
 ProcessorMode = Literal['integrated', 'momentary', 'short_term', 'lra']
