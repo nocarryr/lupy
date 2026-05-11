@@ -317,10 +317,24 @@ def test_true_peak_gate_blocks(
 
 
 @pytest.mark.benchmark(group='meter')
-def test_meter_benchmark(sample_rate, random_samples, benchmark) -> None:
+@pytest.mark.parametrize('true_peak_enabled', [
+    pytest.param(True, id=pytest.HIDDEN_PARAM),
+    pytest.param(False, id='true_peak_disabled'),
+])
+def test_meter_benchmark(
+    sample_rate,
+    random_samples,
+    benchmark,
+    true_peak_enabled: bool,
+) -> None:
     block_size = 1024
     num_channels: NumChannels = 2
-    meter = Meter(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
+    meter = Meter(
+        block_size=block_size,
+        num_channels=num_channels,
+        sample_rate=sample_rate,
+        true_peak_enabled=true_peak_enabled,
+    )
 
     N = sample_rate * 1
     if N % block_size != 0:
@@ -342,50 +356,6 @@ def test_meter_benchmark(sample_rate, random_samples, benchmark) -> None:
     }
 
     # Using pedantic so that `meter.reset()` isn't included in the measurements
-    benchmark.pedantic(
-        bench,
-        teardown=teardown,
-        warmup_rounds=10,
-        rounds=rounds.get(sample_rate, 200),
-    )
-
-
-@pytest.mark.benchmark(group='meter')
-def test_meter_bs1770_benchmark(sample_rate, random_samples, benchmark):
-    """Benchmark BS1770-only meter throughput (true_peak_enabled=False).
-
-    Provides a control baseline that isolates BS1770 processing from
-    TruePeak FIR cost, useful for measuring improvements to the
-    filter/integration path without TruePeak noise.
-    """
-    block_size = 1024
-    num_channels = 2
-    meter = Meter(
-        block_size=block_size,
-        num_channels=num_channels,
-        sample_rate=sample_rate,
-        true_peak_enabled=False,
-    )
-
-    N = sample_rate * 1
-    if N % block_size != 0:
-        N += block_size - (N % block_size)
-    assert N % block_size == 0
-    src_data = random_samples(num_channels, N)
-
-    def bench():
-        meter.write_all(src_data)
-
-    def teardown():
-        meter.reset()
-
-    rounds = {
-        44100: 300,
-        48000: 300,
-        88200: 200,
-        96000: 200,
-    }
-
     benchmark.pedantic(
         bench,
         teardown=teardown,
