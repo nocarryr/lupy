@@ -130,7 +130,7 @@ def lk_log10(
         return offset + base * np.log10(x)
     if x <= 0:
         x = EPSILON
-    return np.float64(offset + base * math.log10(float(x)))
+    return np.float64(offset + base * math.log10(x))
 
 @overload
 def from_lk_log10(x: FloatArray, offset: float = 0.691) -> FloatArray: ...
