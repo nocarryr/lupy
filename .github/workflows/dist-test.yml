@@ -99,3 +99,23 @@ jobs:
           path: dist
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  # Report workflow status to GitHub for required status checks
+  required-checks-passed:
+    if: always()
+    name: "Required Checks Passed"
+    runs-on: ubuntu-slim
+    needs: [build, test]
+    steps:
+      - name: "Check if all required checks passed"
+        env:
+          NEEDS_JSON: ${{ toJson(needs) }}
+        shell: python
+        run: |
+          import json
+          needs = json.loads('${{ env.NEEDS_JSON }}')
+          for job_name, job in needs.items():
+            if job['conclusion'] != 'success':
+              print(f"Required check '{job_name}' did not pass. Conclusion: {job['conclusion']}")
+              exit(1)
+          print("All required checks passed.")
