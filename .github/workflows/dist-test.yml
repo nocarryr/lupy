@@ -113,7 +113,7 @@ jobs:
         shell: python
         run: |
           import json
-          needs = json.loads('${{ env.NEEDS_JSON }}')
+          needs = json.loads("""${{ env.NEEDS_JSON }}""")
           for job_name, job in needs.items():
             if job['conclusion'] != 'success':
               print(f"Required check '{job_name}' did not pass. Conclusion: {job['conclusion']}")
