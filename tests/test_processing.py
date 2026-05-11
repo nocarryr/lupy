@@ -511,6 +511,24 @@ def test_block_processor_momentary_silence(gate_size: int) -> None:
     assert processor.momentary_lkfs[0] == SILENCE_DB
 
 
+def test_block_processor_t_and_len(sample_rate: int) -> None:
+    """BlockProcessor.t and len() reflect processed gate block count and timestamps."""
+    gate_size = int(sample_rate * 0.4)
+    num_blocks = 3
+    processor = BlockProcessor(num_channels=2, gate_size=gate_size, sample_rate=sample_rate)
+    samples = np.zeros((2, gate_size), dtype=np.float64)
+    assert len(processor) == 0
+    dt = (gate_size / 4) / sample_rate
+    for i in range(num_blocks):
+        processor.process_block(samples)
+        assert len(processor) == i + 1
+    t = processor.t
+    assert len(t) == num_blocks
+    assert t[0] == pytest.approx(0.0)
+    assert t[1] == pytest.approx(dt)
+    assert t[2] == pytest.approx(2 * dt)
+
+
 @pytest.mark.parametrize("gate_size", [int(48000 * 0.4), 128])
 def test_true_peak_processor_t_property(gate_size: int) -> None:
     """TruePeakProcessor.t returns measurement times for processed blocks."""
