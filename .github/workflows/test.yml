@@ -80,8 +80,6 @@ jobs:
           import json
           needs = json.loads("""${{ env.NEEDS_JSON }}""")
           for job_name, job in needs.items():
-            if job['conclusion'] != 'success':
-              print(f"Required check '{job_name}' did not pass. Conclusion: {job['conclusion']}")
             result = job.get('result')
             if result != 'success':
               print(f"Required check '{job_name}' did not pass. Result: {result}")
