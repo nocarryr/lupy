@@ -54,3 +54,8 @@
 - `uv run mypy` now checks 21 source files including all test modules
 - All test functions must have return type annotations (-> None)
 - All parameters must be annotated
+
+## gate_size Convention (from nocarryr review on PR #130)
+- gate_size is ALWAYS 400ms worth of samples: `int(sample_rate * 0.4)`
+- NEVER use arbitrary constants like 128 for gate_size in tests
+- Use `sample_rate` fixture (48000, 44100, 88200, 96000) to vary sample rates
