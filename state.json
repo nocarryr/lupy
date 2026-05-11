@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-05-10T00:02:51Z",
-  "last_run_id": "25615068058",
+  "last_run": "2026-05-11T00:04:40Z",
+  "last_run_id": "25643459269",
   "validated_commands": {
     "install_uv": "curl -LsSf https://astral.sh/uv/install.sh | sh && export PATH=\"$HOME/.local/bin:$PATH\"",
     "install_deps": "uv sync --frozen",
@@ -16,10 +16,10 @@
       "pytest addopts: -n auto --dist=worksteal --doctest-modules (parallel + doctests)",
       "benchmark fixture comes from pytest-codspeed; DO NOT use -p no:codspeed (breaks benchmark tests)",
       "slow marker deselects long-running tests; benchmark tests are NOT marked slow",
-      "test counts: ~191 non-slow (incl benchmarks) on main after PR #127, 946 total",
-      "uv run pytest -m 'not slow' = ~191 passed (benchmark tests included, pass via codspeed fixture)",
+      "test counts: ~193 non-slow (incl benchmarks) on PR #127 branch after merge refactor",
+      "uv run pytest -m 'not slow' = ~191 passed (main), 193 on PR #127 branch",
       "uv run pytest = 946 passed in ~62s",
-      "uv run pytest --codspeed = 22+ benchmarks after PR #127",
+      "uv run pytest --codspeed = 22+ benchmarks",
       "PR #128 (merged 2026-05-09): type checking extended to test files; mypy now checks both src/ and tests/"
     ]
   },
@@ -27,24 +27,24 @@
     "task1_commands": "2026-05-02",
     "task2_opportunities": "2026-05-09",
     "task3_implement": "2026-05-08",
-    "task4_maintain_prs": "2026-05-10",
+    "task4_maintain_prs": "2026-05-11",
     "task5_comment_issues": "2026-05-08",
     "task6_measurement_infra": "2026-05-08",
-    "task7_monthly": "2026-05-10"
+    "task7_monthly": "2026-05-11"
   },
   "open_prs": [
     {
       "branch": "perf-assist/math-log10-scalar-0969ccddcf656e78",
       "pr": 126,
       "title": "Use math.log10 for scalar path in lk_log10",
-      "status": "open, mergeable_state=clean, no human review comments",
+      "status": "open, review addressed 2026-05-11: removed float() cast per maintainer feedback",
       "note": "1.35x speedup on scalar calls, ~35 µs/s at 48kHz. CodSpeed: no change (below threshold). Tests pass, mypy/ruff clean."
     },
     {
       "branch": "perf-assist/bs1770-benchmark-4110f97977d4eaba",
       "pr": 127,
       "title": "Add BS1770-only meter benchmark (true_peak_enabled=False)",
-      "status": "open, mergeable_state=clean, no human review comments",
+      "status": "open, review addressed 2026-05-11: merged test_meter_bs1770_benchmark into test_meter_benchmark via parametrize with pytest.HIDDEN_PARAM",
       "note": "Task 6: adds 4 new benchmarks isolating BS1770 from TruePeak (~63% wall-clock). Tests pass, mypy/ruff clean. CodSpeed: 4 new benchmarks registered."
     }
   ],
@@ -103,7 +103,11 @@
     "PR #120 (revert-codspeed-parallel) open draft: maintainer investigating CodSpeed benchmark instability",
     "2026-05-07: Maintainer asked how to run Perf Improver on Cython branch (#116). Responded 2026-05-08 with /perf-assist option, local build steps, and CI workflow approach.",
     "Cython branch build: git checkout experiment-cythonize-filters && uv sync --frozen && uv run python setup.py build_ext --inplace",
-    "2026-05-09: Maintainer merged PR #128 (extend type checking to test files) and PR #125 (Test Improver: 2 new tests for auto-process and float32 paths in meter)"
+    "2026-05-09: Maintainer merged PR #128 (extend type checking to test files) and PR #125 (Test Improver: 2 new tests for auto-process and float32 paths in meter)",
+    "2026-05-10: Maintainer flagged that PRs #126 and #127 have review comments that were missed in the May 10 run. Both reviewed and addressed in May 11 run.",
+    "PR #126 review: maintainer requested removing float() from math.log10(float(x)) -> math.log10(x). Done.",
+    "PR #127 review: maintainer requested merging test_meter_bs1770_benchmark into test_meter_benchmark via parametrize with pytest.HIDDEN_PARAM for True and 'true_peak_disabled' for False. Done.",
+    "IMPORTANT: Always check get_review_comments for all open PRs, not just PR-level comment count."
   ],
   "perf_notes": [
     "CodSpeed threshold ~10% CPU instruction improvement to register as meaningful.",
@@ -116,7 +120,8 @@
     "DO NOT use -p no:codspeed when running tests - breaks benchmark fixture.",
     "random_samples fixture uses fixed seed (PR #121 merged) - benchmarks more deterministic.",
     "2026-05-09 code review: processing.py, meter.py, sampling.py - all Python-level hot paths fully optimized. No new opportunities above noise floor.",
-    "2026-05-10: PRs #126 and #127 remain clean (mergeable_state=clean). Backlog still thin. No new Python-level opportunities visible."
+    "np.float64 implements __float__ implicitly - no need to wrap math.log10(x) with float(x).",
+    "pytest.HIDDEN_PARAM: hides the param id in benchmark names, keeping existing CodSpeed entries intact when adding new parametrize values."
   ],
   "checked_off_items": [
     "perf-assist/incremental-lra PR (checked off 2026-04)",
@@ -126,7 +131,7 @@
   ],
   "infrastructure_notes": {
     "codspeed_threshold": "~10% CPU instruction improvement to register as meaningful",
-    "benchmark_coverage": "22+ benchmarks after PR #127: block_processor (4 modes), meter (4 rates each with/without TP), TruePeakProcessor (48kHz 4x, 88.2kHz 2x), filter benchmarks, bs1770-only meter (4 rates)",
+    "benchmark_coverage": "22+ benchmarks: block_processor (4 modes), meter (4 rates x 2 true_peak_enabled values after PR #127 refactor), TruePeakProcessor (48kHz 4x, 88.2kHz 2x), filter benchmarks",
     "codspeed_instability": "Maintainer investigating in PR #120 (parallel runs cause instability); PR #121 fixed RNG seed"
   }
 }
