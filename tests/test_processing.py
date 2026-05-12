@@ -501,10 +501,9 @@ def test_block_processor_zij() -> None:
     assert np.all(zij >= 0)
 
 
-@pytest.mark.parametrize("gate_size", [int(48000 * 0.4), int(48000 * 0.1)])
-def test_block_processor_momentary_silence(gate_size: int) -> None:
+def test_block_processor_momentary_silence(sample_rate: int) -> None:
     """Momentary loudness is clamped to SILENCE_DB when the input is all zeros."""
-    sample_rate = 48000
+    gate_size = int(sample_rate * 0.4)
     processor = BlockProcessor(num_channels=2, gate_size=gate_size, sample_rate=sample_rate)
     silence = np.zeros((2, gate_size), dtype=np.float64)
     processor.process_block(silence)
@@ -529,10 +528,9 @@ def test_block_processor_t_and_len(sample_rate: int) -> None:
     assert t[2] == pytest.approx(2 * dt)
 
 
-@pytest.mark.parametrize("gate_size", [int(48000 * 0.4), 128])
-def test_true_peak_processor_t_property(gate_size: int) -> None:
+def test_true_peak_processor_t_property(sample_rate: int) -> None:
     """TruePeakProcessor.t returns measurement times for processed blocks."""
-    sample_rate = 48000
+    gate_size = int(sample_rate * 0.4)
     proc = TruePeakProcessor(num_channels=2, gate_size=gate_size, sample_rate=sample_rate)
     samples = np.zeros((2, gate_size), dtype=np.float64)
     proc.process(samples)
