@@ -6,7 +6,7 @@ from typing import Generic, Literal, Any, Self, overload
 import numpy as np
 import numpy.typing as npt
 
-from lupy.types import Float1dArray, Float2dArray, NumChannelsT
+from lupy.types import Float1dArray, NumChannelsT
 
 
 __all__ = (

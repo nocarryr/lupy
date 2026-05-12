@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TypeVar, Generic, Literal, cast
+from typing import TypeVar, Generic, cast
 from abc import ABC, abstractmethod
 import sys
 if sys.version_info < (3, 11):
@@ -13,7 +13,9 @@ import numpy as np
 from scipy import signal
 
 
-from .types import *
+from .types import (
+    Float1dArray, Float2dArray, AnyArray, SosCoeff, SosZI, NumChannelsT,
+)
 from .signalutils.sosfilt import sosfilt, validate_sos
 from .signalutils.resample import ResamplePoly, calc_tp_fir_win
 from .typeutils import (

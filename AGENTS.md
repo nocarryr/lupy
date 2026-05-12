@@ -115,6 +115,17 @@ uv run mypy
 This should **always** pass without any errors or warnings. If you encounter any type errors, please fix them before committing your code.
 
 
+## Linting
+
+Linting is done using `ruff`. To run linting, use the following command:
+
+```bash
+uv run ruff check
+```
+
+This should **always** pass without any errors or warnings. If you encounter any linting errors, please fix them before committing your code.
+
+
 ## Typing Preferences
 
 - Use strict typing as much as possible.

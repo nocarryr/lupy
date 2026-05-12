@@ -8,11 +8,15 @@ else:
     from typing import Self
 from abc import ABC, abstractmethod
 import bisect
+import math
 
 import numpy as np
 
 from .arraytypes import MeterArray, TruePeakArray
-from .types import *
+from .types import (
+    NumChannelsT, Float1dArray, Float2dArray, Any1dArray,
+    Floating, FloatArray,
+)
 from .typeutils import ensure_nd_array, build_meter_array, build_true_peak_array
 from .filters import TruePeakFilter
 
@@ -123,10 +127,10 @@ def lk_log10(
         return r
     if isinstance(x, np.ndarray):
         x[np.less_equal(x, 0)] = EPSILON
-    elif x <= 0:
+        return offset + base * np.log10(x)
+    if x <= 0:
         x = EPSILON
-    r = offset + base * np.log10(x)
-    return r
+    return np.float64(offset + base * math.log10(x))
 
 @overload
 def from_lk_log10(x: FloatArray, offset: float = 0.691) -> FloatArray: ...
@@ -357,15 +361,16 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
     def reset(self) -> None:
         """Reset all measurement data
         """
+        n = self.block_index
         self.block_data['m'][:] = 0
         self.block_data['s'][:] = 0
-        self._Zij[...] = 0
-        self._block_weighted_sums[:] = 0
-        self._quarter_block_weighted_sums[:] = 0
-        self._block_loudness[:] = 0
+        self._Zij[:, :n] = 0
+        self._block_weighted_sums[:n] = 0
+        self._quarter_block_weighted_sums[:n] = 0
+        self._block_loudness[:n] = 0
         self._rel_threshold = SILENCE_DB
-        self._blocks_above_abs_thresh[:] = False
-        self._blocks_above_rel_thresh[:] = False
+        self._blocks_above_abs_thresh[:n] = False
+        self._blocks_above_rel_thresh[:n] = False
         self._above_rel_running_sum.clear()
         self._above_abs_running_sum.clear()
         self._lra_abs_power_running_sum.clear()
