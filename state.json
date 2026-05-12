@@ -1,17 +1,17 @@
 {
-  "last_run": "2026-05-11T11:52:00Z",
-  "run_id": "25668285260",
-  "tasks_completed": ["task4", "task7"],
+  "last_run": "2026-05-12T11:30:00Z",
+  "run_id": "25731531304",
+  "tasks_completed": ["task3", "task7"],
   "last_tasks": {
     "task1": "2026-05-09",
     "task2": "2026-05-09",
-    "task3": "2026-05-10",
+    "task3": "2026-05-12",
     "task4": "2026-05-11",
     "task5": "2026-05-09",
     "task6": "2026-05-08",
-    "task7": "2026-05-11"
+    "task7": "2026-05-12"
   },
-  "open_prs": ["#130 (test-assist/block-processor-t-len-meter-t-b82b0c03b7d1b063)"],
+  "open_prs": ["#134 (test-assist/fix-gate-size-conventions)"],
   "maintainer_priorities": [
     "CRITICAL: Test Improver MUST read and address code review comments on its own PRs before the maintainer needs to ask.",
     "Per nocarryr comment on PR #86: 'make the [Test Improver] agentic workflow do its job and read the code reviews here. I'm going to delete it otherwise'",
@@ -23,13 +23,15 @@
     "nocarryr: use NumChannelsT TypeVar and Meter[NumChannelsT] generic return type for factory helpers",
     "nocarryr: tests should assert concrete expected values, not tautological property-to-property comparisons",
     "PR #128 (merged 2026-05-09): mypy now type-checks ALL test files — all test functions must have return type annotations and parameter annotations",
-    "gate_size must ALWAYS be 400ms worth of samples at a given sample rate (int(sample_rate * 0.4)); NEVER use arbitrary constants like 128",
-    "Use sample_rate fixture (params: 48000, 44100, 88200, 96000) instead of parametrize with hardcoded sample rates when varying sample rates"
+    "gate_size must ALWAYS be 400ms worth of samples at a given sample rate (int(sample_rate * 0.4)); NEVER use arbitrary constants like 128 or 4800",
+    "Use sample_rate fixture (params: 48000, 44100, 88200, 96000) instead of parametrize with hardcoded sample rates when varying sample rates",
+    "2026-05-12: nocarryr asked Test Improver to apply gate_size 400ms convention to ALL tests it created (via comment on #107)"
   ],
   "checked_off_items": [
     "PR #86 (closed by maintainer; [x] checked in monthly summary)",
     "PR #97 (merged by nocarryr 2026-04-30; remove from suggested actions)",
     "PR #102 (merged by nocarryr 2026-04-30 23:08 UTC; April monthly issue #87 closed)",
-    "PR #125 (merged by nocarryr 2026-05-08; removed from suggested actions)"
+    "PR #125 (merged by nocarryr 2026-05-08; removed from suggested actions)",
+    "PR #130 (merged by nocarryr 2026-05-11; removed from suggested actions)"
   ]
 }

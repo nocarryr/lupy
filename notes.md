@@ -24,8 +24,8 @@
 - Use NumChannelsT TypeVar and generic return types: `make_meter(...) -> Meter[NumChannelsT]`
 - **PR #128 merged 2026-05-09**: mypy now type-checks ALL test files (21 source files total, up from 11). All test functions must have proper type annotations.
 
-## Coverage Baseline (after 2026-05-10 run)
-- meter.py: 100% (restored after gaps from partial-reset and mypy PRs)
+## Coverage Baseline (after 2026-05-12 run)
+- meter.py: 100%
 - signalutils/sosfilt.py: 100%
 - signalutils/resample.py: 99% (line 99)
 - typeutils.py: 99% (line 14 — typing_extensions import, covered on Python 3.12 in CI)
@@ -55,7 +55,9 @@
 - All test functions must have return type annotations (-> None)
 - All parameters must be annotated
 
-## gate_size Convention (from nocarryr review on PR #130)
+## gate_size Convention (from nocarryr review on PR #130 + comment on #107)
 - gate_size is ALWAYS 400ms worth of samples: `int(sample_rate * 0.4)`
-- NEVER use arbitrary constants like 128 for gate_size in tests
-- Use `sample_rate` fixture (48000, 44100, 88200, 96000) to vary sample rates
+- NEVER use arbitrary constants like 128 or int(48000*0.1) for gate_size in tests
+- Use `sample_rate` fixture (params: 48000, 44100, 88200, 96000) to vary sample rates
+- nocarryr explicitly asked (2026-05-12) to audit ALL Test Improver tests for this convention
+- PR #134: fixed test_block_processor_momentary_silence and test_true_peak_processor_t_property
