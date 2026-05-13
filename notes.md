@@ -19,21 +19,33 @@
 - AVOID quoted forward references (e.g. -> 'Meter') when the class is already imported
 - Test Improver MUST read and address code review comments on its own PRs before the maintainer needs to ask
 - PR #86 was closed because Test Improver didn't address sourcery-ai reviews itself
-- Use `ensure_*` functions from lupy.typeutils instead of type: ignore — e.g. `validate_sos(ensure_2d_array(sos))` lets mypy narrow the type without type: ignore
-- Keep type: ignore ONLY where the shape/type is intentionally wrong for the test (e.g. passing 1D to a 2D-expecting fn, float32 to float64-expecting fn)
+- Use `ensure_*` functions from lupy.typeutils instead of type: ignore
+- Keep type: ignore ONLY where the shape/type is intentionally wrong for the test
 - Use NumChannelsT TypeVar and generic return types: `make_meter(...) -> Meter[NumChannelsT]`
-- **PR #128 merged 2026-05-09**: mypy now type-checks ALL test files (21 source files total, up from 11). All test functions must have proper type annotations.
+- **PR #128 merged 2026-05-09**: mypy now type-checks ALL test files (21 source files total). All test functions must have proper type annotations.
 
-## Coverage Baseline (after 2026-05-12 run)
+## Coverage Baseline (after 2026-05-13 run)
 - meter.py: 100%
 - signalutils/sosfilt.py: 100%
 - signalutils/resample.py: 99% (line 99)
 - typeutils.py: 99% (line 14 — typing_extensions import, covered on Python 3.12 in CI)
 - sampling.py: 99% (lines 6, 170)
 - filters.py: 99% (lines 6, 231)
-- processing.py: 99% (lines 6, 425, 475, 489)
+- processing.py: 99% (lines 6, 426, 490)
 - types.py: 99% (line 6)
-- total: 99% (8 missed lines, all dead/untestable)
+- total: 99% (10 missed lines, all dead/untestable)
+
+## Notes on Line 426 (processing.py) — CONFIRMED DEAD CODE
+- Line 426 `rs += cur_block_wsum` is the fast path in `_calc_gating` when the
+  relative threshold hasn't changed between consecutive calls.
+- Due to the Sampler's 75% overlapping windowed design, adjacent gate blocks always
+  have slightly different LK values (windowed energy varies per gate).
+- The running mean therefore changes on every block, causing `rel_threshold_changed=True`
+  on virtually every call — even with constant-frequency sine wave input.
+- Line 426 can only be triggered by feeding identical constant-energy blocks directly
+  via `BlockProcessor.process_block()` (bypassing the Sampler). This is an artificial
+  scenario not worth testing.
+- Investigated and confirmed 2026-05-13.
 
 ## Notes on Version-Conditional Imports
 - Lines like `from typing_extensions import Self` (Python < 3.11 branch) show uncovered locally on 3.12
@@ -60,4 +72,4 @@
 - NEVER use arbitrary constants like 128 or int(48000*0.1) for gate_size in tests
 - Use `sample_rate` fixture (params: 48000, 44100, 88200, 96000) to vary sample rates
 - nocarryr explicitly asked (2026-05-12) to audit ALL Test Improver tests for this convention
-- PR #134: fixed test_block_processor_momentary_silence and test_true_peak_processor_t_property
+- PR #134 (merged 2026-05-12): fixed test_block_processor_momentary_silence and test_true_peak_processor_t_property
