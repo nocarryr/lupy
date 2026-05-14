@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-05-13T00:08:05Z",
-  "last_run_id": "25769677297",
+  "last_run": "2026-05-14T00:08:21Z",
+  "last_run_id": "25833658693",
   "validated_commands": {
     "install_uv": "curl -LsSf https://astral.sh/uv/install.sh | sh && export PATH=\"$HOME/.local/bin:$PATH\"",
     "install_deps": "uv sync --frozen",
@@ -16,7 +16,7 @@
       "pytest addopts: -n auto --dist=worksteal --doctest-modules (parallel + doctests)",
       "benchmark fixture comes from pytest-codspeed; DO NOT use -p no:codspeed (breaks benchmark tests)",
       "slow marker deselects long-running tests; benchmark tests are NOT marked slow",
-      "uv run pytest -m 'not slow' = ~202 passed (2026-05-13 after Test Improver additions)",
+      "uv run pytest -m 'not slow' = ~202 passed (2026-05-14 unchanged from 2026-05-13)",
       "uv run pytest = 946 passed in ~62s",
       "uv run pytest --codspeed = 22+ benchmarks",
       "PR #126 (merged 2026-05-11): math.log10 for scalar lk_log10",
@@ -25,13 +25,13 @@
     ]
   },
   "tasks_last_run": {
-    "task1_commands": "2026-05-13",
-    "task2_opportunities": "2026-05-13",
+    "task1_commands": "2026-05-14",
+    "task2_opportunities": "2026-05-14",
     "task3_implement": "2026-05-08",
     "task4_maintain_prs": "2026-05-12",
     "task5_comment_issues": "2026-05-08",
     "task6_measurement_infra": "2026-05-13",
-    "task7_monthly": "2026-05-13"
+    "task7_monthly": "2026-05-14"
   },
   "open_prs": [],
   "closed_prs": [
@@ -84,8 +84,8 @@
   "optimization_backlog": [
     {
       "id": "truepeak-fir-optimization",
-      "desc": "Vendoring/trimming _upfirdn_apply.pyx. TruePeak FIR is ~63% of wall-clock time. Maintainer exploring in PR #116.",
-      "impact": "Up to 63% of Meter.write_all (dominant bottleneck)",
+      "desc": "Vendoring/trimming _upfirdn_apply.pyx. TruePeak FIR is ~36% of wall-clock time (was ~63% before sosfilt batch). Maintainer exploring in PR #116.",
+      "impact": "Up to 36% of Meter.write_all (dominant bottleneck)",
       "feasibility": "low-medium (Cython, maintainer exploring)"
     },
     {
@@ -106,7 +106,7 @@
   ],
   "perf_notes": [
     "CodSpeed threshold ~10% CPU instruction improvement to register as meaningful.",
-    "TruePeak FIR dominance: ~63% wall-clock (3.52ms total vs 1.32ms BS1770-only at 48kHz).",
+    "TruePeak FIR dominance: ~36% wall-clock (reduced from ~63% after sosfilt batch PR #119).",
     "lk_log10 scalar: math.log10 is 1.35x faster than np.log10 for scalar np.float64 (490ns -> 364ns). PR #126 merged.",
     "sosfilt batching in write_all: 46 calls -> 1 = 1.85x faster filter step. CodSpeed: +11-23% (PR #119 merged).",
     "BlockProcessor.reset() partial zeroing: ~136 µs full -> ~3 µs for 10-block session (41x). PR #123 merged.",
@@ -117,7 +117,9 @@
     "2026-05-09 code review: processing.py, meter.py, sampling.py - all Python-level hot paths fully optimized. No new opportunities above noise floor.",
     "2026-05-13 infra review: filter benchmarks (test_filters.py) only cover 48kHz; meter benchmarks cover all 4 rates end-to-end. Coverage is adequate.",
     "np.float64 implements __float__ implicitly - no need to wrap math.log10(x) with float(x).",
-    "pytest.HIDDEN_PARAM: hides the param id in benchmark names, keeping existing CodSpeed entries intact when adding new parametrize values."
+    "pytest.HIDDEN_PARAM: hides the param id in benchmark names, keeping existing CodSpeed entries intact when adding new parametrize values.",
+    "2026-05-14: Slice.slice() overhead ~2µs/call (97 calls/10s) = <200µs total, negligible vs TruePeak FIR. Not worth optimizing.",
+    "2026-05-14: write_all RTF: 44100Hz=181x, 48000Hz=172x, 88200Hz=126x, 96000Hz=111x (wall-clock, Python runtime, no Cython)."
   ],
   "checked_off_items": [
     "perf-assist/incremental-lra PR (checked off 2026-04)",
@@ -131,6 +133,6 @@
     "codspeed_threshold": "~10% CPU instruction improvement to register as meaningful",
     "benchmark_coverage": "22+ benchmarks: block_processor (4 modes), meter (4 rates x 2 true_peak_enabled values after PR #127 merged), TruePeakProcessor (48kHz 4x, 88.2kHz 2x), filter benchmarks (48kHz only, but meter covers all rates end-to-end)",
     "codspeed_instability": "Maintainer investigating in PR #120 (parallel runs cause instability); PR #121 fixed RNG seed",
-    "test_count_fast": "202 (as of 2026-05-13)"
+    "test_count_fast": "202 (as of 2026-05-14)"
   }
 }
