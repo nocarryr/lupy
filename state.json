@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-05-15T00:06:47Z",
-  "last_run_id": "25892778041",
+  "last_run": "2026-05-16T00:06:04Z",
+  "last_run_id": "25947228740",
   "validated_commands": {
     "install_uv": "curl -LsSf https://astral.sh/uv/install.sh | sh && export PATH=\"$HOME/.local/bin:$PATH\"",
     "install_deps": "uv sync --frozen",
@@ -16,23 +16,24 @@
       "pytest addopts: -n auto --dist=worksteal --doctest-modules (parallel + doctests)",
       "benchmark fixture comes from pytest-codspeed; DO NOT use -p no:codspeed (breaks benchmark tests)",
       "slow marker deselects long-running tests; benchmark tests are NOT marked slow",
-      "uv run pytest -m 'not slow' = ~202 passed (2026-05-15 unchanged from 2026-05-14)",
+      "uv run pytest -m 'not slow' = ~202 passed (2026-05-16 unchanged from 2026-05-15)",
       "uv run pytest = 946 passed in ~62s",
       "uv run pytest --codspeed = 22+ benchmarks",
       "PR #126 (merged 2026-05-11): math.log10 for scalar lk_log10",
       "PR #127 (merged 2026-05-11): BS1770-only meter benchmark (parametrized test_meter_benchmark)",
       "PR #128 (merged 2026-05-09): type checking extended to test files; mypy now checks both src/ and tests/",
-      "PR #120 (merged 2026-05-14): revert to non-parallel codspeed runs"
+      "PR #120 (merged 2026-05-14): revert to non-parallel codspeed runs",
+      "PR #135 (merged ~2026-05-16): update dependency numpy to <=2.4.5 (no breaking changes)"
     ]
   },
   "tasks_last_run": {
-    "task1_commands": "2026-05-15",
-    "task2_opportunities": "2026-05-15",
+    "task1_commands": "2026-05-16",
+    "task2_opportunities": "2026-05-16",
     "task3_implement": "2026-05-08",
     "task4_maintain_prs": "2026-05-12",
-    "task5_comment_issues": "2026-05-08",
+    "task5_comment_issues": "2026-05-16",
     "task6_measurement_infra": "2026-05-13",
-    "task7_monthly": "2026-05-15"
+    "task7_monthly": "2026-05-16"
   },
   "open_prs": [],
   "closed_prs": [
@@ -103,7 +104,8 @@
     "2026-05-09: Maintainer merged PR #128 (extend type checking to test files) and PR #125 (Test Improver: 2 new tests for auto-process and float32 paths in meter)",
     "PR #126 and #127 MERGED 2026-05-11 by nocarryr.",
     "IMPORTANT: Always check get_review_comments for all open PRs, not just PR-level comment count.",
-    "PR #131 (report-required-checks) open as of 2026-05-13 - maintainer PR, not Perf Improver"
+    "PR #131 (report-required-checks) open as of 2026-05-13 - maintainer PR, not Perf Improver",
+    "PR #135 merged: numpy version bumped to <=2.4.5 (renovate) - no breaking changes to lupy"
   ],
   "perf_notes": [
     "CodSpeed threshold ~10% CPU instruction improvement to register as meaningful.",
@@ -120,7 +122,9 @@
     "np.float64 implements __float__ implicitly - no need to wrap math.log10(x) with float(x).",
     "pytest.HIDDEN_PARAM: hides the param id in benchmark names, keeping existing CodSpeed entries intact when adding new parametrize values.",
     "2026-05-14: Slice.slice() overhead ~2µs/call (97 calls/10s) = <200µs total, negligible vs TruePeak FIR. Not worth optimizing.",
-    "2026-05-14: write_all RTF: 44100Hz=181x, 48000Hz=172x, 88200Hz=126x, 96000Hz=111x (wall-clock, Python runtime, no Cython)."
+    "2026-05-14: write_all RTF: 44100Hz=181x, 48000Hz=172x, 88200Hz=126x, 96000Hz=111x (wall-clock, Python runtime, no Cython).",
+    "2026-05-16: ensure_2d_array is just an assert+return (ndim check); negligible overhead. Not worth removing from hot path.",
+    "2026-05-16: np.abs(tp_vals).max(axis=1) in TruePeakProcessor.process - possible to avoid intermediate array with np.maximum(max, -min) but gain below CodSpeed threshold vs FIR dominance."
   ],
   "checked_off_items": [
     "perf-assist/incremental-lra PR (checked off 2026-04)",
@@ -134,6 +138,6 @@
     "codspeed_threshold": "~10% CPU instruction improvement to register as meaningful",
     "benchmark_coverage": "22+ benchmarks: block_processor (4 modes), meter (4 rates x 2 true_peak_enabled values after PR #127 merged), TruePeakProcessor (48kHz 4x, 88.2kHz 2x), filter benchmarks (48kHz only, but meter covers all rates end-to-end)",
     "codspeed_instability": "PR #120 merged 2026-05-14: reverted parallel CodSpeed runs; now sequential again",
-    "test_count_fast": "202 (as of 2026-05-15)"
+    "test_count_fast": "202 (as of 2026-05-16)"
   }
 }
