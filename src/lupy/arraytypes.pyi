@@ -25,7 +25,7 @@ class TruePeakDtype(np.void, Generic[NumChannelsT]): ... # type: ignore[misc]
 _MeterArrayFields = Literal['t', 'm', 's']
 
 
-class MeterArray(npt.NDArray[np.void]):
+class MeterArray(np.ndarray[tuple[int], np.dtype[np.void]]):
     @overload
     def __getitem__(self, key: int|slice[Any, Any, Any]) -> Self: ...
     @overload
@@ -37,7 +37,7 @@ class MeterArray(npt.NDArray[np.void]):
 _TruePeakArrayFields = Literal['t', 'tp']
 
 
-class TruePeakArray(npt.NDArray[np.void], Generic[NumChannelsT]):
+class TruePeakArray(np.ndarray[tuple[int], np.dtype[np.void]], Generic[NumChannelsT]):
     @overload
     def __getitem__(self, key: int|slice[Any, Any, Any]) -> Self: ...
     @overload
