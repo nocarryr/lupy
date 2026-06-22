@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Generic
 
 import numpy as np
-import numpy.typing as npt
 
 
 from .types import NumChannelsT
@@ -54,13 +53,13 @@ class TruePeakDtype(np.void, Generic[NumChannelsT]):
     """
 
 
-class MeterArray(npt.NDArray[np.void]):
+class MeterArray(np.ndarray[tuple[int], np.dtype[np.void]]):
     """Array with dtype :obj:`MeterDtype`
     """
     pass
 
 
-class TruePeakArray(npt.NDArray[np.void], Generic[NumChannelsT]):
+class TruePeakArray(np.ndarray[tuple[int], np.dtype[np.void]], Generic[NumChannelsT]):
     """Array with dtype :obj:`TruePeakDtype`
     """
     pass
