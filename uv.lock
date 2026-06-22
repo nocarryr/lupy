@@ -674,7 +674,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "numpy", specifier = "<=2.5.0" },
+    { name = "numpy", specifier = "<=2.4.6" },
     { name = "scipy", specifier = "<=1.18.0" },
     { name = "typing-extensions", marker = "python_full_version < '3.13'" },
 ]
