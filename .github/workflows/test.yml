@@ -11,6 +11,7 @@ on:
       - "tests/**"
       - ".github/workflows/test.yml"
   pull_request:
+    branches: [ "main" ]
     paths:
       - "pyproject.toml"
       - "uv.lock"
