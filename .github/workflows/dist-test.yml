@@ -3,13 +3,13 @@ name: Test from sdist and wheels
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
     paths:
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/dist-test.yml"
   pull_request:
-    branches: [ main ]
+    branches: [ "main" ]
     paths:
       - "pyproject.toml"
       - "uv.lock"
