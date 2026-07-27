@@ -1,7 +1,9 @@
 from __future__ import annotations
-from typing import TypeVar, Generic, cast
-from abc import ABC, abstractmethod
+
 import sys
+from abc import ABC, abstractmethod
+from typing import Generic, TypeVar, cast
+
 if sys.version_info < (3, 11):
     from typing_extensions import Self
 else:
@@ -12,14 +14,22 @@ from dataclasses import dataclass
 import numpy as np
 from scipy import signal
 
-
-from .types import (
-    Float1dArray, Float2dArray, AnyArray, SosCoeff, SosZI, NumChannelsT,
-)
-from .signalutils.sosfilt import sosfilt, validate_sos
 from .signalutils.resample import ResamplePoly, calc_tp_fir_win
+from .signalutils.sosfilt import sosfilt, validate_sos
+from .types import (
+    AnyArray,
+    Float1dArray,
+    Float2dArray,
+    NumChannelsT,
+    SosCoeff,
+    SosZI,
+)
 from .typeutils import (
-    ensure_1d_array, ensure_2d_array, is_3d_array, is_1d_array, is_float64_array,
+    ensure_1d_array,
+    ensure_2d_array,
+    is_1d_array,
+    is_3d_array,
+    is_float64_array,
 )
 
 T = TypeVar('T')
@@ -163,9 +173,7 @@ def _check_filt_input(x: Float1dArray|Float2dArray) -> Float2dArray:
     return ensure_2d_array(x)
 
 
-class BaseFilter(Generic[T, NumChannelsT], ABC):
-    """
-    """
+class BaseFilter(ABC, Generic[T, NumChannelsT]):
 
     coeff: T
     """The filter coefficients"""

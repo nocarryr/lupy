@@ -1,17 +1,29 @@
 from __future__ import annotations
 
-from typing import Iterable, Literal, get_args
-import pytest
+from collections.abc import Iterable
+from typing import Literal, get_args
+
 import numpy as np
-
-from lupy import Meter, BlockProcessor
-from lupy.processing import SILENCE_DB, RunningSum, lk_log10, from_lk_log10, TruePeakProcessor
-from lupy.types import FloatArray, NumChannels, NumChannelsT, ChannelIndex, CurrentMeasurement
-from lupy.typeutils import is_array_of_shape
-
-from conftest import gen_1k_sine
+import pytest
 from compliance_cases import BS2217_NPZ_DIR
+from conftest import gen_1k_sine
 
+from lupy import BlockProcessor, Meter
+from lupy.processing import (
+    SILENCE_DB,
+    RunningSum,
+    TruePeakProcessor,
+    from_lk_log10,
+    lk_log10,
+)
+from lupy.types import (
+    ChannelIndex,
+    CurrentMeasurement,
+    FloatArray,
+    NumChannels,
+    NumChannelsT,
+)
+from lupy.typeutils import is_array_of_shape
 
 
 @pytest.fixture(params=[True, False])
@@ -138,13 +150,13 @@ def test_compliance_cases(sample_rate, compliance_case) -> None:
     tp_target = compliance_case.result.true_peak
 
     if momentary_target is not None:
-        lufs, lu, tol = momentary_target
+        lufs, _lu, tol = momentary_target
         assert lufs - tol <= momentary <= lufs + tol
     if short_term_target is not None:
-        lufs, lu, tol = short_term_target
+        lufs, _lu, tol = short_term_target
         assert lufs - tol <= short_term <= lufs + tol
     if integrated_target is not None:
-        lufs, lu, tol = integrated_target
+        lufs, _lu, tol = integrated_target
         assert lufs - tol <= integrated <= lufs + tol
     if lra_target is not None:
         lra_lu, tol = lra_target
@@ -191,7 +203,7 @@ def test_bs2217_compliance_cases(bs_2217_compliance_case) -> None:
     integrated_target = bs_2217_compliance_case.result.integrated
 
     assert integrated_target is not None
-    lufs, lu, tol = integrated_target
+    lufs, _lu, tol = integrated_target
 
     if np.isneginf(lufs):
         # We treat -inf as -200 dBFS
@@ -241,9 +253,8 @@ def test_meter_current_measurement(all_channels) -> None:
     assert current_measurement.true_peak_max == -np.inf
 
 
-    write_index = 0
     gate_block_index = 0
-    prev_measurement: CurrentMeasurement|None = None
+    prev_measurement: CurrentMeasurement | None = None
 
     for i in range(num_blocks):
         block = src_data[:, i, :]
@@ -265,7 +276,6 @@ def test_meter_current_measurement(all_channels) -> None:
 
             prev_measurement = current_measurement
             gate_block_index += 1
-        write_index += 1
 
 
 @pytest.mark.slow

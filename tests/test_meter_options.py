@@ -1,15 +1,15 @@
 from __future__ import annotations
-from typing import Iterable, Literal
 
-import pytest
+from collections.abc import Iterable
+from typing import Literal
+
 import numpy as np
-
-from lupy import Meter
-from lupy.types import NumChannelsT, NumChannels
-from lupy.typeutils import is_array_of_shape
-
+import pytest
 from conftest import gen_1k_sine
 
+from lupy import Meter
+from lupy.types import NumChannels, NumChannelsT
+from lupy.typeutils import is_array_of_shape
 
 
 def build_samples(

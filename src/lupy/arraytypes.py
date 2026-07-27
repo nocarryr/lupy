@@ -4,11 +4,13 @@ from typing import Generic
 
 import numpy as np
 
-
 from .types import NumChannelsT
 
 __all__ = (
-    'MeterDtype', 'MeterArray', 'TruePeakDtype', 'TruePeakArray',
+    'MeterArray',
+    'MeterDtype',
+    'TruePeakArray',
+    'TruePeakDtype',
 )
 
 
@@ -56,10 +58,8 @@ class TruePeakDtype(np.void, Generic[NumChannelsT]):
 class MeterArray(np.ndarray[tuple[int], np.dtype[np.void]]):
     """Array with dtype :obj:`MeterDtype`
     """
-    pass
 
 
 class TruePeakArray(np.ndarray[tuple[int], np.dtype[np.void]], Generic[NumChannelsT]):
     """Array with dtype :obj:`TruePeakDtype`
     """
-    pass

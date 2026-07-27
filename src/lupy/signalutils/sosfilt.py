@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from typing import cast
 
 import numpy as np
@@ -6,12 +7,10 @@ from scipy.signal._sosfilt import _sosfilt
 
 from ..types import (
     Float2dArray,
-    SosZI,
     SosCoeff,
+    SosZI,
 )
 from ..typeutils import ensure_2d_array
-
-
 
 
 # Adapted from:
@@ -94,10 +93,12 @@ def sosfilt(sos: SosCoeff, x: Float2dArray, zi: SosZI, axis: int = -1) -> tuple[
     # make a copy so that we can operate in place
     zi = np.array(zi, dtype) # type: ignore[arg-type]
     if zi.shape != x_zi_shape:
-        raise ValueError('Invalid zi shape. With axis=%r, an input with '
-                         'shape %r, and an sos array with %d sections, zi '
-                         'must have shape %r, got %r.' %
-                         (axis, x.shape, n_sections, x_zi_shape, zi.shape))
+        raise ValueError(
+            f'Invalid zi shape. With axis={axis!r}, an input with '
+            f'shape {x.shape!r}, and an sos array with {n_sections} '
+            f'sections, zi must have shape {x_zi_shape!r}, '
+            f'got {zi.shape!r}.',
+        )
 
     axis = axis % x.ndim  # make positive
 

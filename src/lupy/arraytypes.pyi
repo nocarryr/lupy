@@ -1,16 +1,17 @@
 # mypy: disable-error-code="override"
-from __future__ import annotations
 
-from typing import Generic, Literal, Any, Self, overload
+from typing import Any, Generic, Literal, Self, TypeAlias, overload
 
 import numpy as np
 import numpy.typing as npt
 
 from lupy.types import Float1dArray, NumChannelsT
 
-
 __all__ = (
-    'MeterDtype', 'MeterArray', 'TruePeakDtype', 'TruePeakArray',
+    'MeterArray',
+    'MeterDtype',
+    'TruePeakArray',
+    'TruePeakDtype',
 )
 
 MeterDtype = np.dtype([
@@ -22,7 +23,7 @@ MeterDtype = np.dtype([
 class TruePeakDtype(np.void, Generic[NumChannelsT]): ... # type: ignore[misc]
 
 
-_MeterArrayFields = Literal['t', 'm', 's']
+_MeterArrayFields: TypeAlias = Literal['t', 'm', 's']
 
 
 class MeterArray(np.ndarray[tuple[int], np.dtype[np.void]]):
@@ -32,9 +33,6 @@ class MeterArray(np.ndarray[tuple[int], np.dtype[np.void]]):
     def __getitem__(self, key: _MeterArrayFields) -> Float1dArray: ...
 
     def view(self, dtype: np.dtype|type[npt.NDArray[Any]]) -> Self: ...
-
-
-_TruePeakArrayFields = Literal['t', 'tp']
 
 
 class TruePeakArray(np.ndarray[tuple[int], np.dtype[np.void]], Generic[NumChannelsT]):
