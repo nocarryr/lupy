@@ -1,15 +1,15 @@
 from __future__ import annotations
 
+import bisect
+import math
 import sys
+from abc import ABC, abstractmethod
 from typing import Generic, overload
 
 if sys.version_info < (3, 11):
     from typing_extensions import Self
 else:
     from typing import Self
-import bisect
-import math
-from abc import ABC, abstractmethod
 
 import numpy as np
 

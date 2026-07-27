@@ -148,7 +148,7 @@ def test_buffer_length(sample_rate, block_size):
     step = 1 - overlap
     N = bfr_shape.total_samples
     T = N / sample_rate
-    n_blocks = int(np.round((T - T_g) / (T_g * step))+1)
+    n_blocks = int(np.round((T - T_g) / (T_g * step) + 1))
     assert bfr_shape.num_gate_blocks == n_blocks
     assert bfr_shape.gate_size / bfr_shape.pad_size == 4
 

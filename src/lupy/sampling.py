@@ -1,16 +1,16 @@
 from __future__ import annotations
 
+import math
 import sys
+import threading
+from abc import ABC, abstractmethod
+from fractions import Fraction
 from typing import Generic, NamedTuple, TypeVar
 
 if sys.version_info < (3, 11):
     from typing_extensions import Self
 else:
     from typing import Self
-import math
-import threading
-from abc import ABC, abstractmethod
-from fractions import Fraction
 
 import numpy as np
 
