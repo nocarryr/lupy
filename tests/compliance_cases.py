@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import itertools
 import json
-import math
 from pathlib import Path
 from typing import Literal, NamedTuple
 
@@ -83,7 +82,7 @@ class ComplianceInput(NamedTuple):
     taper_dur: float|None = None
 
     def generate(self, sample_rate: int, num_channels: NumChannels) -> Float2dArray:
-        N = math.floor(sample_rate * self.duration + 0.5)
+        N: int = round(sample_rate * self.duration)
         samples = np.zeros((num_channels, N), dtype=np.float64)
         fc_normalized = self.fc
         if fc_normalized is None:
