@@ -1,13 +1,7 @@
 from __future__ import annotations
 
-import sys
-from typing import Any, Generic, Literal, TypeVar
-
-if sys.version_info < (3, 11):
-    from typing import TypeAlias
-else:
-    from typing import TypeAlias
 from dataclasses import dataclass
+from typing import Any, Generic, Literal, TypeAlias, TypeVar
 
 import numpy as np
 import numpy.typing as npt
