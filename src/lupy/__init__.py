@@ -1,19 +1,18 @@
+from .meter import Meter
+from .processing import BlockProcessor, TruePeakProcessor
 from .sampling import (
     Sampler,
-    TruePeakSampler,
     ThreadSafeSampler,
     ThreadSafeTruePeakSampler,
+    TruePeakSampler,
 )
-from .processing import BlockProcessor, TruePeakProcessor
-from .meter import Meter
-
 
 __all__ = [
+    "BlockProcessor",
+    "Meter",
     "Sampler",
-    "TruePeakSampler",
     "ThreadSafeSampler",
     "ThreadSafeTruePeakSampler",
-    "BlockProcessor",
     "TruePeakProcessor",
-    "Meter",
+    "TruePeakSampler",
 ]

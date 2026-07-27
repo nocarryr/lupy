@@ -1,16 +1,20 @@
 from __future__ import annotations
 
-from typing import overload
 import os
 from fractions import Fraction
+from typing import overload
+
 import numpy as np
 import pytest
-
-from lupy.types import FloatArray, ShapeT, NumChannels, ChannelIndex
 from compliance_cases import (
-    ComplianceBase, cases_by_name, all_cases, true_peak_cases,
+    ComplianceBase,
+    all_cases,
     bs_2217_compliance_cases,
+    cases_by_name,
+    true_peak_cases,
 )
+
+from lupy.types import ChannelIndex, FloatArray, NumChannels, ShapeT
 
 IS_CI = 'CI' in os.environ
 

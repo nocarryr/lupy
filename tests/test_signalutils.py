@@ -4,8 +4,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from lupy.signalutils.sosfilt import validate_sos, sosfilt
-from lupy.signalutils.resample import _UpFIRDn, ResamplePoly, calc_tp_fir_win
+from lupy.signalutils.resample import ResamplePoly, _UpFIRDn, calc_tp_fir_win
+from lupy.signalutils.sosfilt import sosfilt, validate_sos
 from lupy.typeutils import ensure_2d_array
 
 

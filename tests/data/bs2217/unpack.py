@@ -1,10 +1,11 @@
 from __future__ import annotations
-from typing import NamedTuple, Literal, cast
-from pathlib import Path
+
+import json
 import shutil
 import tempfile
 import zipfile
-import json
+from pathlib import Path
+from typing import Literal, NamedTuple, cast
 
 import numpy as np
 from scipy.io import wavfile
@@ -87,33 +88,35 @@ def unpack_zipfile(zip_filename: Path, wav_dir: Path) -> Path:
     """Unpack the given zip file and place its contents (a single .wav file) into the given directory
 
     """
-    with zipfile.ZipFile(zip_filename, 'r') as zip_file:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-            zip_file.extractall(temp_path)
-            wav_files = list(temp_path.glob('*.wav'))
-            if len(wav_files) != 1:
-                raise ValueError(f'Expected exactly one .wav file in the zip archive, found {len(wav_files)}')
-            wav_file = wav_files[0]
-            base_name = wav_file.stem
-            if base_name not in METADATA:
-                # check for wav file named with spaces instead of underscores
-                # alt_meta_name = base_name.replace('_', ' ').replace('-', ' ')
-                alt_base_name = base_name.replace(' ', '_').replace('-', '_')
-                for meta_name in METADATA.keys():
-                    if meta_name.replace(' ', '_').replace('-', '_') == alt_base_name:
-                        base_name = meta_name
-                        break
-                else:
-                    raise ValueError(f'No metadata found for {base_name}')
-            wav_file_renamed = wav_file.parent / (base_name + '.wav')
-            wav_file.rename(wav_file_renamed)
-            wav_file = wav_file_renamed
-            dest_file = wav_dir / wav_file.name
-            if dest_file.exists():
-                return dest_file
-            shutil.copy(wav_file, dest_file)
+    with (
+        zipfile.ZipFile(zip_filename, 'r') as zip_file,
+        tempfile.TemporaryDirectory() as temp_dir,
+    ):
+        temp_path = Path(temp_dir)
+        zip_file.extractall(temp_path)
+        wav_files = list(temp_path.glob('*.wav'))
+        if len(wav_files) != 1:
+            raise ValueError(f'Expected exactly one .wav file in the zip archive, found {len(wav_files)}')
+        wav_file = wav_files[0]
+        base_name = wav_file.stem
+        if base_name not in METADATA:
+            # check for wav file named with spaces instead of underscores
+            # alt_meta_name = base_name.replace('_', ' ').replace('-', ' ')
+            alt_base_name = base_name.replace(' ', '_').replace('-', '_')
+            for meta_name in METADATA:
+                if meta_name.replace(' ', '_').replace('-', '_') == alt_base_name:
+                    base_name = meta_name
+                    break
+            else:
+                raise ValueError(f'No metadata found for {base_name}')
+        wav_file_renamed = wav_file.parent / (base_name + '.wav')
+        wav_file.rename(wav_file_renamed)
+        wav_file = wav_file_renamed
+        dest_file = wav_dir / wav_file.name
+        if dest_file.exists():
             return dest_file
+        shutil.copy(wav_file, dest_file)
+        return dest_file
 
 
 def unpack_all_zipfiles():
@@ -180,7 +183,7 @@ def convert_all_wav_to_npz() -> None:
         wav_file = WAV_DIR / (meta.name + '.wav')
         if not wav_file.exists():
             raise FileNotFoundError(f'WAV file not found: {wav_file}')
-        npz_file, meta_full = convert_wav_to_npz(wav_file, NPZ_DIR, meta)
+        _npz_file, meta_full = convert_wav_to_npz(wav_file, NPZ_DIR, meta)
         all_meta_full[meta.name] = meta_full
     with META_FILE_JSON.open('w', encoding='utf-8') as f:
         json.dump(

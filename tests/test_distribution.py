@@ -2,7 +2,7 @@
 
 
 def test_import():
-    from lupy import Meter, Sampler, BlockProcessor, TruePeakProcessor
+    from lupy import BlockProcessor, Meter, Sampler, TruePeakProcessor
     assert Meter is not None
     assert Sampler is not None
     assert BlockProcessor is not None

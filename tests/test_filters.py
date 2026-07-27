@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import numpy as np
-from scipy import signal
 import pytest
+from scipy import signal
 
-from lupy.filters import HS_COEFF, HP_COEFF, Filter, FilterGroup, TruePeakFilter
-
+from lupy.filters import HP_COEFF, HS_COEFF, Filter, FilterGroup, TruePeakFilter
 
 
 @pytest.fixture(params=[48000])

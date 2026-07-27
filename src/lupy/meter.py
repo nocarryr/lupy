@@ -1,22 +1,28 @@
 from __future__ import annotations
-from typing import Generic, Union
+
 from fractions import Fraction
+from typing import Generic
 
 import numpy as np
 
-from .sampling import Sampler, TruePeakSampler
-from .processing import BlockProcessor, TruePeakProcessor, SILENCE_DB
 from .arraytypes import MeterArray, TruePeakArray
+from .processing import SILENCE_DB, BlockProcessor, TruePeakProcessor
+from .sampling import Sampler, TruePeakSampler
 from .types import (
-    NumChannelsT, Float1dArray, Float2dArray, Float2dArray32, Any2dArray,
-    CurrentMeasurement, Floating,
+    Any2dArray,
+    CurrentMeasurement,
+    Float1dArray,
+    Float2dArray,
+    Float2dArray32,
+    Floating,
+    NumChannelsT,
 )
-from .typeutils import is_2d_array, ensure_2d_array, is_float64_array
+from .typeutils import ensure_2d_array, is_2d_array, is_float64_array
 
 __all__ = ('Meter',)
 
 
-FloatDtypeT = Union[np.dtype[np.float32], np.dtype[np.float64]]
+FloatDtypeT = np.dtype[np.float32] | np.dtype[np.float64]
 
 
 class Meter(Generic[NumChannelsT]):

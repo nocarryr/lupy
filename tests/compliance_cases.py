@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-from typing import Union, NamedTuple, Literal
-from pathlib import Path
 import itertools
 import json
+from pathlib import Path
+from typing import Literal, NamedTuple
+
 import numpy as np
 from scipy import signal
-import scipy.signal.windows as windows
 from scipy.io import wavfile
+from scipy.signal import windows
 
 from lupy.types import Float1dArray, Float2dArray, NumChannels
-from lupy.typeutils import is_2d_array, ensure_2d_array
+from lupy.typeutils import ensure_2d_array, is_2d_array
 
 HERE = Path(__file__).parent
 DATA = HERE / 'data'
@@ -24,7 +25,7 @@ nan = np.nan
 BitDepth = Literal[16, 24, 32]
 _BitDepthOpts: tuple[BitDepth, ...] = (16, 24, 32)
 _NumChannelsOpts: tuple[NumChannels, ...] = (1, 2, 3, 5)
-NumChannelsWithLFE = Union[NumChannels, Literal[6]]
+NumChannelsWithLFE = NumChannels | Literal[6]
 _NumChannelsWithLFEOpts: tuple[NumChannelsWithLFE, ...] = (1, 2, 3, 5, 6)
 
 
@@ -81,7 +82,7 @@ class ComplianceInput(NamedTuple):
     taper_dur: float|None = None
 
     def generate(self, sample_rate: int, num_channels: NumChannels) -> Float2dArray:
-        N = int(round(sample_rate * self.duration))
+        N = round(sample_rate * self.duration)
         samples = np.zeros((num_channels, N), dtype=np.float64)
         fc_normalized = self.fc
         if fc_normalized is None:
@@ -139,7 +140,6 @@ class ComplianceSource(NamedTuple):
         assert is_2d_array(samples)
         if self.is_float:
             assert self.bit_depth == 32
-            samples = samples
         elif self.bit_depth == 24:
             # 24-bit PCM is stored in the MSB of int32
             samples /= 1 << 31
