@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import TypeVar, Generic, Literal, Any
 import sys
+from typing import Any, Generic, Literal, TypeVar
+
 if sys.version_info < (3, 11):
-    from typing_extensions import TypeAlias
+    from typing import TypeAlias
 else:
     from typing import TypeAlias
 from dataclasses import dataclass
@@ -11,15 +12,31 @@ from dataclasses import dataclass
 import numpy as np
 import numpy.typing as npt
 
-
-
 __all__ = (
-    'Floating', 'Complex', 'SosCoeff', 'SosZI',
-    'AnyArray', 'BoolArray', 'IndexArray', 'FloatArray', 'ComplexArray',
-    'Float1dArray', 'Float2dArray', 'Float3dArray', 'Float2dArray32', 'AnyFloatArray',
-    'AnyNdArray', 'Any1dArray', 'Any2dArray', 'Any3dArray', 'ShapeT',
-    'NumChannels', 'NumChannelsT', 'ChannelIndex', 'ChannelIndexT',
+    'Any1dArray',
+    'Any2dArray',
+    'Any3dArray',
+    'AnyArray',
+    'AnyFloatArray',
+    'AnyNdArray',
+    'BoolArray',
+    'ChannelIndex',
+    'ChannelIndexT',
+    'Complex',
+    'ComplexArray',
     'CurrentMeasurement',
+    'Float1dArray',
+    'Float2dArray',
+    'Float2dArray32',
+    'Float3dArray',
+    'FloatArray',
+    'Floating',
+    'IndexArray',
+    'NumChannels',
+    'NumChannelsT',
+    'ShapeT',
+    'SosCoeff',
+    'SosZI',
 )
 
 NumChannels = Literal[1, 2, 3, 5]

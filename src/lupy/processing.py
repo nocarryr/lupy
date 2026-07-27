@@ -1,24 +1,29 @@
 from __future__ import annotations
 
-from typing import Generic, overload
 import sys
+from typing import Generic, overload
+
 if sys.version_info < (3, 11):
     from typing_extensions import Self
 else:
     from typing import Self
-from abc import ABC, abstractmethod
 import bisect
 import math
+from abc import ABC, abstractmethod
 
 import numpy as np
 
 from .arraytypes import MeterArray, TruePeakArray
-from .types import (
-    NumChannelsT, Float1dArray, Float2dArray, Any1dArray,
-    Floating, FloatArray,
-)
-from .typeutils import ensure_nd_array, build_meter_array, build_true_peak_array
 from .filters import TruePeakFilter
+from .types import (
+    Any1dArray,
+    Float1dArray,
+    Float2dArray,
+    FloatArray,
+    Floating,
+    NumChannelsT,
+)
+from .typeutils import build_meter_array, build_true_peak_array, ensure_nd_array
 
 __all__ = ('BlockProcessor', 'TruePeakProcessor')
 
@@ -30,7 +35,7 @@ NEG_INFINITY: Floating = np.float64(-np.inf)
 class RunningSum:
     """Helper class to calculate the running sum of a series of values
     """
-    __slots__ = ('_value', '_count', '_mean')
+    __slots__ = ('_count', '_mean', '_value')
     def __init__(self) -> None:
         self._value: Floating = np.float64(0)
         self._count: int = 0
@@ -441,8 +446,7 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         else:
             self._momentary_sum.count = block_index + 1
         r = lk_log10(self._momentary_sum.mean)
-        if r < SILENCE_DB:
-            r = SILENCE_DB
+        r = max(r, SILENCE_DB)
         self._momentary_lkfs[block_index] = r
 
     def _calc_short_term(self):
@@ -617,7 +621,6 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
         tp_amp_max = np.abs(tp_vals).max(axis=1)
         cur_peaks = lk_log10(tp_amp_max, offset=0, base=20, allow_negative_inf=True)
         max_peak = cur_peaks.max()
-        if max_peak > self.max_peak:
-            self.max_peak = max_peak
+        self.max_peak = max(self.max_peak, max_peak)
         self._all_tp_values[self._block_index, :] = cur_peaks
         self._block_index += 1

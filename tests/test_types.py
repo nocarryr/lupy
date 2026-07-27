@@ -4,13 +4,22 @@ import numpy as np
 import pytest
 
 from lupy.typeutils import (
-    build_true_peak_array, is_true_peak_array, build_true_peak_dtype,
-    ensure_3d_array, ensure_nd_array, ensure_array_of_shape,
-    is_array_of_dtype, is_float_array, is_float32_array, is_index_array,
-    is_bool_array, is_complex_array,
-    ensure_meter_array, ensure_true_peak_array, build_meter_array,
+    build_meter_array,
+    build_true_peak_array,
+    build_true_peak_dtype,
+    ensure_3d_array,
+    ensure_array_of_shape,
+    ensure_meter_array,
+    ensure_nd_array,
+    ensure_true_peak_array,
+    is_array_of_dtype,
+    is_bool_array,
+    is_complex_array,
+    is_float32_array,
+    is_float_array,
+    is_index_array,
+    is_true_peak_array,
 )
-
 
 # ---------------------------------------------------------------------------
 # ensure_*d_array helpers

@@ -6,8 +6,9 @@ with runtime assertions.
 """
 from __future__ import annotations
 
-from typing import Literal, Any, overload
 import sys
+from typing import Any, Literal, overload
+
 if sys.version_info < (3, 13):
     from typing_extensions import TypeIs
 else:
@@ -17,9 +18,19 @@ import numpy as np
 
 from .arraytypes import MeterArray, MeterDtype, TruePeakArray, TruePeakDtype
 from .types import (
-    AnyArray, AnyNdArray, Any1dArray, Any2dArray, Any3dArray, AnyFloatArray,
-    IndexArray, BoolArray, ComplexArray, NumChannelsT,
-    ShapeT, DType_co, DType_t,
+    Any1dArray,
+    Any2dArray,
+    Any3dArray,
+    AnyArray,
+    AnyFloatArray,
+    AnyNdArray,
+    BoolArray,
+    ComplexArray,
+    DType_co,
+    DType_t,
+    IndexArray,
+    NumChannelsT,
+    ShapeT,
 )
 
 

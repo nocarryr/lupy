@@ -1,14 +1,14 @@
 from __future__ import annotations
-from typing import Generic, NamedTuple, cast
+
 import math
+from typing import Generic, NamedTuple, cast
 
 import numpy as np
 from scipy.signal import firwin
-from scipy.signal._upfirdn_apply import _output_len, _apply, mode_enum
+from scipy.signal._upfirdn_apply import _apply, _output_len, mode_enum
 
 from ..types import Float1dArray, Float2dArray, NumChannelsT
 from ..typeutils import ensure_1d_array, ensure_2d_array
-
 
 
 class ResamplePolyParams(NamedTuple):

@@ -1,30 +1,38 @@
 from __future__ import annotations
 
-from typing import TypeVar, Generic, NamedTuple
 import sys
+from typing import Generic, NamedTuple, TypeVar
+
 if sys.version_info < (3, 11):
     from typing_extensions import Self
 else:
     from typing import Self
-from abc import ABC, abstractmethod
-from fractions import Fraction
 import math
 import threading
+from abc import ABC, abstractmethod
+from fractions import Fraction
 
 import numpy as np
 
+from .filters import HP_COEFF, HS_COEFF, FilterGroup
 from .types import (
-    NumChannelsT, Float2dArray, Float3dArray, AnyArray, IndexArray,
-    FloatArray, Float2dArray32,
+    AnyArray,
+    Float2dArray,
+    Float2dArray32,
+    Float3dArray,
+    FloatArray,
+    IndexArray,
+    NumChannelsT,
 )
 from .typeutils import ensure_2d_array, is_float64_array
-from .filters import FilterGroup, HS_COEFF, HP_COEFF
 
 T = TypeVar('T')
 
 __all__ = (
-    'Sampler', 'TruePeakSampler',
-    'ThreadSafeSampler', 'ThreadSafeTruePeakSampler',
+    'Sampler',
+    'ThreadSafeSampler',
+    'ThreadSafeTruePeakSampler',
+    'TruePeakSampler',
 )
 
 
@@ -166,8 +174,7 @@ class Slice:
                 ix = self._start_index = self.index * self.overlap
             else:
                 ix = self._start_index = self.index * self.step
-            if ix < 0:
-                ix = 0
+            ix = max(ix, 0)
         return ix
 
     @property

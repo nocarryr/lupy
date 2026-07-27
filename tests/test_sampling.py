@@ -1,17 +1,20 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from fractions import Fraction
-import threading
 
-import pytest
 import numpy as np
+import pytest
 
 from lupy.sampling import (
-    Sampler, TruePeakSampler, ThreadSafeSampler, ThreadSafeTruePeakSampler,
-    calc_buffer_length, Slice,
+    Sampler,
+    Slice,
+    ThreadSafeSampler,
+    ThreadSafeTruePeakSampler,
+    TruePeakSampler,
+    calc_buffer_length,
 )
 from lupy.types import NumChannels
-
 
 
 def test_slice_non_overlap():
@@ -145,7 +148,7 @@ def test_buffer_length(sample_rate, block_size):
     step = 1 - overlap
     N = bfr_shape.total_samples
     T = N / sample_rate
-    n_blocks = int(np.round(((T - T_g) / (T_g * step)))+1)
+    n_blocks = int(np.round((T - T_g) / (T_g * step))+1)
     assert bfr_shape.num_gate_blocks == n_blocks
     assert bfr_shape.gate_size / bfr_shape.pad_size == 4
 
@@ -333,8 +336,6 @@ def test_thread_safe_sampler_concurrent_writes() -> None:
     sample_rate = 48000
     sampler = ThreadSafeSampler(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
 
-    errors: list[Exception] = []
-
     # gate_size = 19200 samples; need >= 150 blocks to allow a read.
     # 8 threads × 20 writes = 160 blocks; buffer holds 300, so no saturation.
     num_threads = 8
@@ -343,20 +344,18 @@ def test_thread_safe_sampler_concurrent_writes() -> None:
     def write_blocks(thread_idx: int, n: int) -> None:
         rng = np.random.default_rng(thread_idx)  # per-thread RNG avoids shared state
         for _ in range(n):
-            try:
-                if sampler.can_write():
-                    block = rng.random((num_channels, block_size))
-                    sampler.write(block, apply_filter=False)
-            except Exception as exc:  # pragma: no cover
-                errors.append(exc)
+            if sampler.can_write():
+                block = rng.random((num_channels, block_size))
+                sampler.write(block, apply_filter=False)
 
-    threads = [threading.Thread(target=write_blocks, args=(i, writes_per_thread)) for i in range(num_threads)]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
+    with ThreadPoolExecutor(max_workers=num_threads) as executor:
+        futures = [
+            executor.submit(write_blocks, i, writes_per_thread)
+            for i in range(num_threads)
+        ]
+        for future in futures:
+            assert future.exception() is None
 
-    assert errors == [], f'Thread errors: {errors}'
     assert sampler.samples_available > 0
     assert sampler.samples_available % block_size == 0
     assert sampler.can_read()
