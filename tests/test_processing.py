@@ -254,7 +254,7 @@ def test_meter_current_measurement(all_channels) -> None:
 
 
     gate_block_index = 0
-    prev_measurement: CurrentMeasurement|None = None
+    prev_measurement: CurrentMeasurement | None = None
 
     for i in range(num_blocks):
         block = src_data[:, i, :]
