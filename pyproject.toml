@@ -84,6 +84,9 @@ files = ["src/lupy/", "tests/**/*.py"]
 [tool.ruff]
 include = ["pyproject.toml", "src/**/*.py", "src/**/*.pyi", "tests/**/*.py"]
 
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+
 
 [tool.coverage.report]
 exclude_lines = [
