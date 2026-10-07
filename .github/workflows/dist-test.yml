@@ -37,12 +37,12 @@ jobs:
       - name: Export Lockfile
         run: uv export --frozen --only-group test --only-group doc --format requirements-txt -o requirements.txt
       - name: Upload dist artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: 'dists'
           path: 'dist/*'
       - name: Upload requirements
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: 'requirements'
           path: 'requirements.txt'
