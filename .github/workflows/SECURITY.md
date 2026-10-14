@@ -62,6 +62,17 @@ configured credentials such as `COPILOT_GITHUB_TOKEN`,
 `GH_AW_CI_TRIGGER_TOKEN`. These credentials are not constrained by YAML
 `permissions`; their actual scopes must be verified in repository or
 organization settings and kept to the minimum required. Never infer their
-scopes from the YAML permission blocks. Fork-origin `pull_request` runs do not
-receive repository secrets. Comment-triggered commands are membership-gated;
-scheduled and manual runs remain trusted automation entry points.
+scopes from the YAML permission blocks.
+
+| Agentic event | Credential and trust boundary |
+| --- | --- |
+| Scheduled run | Repository secrets are available to the configured generated steps; scheduled runs are trusted automation entry points. |
+| Manual dispatch | Repository secrets are available to the configured generated steps; only authorized repository users can dispatch these workflows. |
+| Same-repository pull request | A qualifying command must pass the membership check. Once activated, the agent can use its separately configured credentials while processing PR content. |
+| Fork-origin pull request | GitHub withholds repository secrets from the `pull_request` event; its built-in token is subject to GitHub's fork restrictions. A command must also pass the membership check to activate agent work. |
+| Issue, PR, discussion, or review comment command | The command author must pass the membership check (write access or higher). Once activated, configured agent credentials may be available even when the associated PR branch is from a fork; treat PR content as untrusted. |
+
+Command text and PR content are untrusted inputs. The generated workflows
+mediate writes through configured safe outputs, protect `.github/`, and
+restrict network access, but any separately configured token scopes remain an
+independent trust boundary.
