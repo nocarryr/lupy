@@ -11,27 +11,31 @@ Deployment requires a successful manual run with `allow_deploy` enabled on
 The PyPI trusted-publisher configuration must identify this workflow and
 should be restricted to the `main` ref where supported.
 
-The [pinned CodSpeed v5 action documentation](https://github.com/CodSpeedHQ/action/blob/821a40cd6c80e3cfe387caf55668287addd808da/README.md)
-recommends OIDC and its Python example grants `contents: read` and
-`id-token: write`; both grants are limited to the benchmark job. The OIDC grant
-is job-scoped, so benchmark setup and tests in that job can also request tokens.
-Do not treat benchmark execution as isolated from that authority.
+The [benchmark workflow](codspeed.yml) defines the configured CodSpeed action
+and uses OIDC authentication. Only the benchmark job receives `id-token: write`;
+it also receives `contents: read` for checkout. The OIDC grant applies to the
+entire job, so benchmark setup and tests can also request tokens. Do not treat
+benchmark execution as isolated from that authority.
 
-`CODECOV_TOKEN` is supplied only to the pinned
-[Codecov action](https://github.com/codecov/codecov-action/tree/303a32d7a59b442fa8d48b6a1cc6825c09c847a5),
-after tests have completed; it is not an environment variable in the test
-process.
+`CODECOV_TOKEN` is supplied only to the Codecov upload step defined in
+[`test.yml`](test.yml), after tests have completed; it is not an environment
+variable in the test process. See the [Codecov action documentation](https://github.com/codecov/codecov-action#readme)
+for upstream guidance.
 GitHub withholds repository secrets from `pull_request` runs originating from
 forks, so those uploads do not receive this token. Same-repository pull
 requests, pushes to `main`, and authorized manual runs can receive it. The
-Codecov action is pinned to a commit, but a same-repository contributor who can
-change workflow code is within the trusted boundary for that secret.
+same-repository contributor who can change workflow code is within the trusted
+boundary for that secret.
+
+When updating an action, review this audit if the change affects authentication,
+permissions, or credential handling. Pin-only updates do not need corresponding
+documentation changes.
 
 | Event | CI token and secret boundary |
 | --- | --- |
 | Push to `main` | Checkout jobs have read-only `GITHUB_TOKEN`; Codecov gets its upload token; CodSpeed gets the job-scoped OIDC grant. |
 | Same-repository pull request | Checkout jobs remain read-only; Codecov gets its upload token; benchmark code runs in the OIDC-enabled job. |
-| Fork pull request | Checkout token is read-only and repository secrets are unavailable. CodSpeed still runs with its job-scoped OIDC grant. |
+| Fork pull request | Checkout token is read-only and repository secrets are unavailable. Public fork benchmarks can run through CodSpeed's tokenless validation, but fork runs cannot mint an OIDC token and this workflow configures no `CODSPEED_TOKEN` fallback; do not infer authenticated uploads. |
 | Manual dispatch | The selected ref is used. The actor must have repository access; configured secrets are available. PyPI publishing is additionally restricted to `main` and `allow_deploy: true`. |
 | Comment-triggered automation | None of these three CI workflows is comment-triggered. The separate agentic workflows are reviewed below. |
 
