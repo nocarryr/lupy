@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Generic, Literal, TypeAlias, TypeVar
+from typing import Any, Generic, Literal, NamedTuple, TypeAlias, TypeVar
 
 import numpy as np
 import numpy.typing as npt
@@ -97,9 +96,7 @@ SosZI = np.ndarray[tuple[int, int, Literal[2]], np.dtype[np.float64]]
 """Array representing initial conditions for second-order sections filtering"""
 
 
-# TODO: Revert to NamedTuple when Python 3.10 support is dropped
-@dataclass(frozen=True)
-class CurrentMeasurement(Generic[NumChannelsT]):
+class CurrentMeasurement(NamedTuple, Generic[NumChannelsT]):
     """Represents the current measurement state for a gating block"""
     time: float|Floating
     """The measurement time for this gating block"""
