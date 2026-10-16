@@ -1,15 +1,8 @@
 from __future__ import annotations
 
-import sys
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, cast
-
-if sys.version_info < (3, 11):
-    from typing_extensions import Self
-else:
-    from typing import Self
-
 from dataclasses import dataclass
+from typing import Generic, Self, TypeVar, cast
 
 import numpy as np
 from scipy import signal
