@@ -156,7 +156,13 @@ class ResamplePoly(Generic[NumChannelsT]):
             up=self.params.up,
             down=self.params.down,
             input_shape=self.input_shape,
+            stream_delay=self._stream_delay(),
         )
+
+    def _stream_delay(self) -> int:
+        start = self.params.result_slice[1].start
+        assert isinstance(start, int)
+        return start
 
     @property
     def num_channels(self) -> NumChannelsT:
@@ -186,6 +192,7 @@ class ResamplePoly(Generic[NumChannelsT]):
             up=self.params.up,
             down=self.params.down,
             input_shape=self.input_shape,
+            stream_delay=self._stream_delay(),
         )
 
     @property
@@ -218,6 +225,30 @@ class ResamplePoly(Generic[NumChannelsT]):
         y = self._upfirdn.apply_filter(x)
         r = y[self.params.result_slice]
         return ensure_2d_array(r)
+
+    def apply_stream(self, x: Float2dArray) -> Float2dArray:
+        """Resample the next block of a continuous input stream
+
+        Unlike :meth:`apply`, filter history is retained between calls so
+        consecutive blocks are processed as one continuous signal.
+        The input must have shape ``(num_channels, num_input_samples)``.
+
+        The output is delayed by the filter's group delay, so the first call
+        returns fewer samples than subsequent calls
+        (see :meth:`_UpFIRDn.apply_filter_stream`).
+        """
+        return self._upfirdn.apply_filter_stream(x)
+
+    def flush(self) -> Float2dArray:
+        """Return the output samples still pending at the end of a stream
+
+        The result is the same as if the input were followed by zeros.
+        """
+        return self._upfirdn.flush_stream()
+
+    def reset(self) -> None:
+        """Reset the stream state used by :meth:`apply_stream`"""
+        self._upfirdn.reset()
 
 
 # Adapted from:
@@ -258,7 +289,8 @@ class _UpFIRDn(Generic[NumChannelsT]):
         h: Float1dArray,
         up: int,
         down: int,
-        input_shape: tuple[NumChannelsT, int]
+        input_shape: tuple[NumChannelsT, int],
+        stream_delay: int = 0,
     ) -> None:
         if h.ndim != 1 or h.size == 0:
             raise ValueError('h must be 1-D with non-zero length')
@@ -283,6 +315,81 @@ class _UpFIRDn(Generic[NumChannelsT]):
             self._input_shape[0], self._output_len
         )
         self._out_array = np.zeros(self._output_shape, dtype=self.dtype, order='C')
+        self._init_stream(stream_delay)
+
+    def _init_stream(self, stream_delay: int) -> None:
+        self._stream_enabled = self._down == 1
+        self._stream_delay = stream_delay
+        self._skip_remaining = stream_delay
+        if not self._stream_enabled:
+            return
+        num_channels = self._input_shape[0]
+        self._hist_len = (self._h_len_orig - 1) // self._up
+        comb_len = self._hist_len + self._input_len
+        self._comb_in = np.zeros((num_channels, comb_len), dtype=self.dtype)
+        comb_out_len = int(
+            _output_len(self._h_len_orig, comb_len, self._up, self._down)
+        )
+        self._comb_out = np.zeros((num_channels, comb_out_len), dtype=self.dtype)
+        self._stream_start = self._hist_len * self._up
+        self._stream_stop = self._stream_start + self._input_len * self._up
+
+    def reset(self) -> None:
+        """Clear the stream history and delay bookkeeping"""
+        if self._stream_enabled:
+            self._comb_in[...] = 0
+        self._skip_remaining = self._stream_delay
+
+    def apply_filter_stream(self, x: Float2dArray) -> Float2dArray:
+        """Apply the filter to the next block of a continuous stream
+
+        Only ``down == 1`` is supported and the block length must match the
+        input length given at construction.
+
+        The first *stream_delay* causal output samples (the filter's group delay
+        plus leading padding) are discarded once, on the first call after
+        initialization or :meth:`reset`.  Every later call returns
+        ``input_len * up`` samples.
+        """
+        if not self._stream_enabled:
+            raise ValueError('Streaming requires down == 1')
+        if x.dtype != self.dtype:
+            raise ValueError(f'Input array must be of dtype {self.dtype}')
+        if x.shape != self._input_shape:
+            raise ValueError(
+                f'Input shape must be {self._input_shape}, got {x.shape}'
+            )
+        hist_len = self._hist_len
+        comb_in = self._comb_in
+        comb_in[:, hist_len:] = x
+        out = self._comb_out
+        out[...] = 0
+        _apply(comb_in,
+               self._h_trans_flip, out,
+               self._up, self._down, self._axis, self.mode, 0)
+        drop = min(self._skip_remaining, self._input_len * self._up)
+        self._skip_remaining -= drop
+        start = self._stream_start + drop
+        result = out[:, start:self._stream_stop]
+        comb_in[:, :hist_len] = comb_in[:, self._input_len:]
+        return ensure_2d_array(result)
+
+    def flush_stream(self) -> Float2dArray:
+        """Return the remaining delayed output as if followed by zero input"""
+        if not self._stream_enabled:
+            raise ValueError('Streaming requires down == 1')
+        num_channels = self._input_shape[0]
+        hist_len = self._hist_len
+        n_flush = -(-self._stream_delay // self._up) + 1
+        x = np.zeros((num_channels, hist_len + n_flush), dtype=self.dtype)
+        x[:, :hist_len] = self._comb_in[:, :hist_len]
+        out_len = int(_output_len(self._h_len_orig, x.shape[1], self._up, 1))
+        out = np.zeros((num_channels, out_len), dtype=self.dtype)
+        _apply(x, self._h_trans_flip, out,
+               self._up, 1, self._axis, self.mode, 0)
+        start = hist_len * self._up + self._skip_remaining
+        stop = hist_len * self._up + self._stream_delay
+        return ensure_2d_array(out[:, start:stop])
 
     def apply_filter(self, x: Float2dArray) -> Float2dArray:
         """Apply the prepared filter to the specified axis of N-D signal x."""

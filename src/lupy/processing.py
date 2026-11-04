@@ -559,7 +559,9 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
         super().__init__(num_channels=num_channels, sample_rate=sample_rate)
         up_sample = 4 if sample_rate < 88100 else 2
         self.resample_filt = TruePeakFilter(
-            num_channels=num_channels, upsample_factor=up_sample,
+            num_channels=num_channels,
+            block_size=gate_size,
+            upsample_factor=up_sample,
         )
         self.max_peak = NEG_INFINITY
         self.gate_size = gate_size
@@ -608,6 +610,7 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
         self.max_peak = NEG_INFINITY
         self._all_tp_values[0, :] = NEG_INFINITY
         self._block_index = 0
+        self.resample_filt.reset()
 
     def process(self, samples: Float2dArray):
         # TODO: Check and raise exception if exceeding MAX_TIME_SECONDS

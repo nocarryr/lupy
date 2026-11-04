@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 from compliance_cases import BS2217_NPZ_DIR
 from conftest import gen_1k_sine
+from scipy import signal
 
 from lupy import BlockProcessor, Meter
 from lupy.processing import (
@@ -324,6 +325,46 @@ def test_true_peak_gate_blocks(
     tp, neg_tol, pos_tol = tp_target
     tp_min, tp_max = tp - neg_tol, tp + pos_tol
     assert tp_min <= true_peak_max <= tp_max
+
+
+@pytest.mark.parametrize(
+    'tp_block_size',
+    [128, 4800, 9600, 19200]
+)
+def test_true_peak_steady_tone(tp_block_size: int) -> None:
+    sample_rate = 48000
+    meter = Meter(
+        num_channels=1,
+        block_size=tp_block_size,
+        sample_rate=sample_rate,
+    )
+
+    # Generate a 20 second 997 Hz sine wave at -23 dBFS
+    T = 20
+    N = T * sample_rate
+
+    amp = 10 ** (-23/20)
+    sine_channels: tuple[ChannelIndex, ...] = (0,)
+    src_data = build_samples(N, 1, sample_rate, sine_channels, amp)
+
+    # Expected true peak for a -23 dBFS sine wave at 997 Hz
+    tp_expected = -23
+
+    meter.write_all(src_data)
+
+    tol_upper = 0.2
+    tol_lower = -0.4
+
+    scipy_measured_amp = (signal.resample_poly(
+        src_data[0],
+        up=4, down=1,
+        window=('kaiser', 5.0)
+    )).max()
+    scipy_measured = 20 * np.log10(scipy_measured_amp)
+    assert tp_expected + tol_lower <= scipy_measured <= tp_expected + tol_upper
+
+    tp_measured = meter.true_peak_max
+    assert tp_expected + tol_lower <= tp_measured <= tp_expected + tol_upper
 
 
 @pytest.mark.benchmark(group='meter')

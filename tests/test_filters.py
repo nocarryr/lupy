@@ -5,6 +5,7 @@ import pytest
 from scipy import signal
 
 from lupy.filters import HP_COEFF, HS_COEFF, Filter, FilterGroup, TruePeakFilter
+from lupy.signalutils.resample import ResamplePoly, calc_tp_fir_win
 
 
 @pytest.fixture(params=[48000])
@@ -95,12 +96,123 @@ def test_truepeak_filter_benchmark(benchmark, random_samples, num_channels, benc
 
     samples = random_samples(num_channels, block_size)
     assert samples.shape == (num_channels, block_size)
-    tp_filter = TruePeakFilter(num_channels=num_channels, upsample_factor=up_sample)
-    num_output_samples = samples.shape[1] * tp_filter.upsample_factor
-
-    filtered = np.zeros((samples.shape[0], num_output_samples), dtype=np.float64)
+    tp_filter = TruePeakFilter(
+        num_channels=num_channels,
+        block_size=block_size,
+        upsample_factor=up_sample,
+    )
+    tp_filter(samples)
 
     def bench():
-        filtered[...] = tp_filter(samples)
+        tp_filter(samples)
 
     benchmark(bench)
+
+
+def _reference_upsample(x: np.ndarray, up: int) -> np.ndarray:
+    ref = ResamplePoly(
+        up=up,
+        down=1,
+        window=calc_tp_fir_win(up),
+        num_channels=x.shape[0],
+        num_input_samples=x.shape[1],
+    )
+    return ref.apply(x).copy()
+
+
+def _stream_upsample(
+    x: np.ndarray, up: int, block_size: int, flush: bool = True
+) -> np.ndarray:
+    num_channels, n = x.shape
+    tp_filter = TruePeakFilter(
+        num_channels=num_channels, block_size=block_size, upsample_factor=up,
+    )
+    outputs = []
+    for i in range(0, n, block_size):
+        block = x[:, i:i + block_size]
+        if block.shape[1] < block_size:
+            padded = np.zeros((num_channels, block_size), dtype=np.float64)
+            padded[:, :block.shape[1]] = block
+            block = padded
+        outputs.append(tp_filter(block).copy())
+    if flush:
+        outputs.append(tp_filter.flush().copy())
+    return np.concatenate(outputs, axis=1)[:, :n * up]
+
+
+@pytest.mark.parametrize('up', [2, 4])
+@pytest.mark.parametrize('block_size', [1, 5, 128, 1000])
+@pytest.mark.parametrize('signal_type', ['sine', 'random'])
+@pytest.mark.parametrize('length', [4000, 4013])
+def test_truepeak_stream_matches_continuous(
+    up: int, block_size: int, signal_type: str, length: int
+) -> None:
+    rng = np.random.default_rng(1)
+    if signal_type == 'sine':
+        t = np.arange(length) / 48000
+        x = np.stack([np.sin(2 * np.pi * 997 * t), np.cos(2 * np.pi * 1234 * t)])
+    else:
+        x = rng.uniform(-1, 1, (2, length))
+    x = np.ascontiguousarray(x, dtype=np.float64)
+    ref = _reference_upsample(x, up)
+    out = _stream_upsample(x, up, block_size)
+    assert out.shape == ref.shape
+    np.testing.assert_allclose(out, ref, atol=1e-12)
+
+
+@pytest.mark.parametrize('up', [2, 4])
+@pytest.mark.parametrize('peak_offset', [-1, 0, 1])
+def test_truepeak_stream_peak_at_block_boundary(up: int, peak_offset: int) -> None:
+    block_size = 128
+    x = np.zeros((1, block_size * 4), dtype=np.float64)
+    x[0, block_size * 2 + peak_offset] = 1.0
+    x[0, block_size * 2 + peak_offset + 1] = 1.0
+    ref = _reference_upsample(x, up)
+    out = _stream_upsample(x, up, block_size)
+    np.testing.assert_allclose(out, ref, atol=1e-12)
+    assert np.abs(out).max() == pytest.approx(np.abs(ref).max())
+
+
+@pytest.mark.parametrize('up', [2, 4])
+def test_truepeak_filter_first_call_and_steady_output_size(up: int) -> None:
+    block_size = 64
+    tp_filter = TruePeakFilter(
+        num_channels=1, block_size=block_size, upsample_factor=up,
+    )
+    x = np.ones((1, block_size), dtype=np.float64)
+    first = tp_filter(x)
+    second = tp_filter(x)
+    assert second.shape == (1, block_size * up)
+    assert first.shape[1] < second.shape[1]
+    assert first.shape[1] + tp_filter.flush().shape[1] == block_size * up
+
+
+@pytest.mark.parametrize('up', [2, 4])
+def test_truepeak_filter_reset(up: int) -> None:
+    rng = np.random.default_rng(2)
+    block_size = 100
+    blocks = [rng.uniform(-1, 1, (2, block_size)) for _ in range(3)]
+    f_new = TruePeakFilter(num_channels=2, block_size=block_size, upsample_factor=up)
+    expected = [f_new(b).copy() for b in blocks]
+
+    f = TruePeakFilter(num_channels=2, block_size=block_size, upsample_factor=up)
+    for b in blocks:
+        f(b)
+    f.reset()
+    for b, e in zip(blocks, expected):
+        np.testing.assert_array_equal(f(b), e)
+
+
+@pytest.mark.parametrize('block_size', [128, 4800, 9600, 19200])
+def test_truepeak_issue_235_block_size_independent(block_size: int) -> None:
+    sample_rate = 48000
+    n = sample_rate * 20
+    t = np.arange(n) / sample_rate
+    amp = 10 ** (-23 / 20)
+    x = (amp * np.sin(2 * np.pi * 997 * t)).reshape(1, n)
+    x = np.ascontiguousarray(x, dtype=np.float64)
+    ref_peak = np.abs(_reference_upsample(x, 4)).max()
+    out = _stream_upsample(x, 4, block_size, flush=False)
+    peak_db = 20 * np.log10(np.abs(out).max())
+    assert np.abs(out).max() == pytest.approx(ref_peak, abs=1e-9)
+    assert peak_db == pytest.approx(-23, abs=0.05)

@@ -206,30 +206,47 @@ class TruePeakFilter(BaseFilter[Float1dArray, NumChannelsT]):
     An :attr:`upsample_factor` of 4 is recommended for sample rates below 88.2 kHz,
     while a factor of 2 has proven to be sufficient for sample rates of
     88.2 kHz and above.
+
+    Consecutive calls are treated as one continuous stream with a fixed
+    :attr:`block_size`.  The filter state is kept between calls, so the output
+    is delayed by the FIR group delay: the first call after construction or
+    :meth:`reset` returns fewer than ``block_size * upsample_factor`` samples
+    and the remaining delayed samples are available from :meth:`flush`.
     """
     upsample_factor: int
     """Upsampling factor"""
+
+    block_size: int
+    """Number of input samples per channel for each call"""
+
     def __init__(
         self,
         num_channels: NumChannelsT,
+        block_size: int,
         upsample_factor: int = 4
     ) -> None:
         coeff = calc_tp_fir_win(upsample_factor)
         super().__init__(coeff=coeff, num_channels=num_channels)
         self.upsample_factor = upsample_factor
+        self.block_size = block_size
         self.resampler = ResamplePoly(
             up=upsample_factor,
             down=1,
             window=coeff,
             num_channels=num_channels,
+            num_input_samples=block_size,
         )
 
     def __call__(self, x: Float1dArray|Float2dArray) -> Float2dArray:
         x = self._check_arr_dims(x)
-        return self.resampler.apply(x)
+        return self.resampler.apply_stream(x)
+
+    def flush(self) -> Float2dArray:
+        """Return the delayed output samples remaining at the end of a stream"""
+        return self.resampler.flush()
 
     def reset(self) -> None:
-        pass
+        self.resampler.reset()
 
 
 def _check_sos_zi(zi: AnyArray, num_channels: int) -> SosZI:
