@@ -101,10 +101,15 @@ def test_truepeak_filter_benchmark(benchmark, random_samples, num_channels, benc
         block_size=block_size,
         upsample_factor=up_sample,
     )
+    num_output_samples = samples.shape[1] * tp_filter.upsample_factor
+
+    filtered = np.zeros((samples.shape[0], num_output_samples), dtype=np.float64)
+
+    # The first streamed call returns fewer samples due to the filter delay
     tp_filter(samples)
 
     def bench():
-        tp_filter(samples)
+        filtered[...] = tp_filter(samples)
 
     benchmark(bench)
 
