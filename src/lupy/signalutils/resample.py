@@ -10,6 +10,9 @@ from scipy.signal._upfirdn_apply import _apply, _output_len, mode_enum
 from ..types import Float1dArray, Float2dArray, NumChannelsT
 from ..typeutils import ensure_1d_array, ensure_2d_array
 
+DEFAULT_INPUT_SAMPLES = 1024
+"""Default number of input samples per call for :class:`ResamplePoly`"""
+
 
 class ResamplePolyParams(NamedTuple):
     """Parameters for polyphase resampling
@@ -125,7 +128,7 @@ class ResamplePoly(Generic[NumChannelsT]):
         num_input_samples: Number of input samples. If not specified,
             defaults to 1024.
     """
-    DEFAULT_INPUT_SAMPLES = 1024
+    DEFAULT_INPUT_SAMPLES = DEFAULT_INPUT_SAMPLES
     def __init__(
         self,
         up: int,

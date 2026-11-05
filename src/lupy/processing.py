@@ -560,7 +560,7 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
         up_sample = 4 if sample_rate < 88100 else 2
         self.resample_filt = TruePeakFilter(
             num_channels=num_channels,
-            block_size=gate_size,
+            num_input_samples=gate_size,
             upsample_factor=up_sample,
         )
         self.max_peak = NEG_INFINITY

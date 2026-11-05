@@ -7,7 +7,7 @@ from typing import Generic, Self, TypeVar, cast
 import numpy as np
 from scipy import signal
 
-from .signalutils.resample import ResamplePoly, calc_tp_fir_win
+from .signalutils.resample import DEFAULT_INPUT_SAMPLES, ResamplePoly, calc_tp_fir_win
 from .signalutils.sosfilt import sosfilt, validate_sos
 from .types import (
     AnyArray,
@@ -208,33 +208,36 @@ class TruePeakFilter(BaseFilter[Float1dArray, NumChannelsT]):
     88.2 kHz and above.
 
     Consecutive calls are treated as one continuous stream with a fixed
-    :attr:`block_size`.  The filter state is kept between calls, so the output
-    is delayed by the FIR group delay: the first call after construction or
-    :meth:`reset` returns fewer than ``block_size * upsample_factor`` samples
-    and the remaining delayed samples are available from :meth:`flush`.
+    number of input samples per call.  The filter state is kept between calls,
+    so the output is delayed by the FIR group delay: the first call after
+    construction or :meth:`reset` returns fewer than
+    ``num_input_samples * upsample_factor`` samples and the remaining delayed
+    samples are available from :meth:`flush`.
+
+    Arguments:
+        num_channels: Number of audio channels to filter
+        upsample_factor: Upsampling factor
+        num_input_samples: Number of input samples per channel for each call.
+            Defaults to :data:`~.signalutils.resample.DEFAULT_INPUT_SAMPLES`
     """
     upsample_factor: int
     """Upsampling factor"""
 
-    block_size: int
-    """Number of input samples per channel for each call"""
-
     def __init__(
         self,
         num_channels: NumChannelsT,
-        block_size: int,
-        upsample_factor: int = 4
+        upsample_factor: int = 4,
+        num_input_samples: int = DEFAULT_INPUT_SAMPLES,
     ) -> None:
         coeff = calc_tp_fir_win(upsample_factor)
         super().__init__(coeff=coeff, num_channels=num_channels)
         self.upsample_factor = upsample_factor
-        self.block_size = block_size
         self.resampler = ResamplePoly(
             up=upsample_factor,
             down=1,
             window=coeff,
             num_channels=num_channels,
-            num_input_samples=block_size,
+            num_input_samples=num_input_samples,
         )
 
     def __call__(self, x: Float1dArray|Float2dArray) -> Float2dArray:
