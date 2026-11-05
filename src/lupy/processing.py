@@ -612,13 +612,19 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
         self._block_index = 0
         self.resample_filt.reset()
 
+    def _process(self, tp_vals: Float2dArray) -> Float1dArray:
+        """Calculate the peak values (in dB) for oversampled output and
+        update :attr:`max_peak`
+        """
+        tp_amp_max = np.abs(tp_vals).max(axis=1)
+        cur_peaks = lk_log10(tp_amp_max, offset=0, base=20, allow_negative_inf=True)
+        self.max_peak = max(self.max_peak, cur_peaks.max())
+        return cur_peaks
+
     def process(self, samples: Float2dArray):
         # TODO: Check and raise exception if exceeding MAX_TIME_SECONDS
         tp_vals = self.resample_filt(samples)
-        tp_amp_max = np.abs(tp_vals).max(axis=1)
-        cur_peaks = lk_log10(tp_amp_max, offset=0, base=20, allow_negative_inf=True)
-        max_peak = cur_peaks.max()
-        self.max_peak = max(self.max_peak, max_peak)
+        cur_peaks = self._process(tp_vals)
         self._all_tp_values[self._block_index, :] = cur_peaks
         self._block_index += 1
 
@@ -637,10 +643,8 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
         tp_vals = self.resample_filt.flush()
         if tp_vals.shape[1] == 0:
             return
-        tp_amp_max = np.abs(tp_vals).max(axis=1)
-        cur_peaks = lk_log10(tp_amp_max, offset=0, base=20, allow_negative_inf=True)
+        cur_peaks = self._process(tp_vals)
         idx = max(self._block_index - 1, 0)
         self._all_tp_values[idx, :] = np.maximum(
             self._all_tp_values[idx, :], cur_peaks,
         )
-        self.max_peak = max(self.max_peak, cur_peaks.max())
