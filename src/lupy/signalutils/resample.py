@@ -160,6 +160,8 @@ class ResamplePoly(Generic[NumChannelsT]):
         )
 
     def _stream_delay(self) -> int:
+        """Number of leading causal output samples to discard in a stream
+        """
         start = self.params.result_slice[1].start
         assert isinstance(start, int)
         return start
@@ -247,7 +249,8 @@ class ResamplePoly(Generic[NumChannelsT]):
         return self._upfirdn.flush_stream()
 
     def reset(self) -> None:
-        """Reset the stream state used by :meth:`apply_stream`"""
+        """Reset the stream state used by :meth:`apply_stream`
+        """
         self._upfirdn.reset()
 
 
@@ -318,6 +321,8 @@ class _UpFIRDn(Generic[NumChannelsT]):
         self._init_stream(stream_delay)
 
     def _init_stream(self, stream_delay: int) -> None:
+        """Allocate the buffers used by the streaming methods
+        """
         self._stream_enabled = self._down == 1
         self._stream_delay = stream_delay
         self._skip_remaining = stream_delay
@@ -335,7 +340,8 @@ class _UpFIRDn(Generic[NumChannelsT]):
         self._stream_stop = self._stream_start + self._input_len * self._up
 
     def reset(self) -> None:
-        """Clear the stream history and delay bookkeeping"""
+        """Clear the stream history and delay bookkeeping
+        """
         if self._stream_enabled:
             self._comb_in[...] = 0
         self._skip_remaining = self._stream_delay
@@ -375,7 +381,8 @@ class _UpFIRDn(Generic[NumChannelsT]):
         return ensure_2d_array(result)
 
     def flush_stream(self) -> Float2dArray:
-        """Return the remaining delayed output as if followed by zero input"""
+        """Return the remaining delayed output as if followed by zero input
+        """
         if not self._stream_enabled:
             raise ValueError('Streaming requires down == 1')
         num_channels = self._input_shape[0]

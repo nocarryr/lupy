@@ -242,7 +242,8 @@ class TruePeakFilter(BaseFilter[Float1dArray, NumChannelsT]):
         return self.resampler.apply_stream(x)
 
     def flush(self) -> Float2dArray:
-        """Return the delayed output samples remaining at the end of a stream"""
+        """Return the delayed output samples remaining at the end of a stream
+        """
         return self.resampler.flush()
 
     def reset(self) -> None:
