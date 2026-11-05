@@ -8,6 +8,7 @@ import pytest
 from conftest import gen_1k_sine
 
 from lupy import Meter
+from lupy.signalutils.resample import ResamplePoly, calc_tp_fir_win
 from lupy.types import NumChannels, NumChannelsT
 from lupy.typeutils import is_array_of_shape
 
@@ -407,3 +408,61 @@ def test_set_paused_true_peak_disabled() -> None:
     meter.set_paused(True)
     meter.set_paused(False)
     assert meter.true_peak_max == -np.inf
+
+
+@pytest.mark.parametrize('sample_rate', [48000, 96000])
+@pytest.mark.parametrize('peak_offset', [1, 2, 5, 20])
+def test_flush_matches_offline_true_peak(sample_rate: int, peak_offset: int) -> None:
+    """The flushed true peak matches a single offline resampling pass"""
+    meter = make_meter(num_channels=2, sample_rate=sample_rate)
+    gate_size = meter.true_peak_sampler.gate_size
+    num_samples = gate_size * 3
+    up = 4 if sample_rate < 88200 else 2
+
+    rng = np.random.default_rng(9)
+    src_data = rng.uniform(-0.1, 0.1, (2, num_samples))
+    # Large values close to the end of the stream (within the filter delay)
+    src_data[:, -peak_offset] = [0.9, -0.8]
+    src_data[:, -peak_offset - 1] = [0.7, -0.9]
+    src_data = np.ascontiguousarray(src_data)
+
+    resampler = ResamplePoly(
+        up=up,
+        down=1,
+        window=calc_tp_fir_win(up),
+        num_channels=2,
+        num_input_samples=num_samples,
+    )
+    expected = 20 * np.log10(np.abs(resampler.apply(src_data)).max(axis=1))
+
+    meter.write_all(src_data)
+    assert len(meter.true_peak_array) == 3
+    before = meter.true_peak_max
+    meter.flush()
+
+    assert meter.true_peak_max >= before
+    assert meter.true_peak_max == pytest.approx(expected.max(), abs=1e-9)
+    np.testing.assert_allclose(meter.true_peak_current, expected, atol=1e-9)
+    assert len(meter.true_peak_array) == 3
+
+
+def test_flush_true_peak_disabled_loudness_unchanged() -> None:
+    """Flushing without true peak still drains pending loudness processing"""
+    sample_rate = 48000
+    meter = make_meter(num_channels=1, sample_rate=sample_rate, true_peak_enabled=False)
+    ref = make_meter(num_channels=1, sample_rate=sample_rate, true_peak_enabled=False)
+
+    N = meter.sampler.total_samples
+    src_data = build_samples(N, sample_rate, 1, sine_channels=(0,))
+    ref.write_all(src_data)
+
+    block_size = meter.block_size
+    for i in range(0, N, block_size):
+        meter.write(src_data[:, i:i + block_size], process=False)
+    assert meter.can_process()
+    meter.flush()
+
+    assert not meter.can_process()
+    assert meter.true_peak_max == -np.inf
+    assert meter.integrated_lkfs == ref.integrated_lkfs
+    np.testing.assert_array_equal(meter.momentary_lkfs, ref.momentary_lkfs)
