@@ -648,3 +648,9 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
         self._all_tp_values[idx, :] = np.maximum(
             self._all_tp_values[idx, :], cur_peaks,
         )
+
+    def _flush_and_reset_filter(self) -> None:
+        """End the current resampling segment while keeping all measurements
+        """
+        self.flush()
+        self.resample_filt.reset()

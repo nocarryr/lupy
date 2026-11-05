@@ -679,3 +679,34 @@ def test_true_peak_processor_matches_issue_235() -> None:
         peaks.append(float(proc.max_peak))
     assert peaks == pytest.approx([peaks[0]] * 3, abs=1e-3)
     assert peaks[0] == pytest.approx(-23, abs=0.05)
+
+
+def test_true_peak_processor_flush_and_reset_filter() -> None:
+    """Ending a segment keeps measurements and starts the filter fresh"""
+    gate_size = 100
+    rng = np.random.default_rng(8)
+    seg1 = [rng.uniform(-0.5, 0.5, (2, gate_size)) for _ in range(2)]
+    seg2 = [rng.uniform(-1, 1, (2, gate_size)) for _ in range(2)]
+
+    fresh = TruePeakProcessor(num_channels=2, gate_size=gate_size, sample_rate=48000)
+    for b in seg2:
+        fresh.process(b)
+
+    proc = TruePeakProcessor(num_channels=2, gate_size=gate_size, sample_rate=48000)
+    for b in seg1:
+        proc.process(b)
+    seg1_max = proc.max_peak
+    seg1_values = proc.all_tp_values.copy()
+
+    proc._flush_and_reset_filter()
+    assert proc.max_peak >= seg1_max
+    flushed_values = proc.all_tp_values.copy()
+    assert flushed_values.shape == seg1_values.shape
+    assert np.all(flushed_values >= seg1_values)
+    assert np.array_equal(flushed_values[:-1], seg1_values[:-1])
+
+    for b in seg2:
+        proc.process(b)
+    assert len(proc.tp_array) == 4
+    np.testing.assert_array_equal(proc.all_tp_values[2:], fresh.all_tp_values)
+    assert proc.max_peak == max(proc.all_tp_values.max(), seg1_max)

@@ -298,6 +298,7 @@ class Meter(Generic[NumChannelsT]):
             self.sampler.clear()
             if self.true_peak_enabled:
                 self.true_peak_sampler.clear()
+                self.true_peak_processor._flush_and_reset_filter()
 
     @property
     def integrated_lkfs(self) -> Floating:

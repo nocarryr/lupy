@@ -372,3 +372,38 @@ def test_flush_true_peak_disabled() -> None:
     )
     meter.flush()
     assert meter.true_peak_max == -np.inf
+
+
+def test_set_paused_ends_true_peak_segment() -> None:
+    """Pausing keeps the true peak measurements and resets the filter"""
+    sample_rate = 48000
+    meter = Meter(block_size=128, num_channels=1, sample_rate=sample_rate)
+    gate_size = meter.true_peak_sampler.gate_size
+
+    loud = np.zeros((1, gate_size), dtype=np.float64)
+    loud[0, -1] = 1.0
+    meter.write_all(loud)
+    before = meter.true_peak_max
+    meter.set_paused(True)
+    # The delayed tail of the first segment is included on pause
+    assert meter.true_peak_max > before
+    paused_max = meter.true_peak_max
+    num_blocks = len(meter.true_peak_array)
+
+    meter.set_paused(False)
+    quiet = np.zeros((1, gate_size), dtype=np.float64)
+    meter.write_all(quiet)
+    assert len(meter.true_peak_array) == num_blocks + 1
+    # No samples from before the pause leak into the second segment
+    assert meter.true_peak_current[0] == -np.inf
+    assert meter.true_peak_max == paused_max
+    assert meter.true_peak_array['tp'][:num_blocks].max() == paused_max
+
+
+def test_set_paused_true_peak_disabled() -> None:
+    meter = Meter(
+        block_size=128, num_channels=1, sample_rate=48000, true_peak_enabled=False,
+    )
+    meter.set_paused(True)
+    meter.set_paused(False)
+    assert meter.true_peak_max == -np.inf
