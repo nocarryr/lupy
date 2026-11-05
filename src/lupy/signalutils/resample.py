@@ -241,6 +241,8 @@ class ResamplePoly(Generic[NumChannelsT]):
         The output is delayed by the filter's group delay, so the first call
         returns fewer samples than subsequent calls
         (see :meth:`_UpFIRDn.apply_filter_stream`).
+
+        .. versionadded:: 0.0.4
         """
         return self._upfirdn.apply_filter_stream(x)
 
@@ -248,13 +250,26 @@ class ResamplePoly(Generic[NumChannelsT]):
         """Finalize the stream and return the output samples still pending
 
         The result is the same as if the input were followed by zeros.
-        Repeated calls return an empty array and :meth:`apply_stream` raises
-        an exception until :meth:`reset` is called.
+
+        This finalizes the current stream and should only be called when no
+        more input is expected.  Repeated calls return an empty array, and
+        :meth:`apply_stream` raises :class:`RuntimeError` until :meth:`reset`
+        is called.  The batch :meth:`apply` method is not affected.
+
+        .. versionadded:: 0.0.4
+
+        Returns:
+            The delayed output samples with shape ``(num_channels, n)``
         """
         return self._upfirdn.flush_stream()
 
     def reset(self) -> None:
         """Reset the stream state used by :meth:`apply_stream`
+
+        This discards the filter history and allows streaming to resume
+        after a call to :meth:`flush`.
+
+        .. versionadded:: 0.0.4
         """
         self._upfirdn.reset()
 

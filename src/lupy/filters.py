@@ -219,6 +219,10 @@ class TruePeakFilter(BaseFilter[Float1dArray, NumChannelsT]):
         upsample_factor: Upsampling factor
         num_input_samples: Number of input samples per channel for each call.
             Defaults to :data:`~.signalutils.resample.DEFAULT_INPUT_SAMPLES`
+
+    .. versionchanged:: 0.0.4
+        Consecutive calls are now filtered as one continuous stream and
+        the *num_input_samples* argument was added.
     """
     upsample_factor: int
     """Upsampling factor"""
@@ -246,6 +250,11 @@ class TruePeakFilter(BaseFilter[Float1dArray, NumChannelsT]):
 
     def flush(self) -> Float2dArray:
         """Return the delayed output samples remaining at the end of a stream
+
+        This finalizes the stream. Repeated calls return an empty array and
+        further input raises :class:`RuntimeError` until :meth:`reset` is called.
+
+        .. versionadded:: 0.0.4
         """
         return self.resampler.flush()
 

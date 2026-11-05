@@ -139,6 +139,14 @@ in :attr:`Meter.true_peak_max`:
 
 >>> meter.flush()
 
+.. note::
+
+    :meth:`Meter.flush` keeps all measurements and ends the stream, so
+    :meth:`Meter.reset` must be called before writing more input.
+    Pausing with :meth:`Meter.set_paused` does the same for the true peak
+    filter without ending the measurement: pending input is discarded and
+    filter history is cleared, but accumulated values are preserved.
+
 
 .. channel-layout:
 

@@ -607,6 +607,11 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
         self.process(samples)
 
     def reset(self) -> None:
+        """Reset all measurement data and the oversampling filter state
+
+        .. versionchanged:: 0.0.4
+            :class:`TruePeakFilter` state is also reset.
+        """
         self.max_peak = NEG_INFINITY
         self._all_tp_values[0, :] = NEG_INFINITY
         self._block_index = 0
@@ -639,6 +644,12 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
         The peak values of the last processed block (:attr:`current_peaks`)
         and :attr:`max_peak` are updated if the remaining samples exceed them.
         Calling this method again without processing more input has no effect.
+
+        This does not process samples that are still buffered in a
+        :class:`~.sampling.TruePeakSampler`.  Further input requires
+        :meth:`reset`, which discards all measurements.
+
+        .. versionadded:: 0.0.4
         """
         tp_vals = self.resample_filt.flush()
         if tp_vals.shape[1] == 0:
