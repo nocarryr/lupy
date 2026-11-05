@@ -242,9 +242,11 @@ class ResamplePoly(Generic[NumChannelsT]):
         return self._upfirdn.apply_filter_stream(x)
 
     def flush(self) -> Float2dArray:
-        """Return the output samples still pending at the end of a stream
+        """Finalize the stream and return the output samples still pending
 
         The result is the same as if the input were followed by zeros.
+        Repeated calls return an empty array and :meth:`apply_stream` raises
+        an exception until :meth:`reset` is called.
         """
         return self._upfirdn.flush_stream()
 
@@ -326,6 +328,7 @@ class _UpFIRDn(Generic[NumChannelsT]):
         self._stream_enabled = self._down == 1
         self._stream_delay = stream_delay
         self._skip_remaining = stream_delay
+        self._flushed = False
         if not self._stream_enabled:
             return
         num_channels = self._input_shape[0]
@@ -345,6 +348,7 @@ class _UpFIRDn(Generic[NumChannelsT]):
         if self._stream_enabled:
             self._comb_in[...] = 0
         self._skip_remaining = self._stream_delay
+        self._flushed = False
 
     def apply_filter_stream(self, x: Float2dArray) -> Float2dArray:
         """Apply the filter to the next block of a continuous stream
@@ -356,9 +360,17 @@ class _UpFIRDn(Generic[NumChannelsT]):
         plus leading padding) are discarded once, on the first call after
         initialization or :meth:`reset`.  Every later call returns
         ``input_len * up`` samples.
+
+        Raises:
+            ValueError: If the shape or dtype of *x* is incorrect or the
+                filter was not configured with ``down == 1``
+            RuntimeError: If the stream was finalized by :meth:`flush_stream`
+                and has not been :meth:`reset`
         """
         if not self._stream_enabled:
             raise ValueError('Streaming requires down == 1')
+        if self._flushed:
+            raise RuntimeError('Stream was flushed, call reset() to start a new one')
         if x.dtype != self.dtype:
             raise ValueError(f'Input array must be of dtype {self.dtype}')
         if x.shape != self._input_shape:
@@ -381,10 +393,20 @@ class _UpFIRDn(Generic[NumChannelsT]):
         return ensure_2d_array(result)
 
     def flush_stream(self) -> Float2dArray:
-        """Return the remaining delayed output as if followed by zero input
+        """Finalize the stream and return the remaining delayed output
+
+        The result is the same as if the input were followed by zeros.
+        This is terminal: later calls return an empty array and
+        :meth:`apply_filter_stream` raises an exception until :meth:`reset`
+        is called.
         """
         if not self._stream_enabled:
             raise ValueError('Streaming requires down == 1')
+        if self._flushed:
+            return ensure_2d_array(
+                np.zeros((self._input_shape[0], 0), dtype=self.dtype)
+            )
+        self._flushed = True
         num_channels = self._input_shape[0]
         hist_len = self._hist_len
         n_flush = -(-self._stream_delay // self._up) + 1

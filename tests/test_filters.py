@@ -273,3 +273,77 @@ def test_resample_poly_stream_requires_no_downsampling() -> None:
         resampler.apply_stream(np.zeros((1, 32), dtype=np.float64))
     with pytest.raises(ValueError, match='down == 1'):
         resampler.flush()
+
+
+def _make_stream_filter(up: int = 4, block_size: int = 64) -> TruePeakFilter:
+    return TruePeakFilter(num_channels=2, block_size=block_size, upsample_factor=up)
+
+
+@pytest.mark.parametrize('up', [2, 4])
+def test_resampler_flush_after_stream(up: int) -> None:
+    rng = np.random.default_rng(5)
+    block_size = 64
+    x = rng.uniform(-1, 1, (2, block_size * 3))
+    ref = _reference_upsample(x, up)
+
+    tp_filter = _make_stream_filter(up, block_size)
+    outputs = [
+        tp_filter(x[:, i:i + block_size]).copy()
+        for i in range(0, x.shape[1], block_size)
+    ]
+    tail = tp_filter.flush()
+    assert tail.shape[1] > 0
+    np.testing.assert_allclose(
+        np.concatenate([*outputs, tail], axis=1), ref, atol=1e-12,
+    )
+
+
+def test_resampler_flush_is_idempotent() -> None:
+    tp_filter = _make_stream_filter()
+    tp_filter(np.ones((2, 64), dtype=np.float64))
+    assert tp_filter.flush().shape[1] > 0
+    for _ in range(2):
+        tail = tp_filter.flush()
+        assert tail.shape == (2, 0)
+
+
+def test_resampler_stream_after_flush_raises() -> None:
+    tp_filter = _make_stream_filter()
+    tp_filter.flush()
+    with pytest.raises(RuntimeError, match='reset'):
+        tp_filter(np.ones((2, 64), dtype=np.float64))
+
+
+@pytest.mark.parametrize('up', [2, 4])
+def test_resampler_reset_after_flush(up: int) -> None:
+    rng = np.random.default_rng(6)
+    block_size = 64
+    blocks = [rng.uniform(-1, 1, (2, block_size)) for _ in range(3)]
+
+    def run(f: TruePeakFilter) -> np.ndarray:
+        out = [f(b).copy() for b in blocks]
+        out.append(f.flush().copy())
+        return np.concatenate(out, axis=1)
+
+    expected = run(_make_stream_filter(up, block_size))
+    tp_filter = _make_stream_filter(up, block_size)
+    first = run(tp_filter)
+    tp_filter.reset()
+    np.testing.assert_array_equal(run(tp_filter), expected)
+    np.testing.assert_array_equal(first, expected)
+
+
+def test_resampler_batch_apply_independent_of_stream_lifecycle() -> None:
+    up = 4
+    x = np.random.default_rng(7).uniform(-1, 1, (1, 128))
+    resampler = ResamplePoly(
+        up=up,
+        down=1,
+        window=calc_tp_fir_win(up),
+        num_channels=1,
+        num_input_samples=128,
+    )
+    expected = resampler.apply(x).copy()
+    resampler.apply_stream(x)
+    resampler.flush()
+    np.testing.assert_array_equal(resampler.apply(x), expected)
