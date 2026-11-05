@@ -610,7 +610,7 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
         """Reset all measurement data and the oversampling filter state
 
         .. versionchanged:: 0.0.4
-            :class:`TruePeakFilter` state is also reset.
+            :class:`~.filters.TruePeakFilter` state is also reset.
         """
         self.max_peak = NEG_INFINITY
         self._all_tp_values[0, :] = NEG_INFINITY
