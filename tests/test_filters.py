@@ -221,3 +221,55 @@ def test_truepeak_issue_235_block_size_independent(block_size: int) -> None:
     peak_db = 20 * np.log10(np.abs(out).max())
     assert np.abs(out).max() == pytest.approx(ref_peak, abs=1e-9)
     assert peak_db == pytest.approx(-23, abs=0.05)
+
+
+@pytest.mark.parametrize('up', [2, 4])
+def test_truepeak_filter_flush_after_reset(up: int) -> None:
+    block_size = 64
+    tp_filter = TruePeakFilter(
+        num_channels=1, block_size=block_size, upsample_factor=up,
+    )
+    tp_filter(np.ones((1, block_size), dtype=np.float64))
+    tp_filter.reset()
+    assert not np.any(tp_filter.flush())
+
+
+def test_resample_poly_batch_apply_resizes_input() -> None:
+    up = 4
+    x = np.random.default_rng(3).uniform(-1, 1, (1, 300))
+    resampler = ResamplePoly(
+        up=up, down=1, window=calc_tp_fir_win(up), num_channels=1,
+    )
+    y = resampler.apply(x)
+    assert resampler.num_input_samples == 300
+    assert y.shape == (1, 300 * up)
+
+
+def test_resample_poly_stream_input_validation() -> None:
+    up = 4
+    resampler = ResamplePoly(
+        up=up,
+        down=1,
+        window=calc_tp_fir_win(up),
+        num_channels=1,
+        num_input_samples=32,
+    )
+    with pytest.raises(ValueError, match='dtype'):
+        resampler.apply_stream(np.zeros((1, 32), dtype=np.float32))
+    with pytest.raises(ValueError, match='shape'):
+        resampler.apply_stream(np.zeros((1, 31), dtype=np.float64))
+
+
+def test_resample_poly_stream_requires_no_downsampling() -> None:
+    resampler = ResamplePoly(
+        up=3,
+        down=2,
+        window=calc_tp_fir_win(3),
+        num_channels=1,
+        num_input_samples=32,
+    )
+    resampler.reset()
+    with pytest.raises(ValueError, match='down == 1'):
+        resampler.apply_stream(np.zeros((1, 32), dtype=np.float64))
+    with pytest.raises(ValueError, match='down == 1'):
+        resampler.flush()

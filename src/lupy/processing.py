@@ -621,3 +621,26 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
         self.max_peak = max(self.max_peak, max_peak)
         self._all_tp_values[self._block_index, :] = cur_peaks
         self._block_index += 1
+
+    def flush(self) -> None:
+        """Include the filter's delayed output samples in the measurements
+
+        The :class:`~.filters.TruePeakFilter` is causal, so the oversampled
+        output for the last few input samples is only available after
+        flushing.  This should be called once at the end of a stream
+        (before reading :attr:`max_peak`).
+
+        The peak values of the last processed block (:attr:`current_peaks`)
+        and :attr:`max_peak` are updated if the remaining samples exceed them.
+        Calling this method again without processing more input has no effect.
+        """
+        tp_vals = self.resample_filt.flush()
+        if tp_vals.shape[1] == 0:
+            return
+        tp_amp_max = np.abs(tp_vals).max(axis=1)
+        cur_peaks = lk_log10(tp_amp_max, offset=0, base=20, allow_negative_inf=True)
+        idx = max(self._block_index - 1, 0)
+        self._all_tp_values[idx, :] = np.maximum(
+            self._all_tp_values[idx, :], cur_peaks,
+        )
+        self.max_peak = max(self.max_peak, cur_peaks.max())

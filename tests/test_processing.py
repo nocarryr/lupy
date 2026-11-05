@@ -614,3 +614,68 @@ def test_true_peak_processor_benchmark(benchmark, tp_sample_rate: int) -> None:
         proc.reset()
 
     benchmark.pedantic(bench, teardown=teardown, warmup_rounds=10, rounds=500)
+
+
+@pytest.mark.parametrize('block_size', [100, 1000])
+def test_true_peak_processor_flush(block_size: int) -> None:
+    """Flushing includes peaks in the filter's delayed output"""
+    n_blocks = 3
+    proc = TruePeakProcessor(num_channels=1, gate_size=block_size, sample_rate=48000)
+    samples = np.zeros((1, block_size * n_blocks), dtype=np.float64)
+    samples[0, -1] = 1.0
+    for i in range(n_blocks):
+        proc.process(samples[:, i * block_size:(i + 1) * block_size])
+    before = proc.max_peak
+    proc.flush()
+    assert proc.max_peak > before
+    assert proc.max_peak == pytest.approx(0, abs=1)
+    assert proc.current_peaks[0] == proc.max_peak
+    assert len(proc.tp_array) == n_blocks
+
+    flushed = proc.max_peak
+    proc.flush()
+    assert proc.max_peak == flushed
+
+
+def test_true_peak_processor_flush_before_processing() -> None:
+    proc = TruePeakProcessor(num_channels=2, gate_size=100, sample_rate=48000)
+    proc.flush()
+    assert proc.max_peak == -np.inf
+    assert np.all(proc.current_peaks == -np.inf)
+
+
+def test_true_peak_processor_reset_restarts_stream() -> None:
+    gate_size = 100
+    rng = np.random.default_rng(4)
+    blocks = [rng.uniform(-1, 1, (2, gate_size)) for _ in range(3)]
+    fresh = TruePeakProcessor(num_channels=2, gate_size=gate_size, sample_rate=48000)
+    for b in blocks:
+        fresh.process(b)
+
+    proc = TruePeakProcessor(num_channels=2, gate_size=gate_size, sample_rate=48000)
+    for b in blocks:
+        proc.process(b)
+    proc.reset()
+    for b in blocks:
+        proc.process(b)
+    np.testing.assert_array_equal(proc.all_tp_values, fresh.all_tp_values)
+    assert proc.max_peak == fresh.max_peak
+
+
+def test_true_peak_processor_matches_issue_235() -> None:
+    """Maximum true peak of a steady tone is independent of the gate size"""
+    sample_rate = 48000
+    n = sample_rate * 20
+    t = np.arange(n) / sample_rate
+    amp = 10 ** (-23 / 20)
+    x = np.ascontiguousarray((amp * np.sin(2 * np.pi * 997 * t)).reshape(1, n))
+    peaks = []
+    for gate_size in (128, 4800, 19200):
+        proc = TruePeakProcessor(
+            num_channels=1, gate_size=gate_size, sample_rate=sample_rate,
+        )
+        for i in range(0, n - gate_size + 1, gate_size):
+            proc.process(x[:, i:i + gate_size])
+        peaks.append(float(proc.max_peak))
+    assert peaks == pytest.approx([peaks[0]] * 3, abs=1e-3)
+    assert peaks[0] == pytest.approx(-23, abs=0.05)

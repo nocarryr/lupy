@@ -258,6 +258,23 @@ class Meter(Generic[NumChannelsT]):
             assert is_2d_array(tp_samples)
             self.true_peak_processor(tp_samples)
 
+    def flush(self) -> None:
+        """Finalize the :term:`True Peak` measurements at the end of a stream
+
+        Processes any complete blocks still in the internal buffers, then
+        includes the samples held back by the oversampling filter's delay in
+        :attr:`true_peak_max` and :attr:`true_peak_current`
+        (see :meth:`.processing.TruePeakProcessor.flush`).
+
+        This should be called once after the last call to :meth:`write` and
+        has no effect if :attr:`true_peak_enabled` is ``False``.
+        Samples in an incomplete block are not processed.
+        """
+        while self.can_process():
+            self._process()
+        if self.true_peak_enabled:
+            self.true_peak_processor.flush()
+
     def reset(self) -> None:
         """Reset all values for :attr:`processor` and clear any buffered input
         samples

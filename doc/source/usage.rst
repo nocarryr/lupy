@@ -128,6 +128,18 @@ to ten seconds for this example.
 ...             break
 
 
+Finishing a Stream
+------------------
+
+The :term:`True Peak` oversampling filter delays its output slightly, so the
+last few oversampled values are not available until the end of the stream is
+signaled.  When all input has been written, call :meth:`Meter.flush` to
+process any remaining complete blocks and include those values
+in :attr:`Meter.true_peak_max`:
+
+>>> meter.flush()
+
+
 .. channel-layout:
 
 Channel Layout

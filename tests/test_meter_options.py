@@ -333,3 +333,42 @@ def test_meter_t_property() -> None:
     assert len(t) > 1
     assert t[0] == pytest.approx(0.0)
     assert t[1] == pytest.approx(dt)
+
+
+def test_flush_includes_delayed_true_peak_samples() -> None:
+    sample_rate = 48000
+    meter = Meter(block_size=128, num_channels=1, sample_rate=sample_rate)
+    gate_size = meter.true_peak_sampler.gate_size
+
+    src_data = np.zeros((1, gate_size * 2), dtype=np.float64)
+    src_data[0, -1] = 1.0
+    meter.write_all(src_data)
+    before = meter.true_peak_max
+    meter.flush()
+    assert meter.true_peak_max > before
+    assert meter.true_peak_max == pytest.approx(0, abs=1)
+    assert meter.true_peak_current[0] == meter.true_peak_max
+
+
+def test_flush_processes_pending_blocks() -> None:
+    sample_rate = 48000
+    meter = Meter(block_size=128, num_channels=1, sample_rate=sample_rate)
+    gate_size = meter.true_peak_sampler.gate_size
+
+    src_data = np.zeros((1, gate_size), dtype=np.float64)
+    src_data[0, 10] = 0.5
+    meter.write(src_data[:, :128], process=False)
+    for i in range(128, gate_size, 128):
+        meter.write(src_data[:, i:i + 128], process=False)
+    assert meter.can_process()
+    meter.flush()
+    assert not meter.can_process()
+    assert meter.true_peak_max > -np.inf
+
+
+def test_flush_true_peak_disabled() -> None:
+    meter = Meter(
+        block_size=128, num_channels=1, sample_rate=48000, true_peak_enabled=False,
+    )
+    meter.flush()
+    assert meter.true_peak_max == -np.inf
