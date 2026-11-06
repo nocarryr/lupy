@@ -135,6 +135,36 @@ This should **always** pass without any errors or warnings. If you encounter any
 - Follow the existing typing style and conventions used in the project as closely as possible.
 
 
+## Project-specific review guidance
+
+- `Meter` is to be considered the top-level user-facing API.
+  The sampler and processor subclasses in `samplers.py` and `processing.py`
+  have some level of user-facing API weight, but are not fully self-standing.
+
+  Components in `filters` and `signalutils` exist solely to support the implementation
+  of the higher-level components above rather than independently supported APIs.
+  Their documentation exists for developer reference, not as an end-user contract.
+
+- The primary use case is real-time audio processing of continuous audio streams,
+  but finite audio streams are also supported to some extent.
+  This should guide the design and implementation choices regarding allocation,
+  buffer management, etc.
+
+- Prefer straightforward implementations over defensive handling of
+  unsupported configurations. Use documented operating constraints when
+  evaluating whether an edge case needs to be handled.
+
+- Do not recommend expanding internal APIs or adding lifecycle safeguards
+  solely to accommodate hypothetical standalone usage.
+
+- Documentation should describe intended usage and meaningful behavior,
+  not exhaustively specify every possible misuse of internal components.
+
+- Focus on maintaining the behavior and contracts of the public APIs and
+  the compliance-based testing against the official EBU and ITU-R standards
+  found in the test suite should be preserved and respected.
+
+
 ## Code Style Preferences
 
 - Follow the existing code style and conventions used in the project as closely as possible, falling back to PEP 8 if there are no clear conventions in the existing code.
