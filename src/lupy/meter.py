@@ -259,35 +259,28 @@ class Meter(Generic[NumChannelsT]):
             self.true_peak_processor(tp_samples)
 
     def flush(self) -> None:
-        """Finalize the :term:`True Peak` measurements at the end of a stream
+        """Finalize the :term:`True Peak` measurements at the end of an input stream
 
-        Processes any complete blocks still in the internal buffers, then
-        includes the samples held back by the oversampling filter's delay in
-        :attr:`true_peak_max` and :attr:`true_peak_current`
-        (see :meth:`.processing.TruePeakProcessor.flush`).
+        This method can be useful when processing finite audio streams,
+        where the delayed :class:`~.filters.TruePeakFilter` samples must be
+        included in the final measurement.  It is optional and generally
+        unnecessary for continuous real-time metering.
 
-        This should be called once after the last call to :meth:`write`.
-        If :attr:`true_peak_enabled` is ``False``, only the buffered complete
-        blocks are processed.  Samples in an incomplete block are not processed.
+        Any remaining complete blocks are processed, and delayed :term:`True Peak`
+        output is incorporated into the final measurement.
+        Existing measurements are preserved.
 
-        Unlike :meth:`reset`, all measurements are kept.
-
-        .. warning::
+        .. important::
 
             Flushing ends the stream.  If :attr:`true_peak_enabled` is ``True``,
             processing any further input (through :meth:`write`,
-            :meth:`write_all` or :meth:`process`) raises :class:`RuntimeError`
-            until :meth:`reset` is called, which discards all measurements.
+            :meth:`write_all` or :meth:`process`) will not work correctly until
+            :meth:`reset` is called.
 
-            Do not call this to take an intermediate reading of a stream that
-            will continue.  To end only the filter's current segment while
-            keeping the measurements, use :meth:`set_paused`.
+            See :meth:`.signalutils.resample.ResamplePoly.flush` for more
+            information.
 
         .. versionadded:: 0.0.4
-
-        Raises:
-            RuntimeError: If buffered input is processed after the
-                :term:`True Peak` stream was flushed and not :meth:`reset`
         """
         while self.can_process():
             self._process()

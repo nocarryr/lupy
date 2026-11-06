@@ -131,6 +131,11 @@ to ten seconds for this example.
 Finishing a Stream
 ------------------
 
+.. tip::
+
+   This section primarily applies to finite audio streams.
+   For continuous real-time streams, flushing is generally unnecessary.
+
 The :term:`True Peak` oversampling filter delays its output slightly, so the
 last few oversampled values are not available until the end of the stream is
 signaled.  When all input has been written, call :meth:`Meter.flush` to
