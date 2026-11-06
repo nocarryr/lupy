@@ -258,9 +258,45 @@ class Meter(Generic[NumChannelsT]):
             assert is_2d_array(tp_samples)
             self.true_peak_processor(tp_samples)
 
+    def flush(self) -> None:
+        """Finalize the :term:`True Peak` measurements at the end of an input stream
+
+        This method can be useful when processing finite audio streams,
+        where the delayed :class:`~.filters.TruePeakFilter` samples must be
+        included in the final measurement.  It is optional and generally
+        unnecessary for continuous real-time metering.
+
+        Any remaining complete blocks are processed, and delayed :term:`True Peak`
+        output is incorporated into the final measurement.
+        Existing measurements are preserved.
+
+        .. important::
+
+            Flushing ends the stream.  If :attr:`true_peak_enabled` is ``True``,
+            processing any further input (through :meth:`write`,
+            :meth:`write_all` or :meth:`process`) will not work correctly until
+            :meth:`reset` is called.
+
+            See :meth:`.signalutils.resample.ResamplePoly.flush` for more
+            information.
+
+        .. versionadded:: 0.0.4
+        """
+        while self.can_process():
+            self._process()
+        if self.true_peak_enabled:
+            self.true_peak_processor.flush()
+
     def reset(self) -> None:
         """Reset all values for :attr:`processor` and clear any buffered input
         samples
+
+        This discards all measurements and starts a new stream.  In contrast,
+        :meth:`flush` finalizes the :term:`True Peak` measurements while keeping
+        them, and :meth:`set_paused` only discards pending input.
+
+        .. versionchanged:: 0.0.4
+            The :term:`True Peak` filter state is also reset.
         """
         self.sampler.clear()
         self.true_peak_sampler.clear()
@@ -271,8 +307,9 @@ class Meter(Generic[NumChannelsT]):
     def set_paused(self, paused: bool) -> None:
         """Pause or unpause processing
 
-        When paused, the current state of the :attr:`processor` is preserved
-        and any input provided to the :meth:`write` method will be discarded.
+        When paused, the current state of the :attr:`processor` and
+        :attr:`true_peak_processor` is preserved and any input provided to the
+        :meth:`write` method will be discarded.
         """
         if paused is self.paused:
             return
@@ -280,7 +317,11 @@ class Meter(Generic[NumChannelsT]):
         if paused:
             self.sampler.clear()
             if self.true_peak_enabled:
+                # Flush and reset the true peak filter when pausing so its
+                # internal buffer of delayed samples does not affect
+                # future measurements.
                 self.true_peak_sampler.clear()
+                self.true_peak_processor._flush_and_reset_filter()
 
     @property
     def integrated_lkfs(self) -> Floating:

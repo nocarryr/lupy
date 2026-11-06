@@ -7,7 +7,7 @@ from typing import Generic, Self, TypeVar, cast
 import numpy as np
 from scipy import signal
 
-from .signalutils.resample import ResamplePoly, calc_tp_fir_win
+from .signalutils.resample import DEFAULT_INPUT_SAMPLES, ResamplePoly, calc_tp_fir_win
 from .signalutils.sosfilt import sosfilt, validate_sos
 from .types import (
     AnyArray,
@@ -206,13 +206,32 @@ class TruePeakFilter(BaseFilter[Float1dArray, NumChannelsT]):
     An :attr:`upsample_factor` of 4 is recommended for sample rates below 88.2 kHz,
     while a factor of 2 has proven to be sufficient for sample rates of
     88.2 kHz and above.
+
+    Consecutive calls are treated as one continuous stream with a fixed
+    number of input samples per call.  The filter state is kept between calls,
+    so the output is delayed by the FIR group delay: the first call after
+    construction or :meth:`reset` returns fewer than
+    ``num_input_samples * upsample_factor`` samples and the remaining delayed
+    samples are available from :meth:`flush`.
+
+    Arguments:
+        num_channels: Number of audio channels to filter
+        upsample_factor: Upsampling factor
+        num_input_samples: Number of input samples per channel for each call.
+            Defaults to :data:`~.signalutils.resample.DEFAULT_INPUT_SAMPLES`
+
+    .. versionchanged:: 0.0.4
+        Consecutive calls are now filtered as one continuous stream and
+        the *num_input_samples* argument was added.
     """
     upsample_factor: int
     """Upsampling factor"""
+
     def __init__(
         self,
         num_channels: NumChannelsT,
-        upsample_factor: int = 4
+        upsample_factor: int = 4,
+        num_input_samples: int = DEFAULT_INPUT_SAMPLES,
     ) -> None:
         coeff = calc_tp_fir_win(upsample_factor)
         super().__init__(coeff=coeff, num_channels=num_channels)
@@ -222,14 +241,25 @@ class TruePeakFilter(BaseFilter[Float1dArray, NumChannelsT]):
             down=1,
             window=coeff,
             num_channels=num_channels,
+            num_input_samples=num_input_samples,
         )
 
     def __call__(self, x: Float1dArray|Float2dArray) -> Float2dArray:
         x = self._check_arr_dims(x)
-        return self.resampler.apply(x)
+        return self.resampler.apply_stream(x)
+
+    def flush(self) -> Float2dArray:
+        """Return the delayed output samples remaining at the end of a stream
+
+        This finalizes the stream. Repeated calls return an empty array and
+        further input raises :class:`RuntimeError` until :meth:`reset` is called.
+
+        .. versionadded:: 0.0.4
+        """
+        return self.resampler.flush()
 
     def reset(self) -> None:
-        pass
+        self.resampler.reset()
 
 
 def _check_sos_zi(zi: AnyArray, num_channels: int) -> SosZI:

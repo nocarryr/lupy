@@ -559,7 +559,9 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
         super().__init__(num_channels=num_channels, sample_rate=sample_rate)
         up_sample = 4 if sample_rate < 88100 else 2
         self.resample_filt = TruePeakFilter(
-            num_channels=num_channels, upsample_factor=up_sample,
+            num_channels=num_channels,
+            num_input_samples=gate_size,
+            upsample_factor=up_sample,
         )
         self.max_peak = NEG_INFINITY
         self.gate_size = gate_size
@@ -605,16 +607,61 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
         self.process(samples)
 
     def reset(self) -> None:
+        """Reset all measurement data and the oversampling filter state
+
+        .. versionchanged:: 0.0.4
+            :class:`~.filters.TruePeakFilter` state is also reset.
+        """
         self.max_peak = NEG_INFINITY
         self._all_tp_values[0, :] = NEG_INFINITY
         self._block_index = 0
+        self.resample_filt.reset()
+
+    def _process(self, tp_vals: Float2dArray) -> Float1dArray:
+        """Calculate the peak values (in dB) for oversampled output and
+        update :attr:`max_peak`
+        """
+        tp_amp_max = np.abs(tp_vals).max(axis=1)
+        cur_peaks = lk_log10(tp_amp_max, offset=0, base=20, allow_negative_inf=True)
+        self.max_peak = max(self.max_peak, cur_peaks.max())
+        return cur_peaks
 
     def process(self, samples: Float2dArray):
         # TODO: Check and raise exception if exceeding MAX_TIME_SECONDS
         tp_vals = self.resample_filt(samples)
-        tp_amp_max = np.abs(tp_vals).max(axis=1)
-        cur_peaks = lk_log10(tp_amp_max, offset=0, base=20, allow_negative_inf=True)
-        max_peak = cur_peaks.max()
-        self.max_peak = max(self.max_peak, max_peak)
+        cur_peaks = self._process(tp_vals)
         self._all_tp_values[self._block_index, :] = cur_peaks
         self._block_index += 1
+
+    def flush(self) -> None:
+        """Include the filter's delayed output samples in the measurements
+
+        The :class:`~.filters.TruePeakFilter` is causal, so the oversampled
+        output for the last few input samples is only available after
+        flushing.  This should be called once at the end of a stream
+        (before reading :attr:`max_peak`).
+
+        The peak values of the last processed block (:attr:`current_peaks`)
+        and :attr:`max_peak` are updated if the remaining samples exceed them.
+        Calling this method again without processing more input has no effect.
+
+        This does not process samples that are still buffered in a
+        :class:`~.sampling.TruePeakSampler`.  Further input requires
+        :meth:`reset`, which discards all measurements.
+
+        .. versionadded:: 0.0.4
+        """
+        tp_vals = self.resample_filt.flush()
+        if tp_vals.shape[1] == 0:
+            return
+        cur_peaks = self._process(tp_vals)
+        idx = max(self._block_index - 1, 0)
+        self._all_tp_values[idx, :] = np.maximum(
+            self._all_tp_values[idx, :], cur_peaks,
+        )
+
+    def _flush_and_reset_filter(self) -> None:
+        """End the current resampling segment while keeping all measurements
+        """
+        self.flush()
+        self.resample_filt.reset()
