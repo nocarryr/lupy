@@ -307,16 +307,9 @@ class Meter(Generic[NumChannelsT]):
     def set_paused(self, paused: bool) -> None:
         """Pause or unpause processing
 
-        When paused, the current state of the :attr:`processor` is preserved
-        and any input provided to the :meth:`write` method will be discarded.
-
-        Pending samples in the internal buffers are cleared and the
-        :term:`True Peak` filter history is reset (after including its delayed
-        output in the measurements) so samples from before the pause cannot
-        affect those after it.  All accumulated measurements are preserved.
-
-        .. versionchanged:: 0.0.4
-            The true peak filter is flushed and reset when pausing.
+        When paused, the current state of the :attr:`processor` and
+        :attr:`true_peak_processor` is preserved and any input provided to the
+        :meth:`write` method will be discarded.
         """
         if paused is self.paused:
             return
@@ -324,6 +317,9 @@ class Meter(Generic[NumChannelsT]):
         if paused:
             self.sampler.clear()
             if self.true_peak_enabled:
+                # Flush and reset the true peak filter when pausing so its
+                # internal buffer of delayed samples does not affect
+                # future measurements.
                 self.true_peak_sampler.clear()
                 self.true_peak_processor._flush_and_reset_filter()
 
