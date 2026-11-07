@@ -1,7 +1,7 @@
 # A simple test to ensure that the distribution can be installed and imported.
 
 
-def test_import():
+def test_import() -> None:
     from lupy import BlockProcessor, Meter, Sampler, TruePeakProcessor
     assert Meter is not None
     assert Sampler is not None

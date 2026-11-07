@@ -119,7 +119,7 @@ def unpack_zipfile(zip_filename: Path, wav_dir: Path) -> Path:
         return dest_file
 
 
-def unpack_all_zipfiles():
+def unpack_all_zipfiles() -> None:
     WAV_DIR.mkdir(exist_ok=True)
     for zip_file in ZIP_DIR.glob('*.zip'):
         unpack_zipfile(zip_file, WAV_DIR)
