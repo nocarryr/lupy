@@ -31,6 +31,8 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
+    env:
+      UV_NO_SYNC: "1"
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -41,6 +43,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
+      - name: Ensure uv.lock is up to date
+        run: uv lock --check
       - name: Install the Project
         run: uv sync --frozen --no-dev --group test
       - name: Run type checks
@@ -56,6 +60,8 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
+    env:
+      UV_NO_SYNC: "1"
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -66,6 +72,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
+      - name: Ensure uv.lock is up to date
+        run: uv lock --check
       - name: Install the Project
         run: uv sync --frozen --no-dev --group test
       - name: Test with pytest
