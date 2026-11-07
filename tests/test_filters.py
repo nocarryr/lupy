@@ -4,6 +4,8 @@ from typing import Literal
 
 import numpy as np
 import pytest
+from conftest import RandomSamplesCallable
+from pytest_codspeed.plugin import BenchmarkFixture
 from scipy import signal
 
 from lupy.filters import HP_COEFF, HS_COEFF, Coeff, Filter, FilterGroup, TruePeakFilter
@@ -12,6 +14,8 @@ from lupy.signalutils.resample import (
     ResamplePoly,
     calc_tp_fir_win,
 )
+from lupy.types import NumChannels
+from lupy.typeutils import is_array_of_shape
 
 
 @pytest.fixture(params=[48000])
@@ -75,13 +79,18 @@ def test_filter_group_single_channel_1d_input() -> None:
 
 
 @pytest.mark.benchmark(group='filter')
-def test_filter_benchmark(benchmark, random_samples, num_channels, bench_sample_rate) -> None:
+def test_filter_benchmark(
+    benchmark: BenchmarkFixture,
+    random_samples: RandomSamplesCallable,
+    num_channels: NumChannels,
+    bench_sample_rate: int
+) -> None:
     sample_rate = bench_sample_rate
     block_size = sample_rate // 100
     assert sample_rate % block_size == 0
 
-    samples = random_samples(num_channels, block_size)
-    assert samples.shape == (num_channels, block_size)
+    samples = random_samples((num_channels, block_size))
+    assert is_array_of_shape(samples, (num_channels, block_size))
     coeff = [HS_COEFF, HP_COEFF]
     if sample_rate != 48000:
         coeff = [c.as_sample_rate(sample_rate) for c in coeff]
@@ -95,14 +104,19 @@ def test_filter_benchmark(benchmark, random_samples, num_channels, bench_sample_
     benchmark(bench)
 
 @pytest.mark.benchmark(group='truepeak_filter')
-def test_truepeak_filter_benchmark(benchmark, random_samples, num_channels, bench_sample_rate) -> None:
+def test_truepeak_filter_benchmark(
+    benchmark: BenchmarkFixture,
+    random_samples: RandomSamplesCallable,
+    num_channels: NumChannels,
+    bench_sample_rate: int
+) -> None:
     sample_rate = bench_sample_rate
     up_sample = 4 if sample_rate < 88200 else 2
     block_size = sample_rate // 100
     assert sample_rate % block_size == 0
 
-    samples = random_samples(num_channels, block_size)
-    assert samples.shape == (num_channels, block_size)
+    samples = random_samples((num_channels, block_size))
+    assert is_array_of_shape(samples, (num_channels, block_size))
     tp_filter = TruePeakFilter(
         num_channels=num_channels,
         num_input_samples=block_size,

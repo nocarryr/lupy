@@ -7,7 +7,7 @@ from typing import Literal, get_args
 import numpy as np
 import pytest
 from compliance_cases import BS2217_NPZ_DIR, ComplianceBase
-from conftest import gen_1k_sine
+from conftest import RandomSamplesCallable, gen_1k_sine
 from pytest_codspeed.plugin import BenchmarkFixture
 from scipy import signal
 
@@ -217,7 +217,7 @@ def test_bs2217_compliance_cases(bs_2217_compliance_case: ComplianceBase) -> Non
 
     if np.isneginf(lufs):
         # We treat -inf as -200 dBFS
-        lufs = SILENCE_DB
+        lufs = np.float64(SILENCE_DB)
     assert lufs - tol <= integrated <= lufs + tol
 
 
@@ -382,9 +382,9 @@ def test_true_peak_steady_tone(tp_block_size: int) -> None:
     pytest.param(False, id='true_peak_disabled'),
 ])
 def test_meter_benchmark(
-    sample_rate,
-    random_samples,
-    benchmark,
+    sample_rate: int,
+    random_samples: RandomSamplesCallable,
+    benchmark: BenchmarkFixture,
     true_peak_enabled: bool,
 ) -> None:
     block_size = 1024
@@ -400,7 +400,7 @@ def test_meter_benchmark(
     if N % block_size != 0:
         N += block_size - (N % block_size)
     assert N % block_size == 0
-    src_data = random_samples(num_channels, N)
+    src_data = random_samples((num_channels, N))
 
     def bench() -> None:
         meter.write_all(src_data)

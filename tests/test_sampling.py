@@ -5,6 +5,7 @@ from fractions import Fraction
 
 import numpy as np
 import pytest
+from conftest import IncSamplesCallable, RandomSamplesCallable
 
 from lupy.sampling import (
     Sampler,
@@ -175,7 +176,14 @@ def use_random(request: pytest.FixtureRequest) -> bool:
 
 
 @pytest.mark.slow
-def test_write(sample_rate, block_size, num_channels, random_samples, inc_samples, use_random):
+def test_write(
+    sample_rate: int,
+    block_size: int,
+    num_channels: NumChannels,
+    random_samples: RandomSamplesCallable,
+    inc_samples: IncSamplesCallable,
+    use_random: bool
+) -> None:
     sampler = Sampler(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
     print(f'{sampler.bfr_shape=}')
     print(f'{sampler.gate_view.shape=}')
@@ -188,7 +196,7 @@ def test_write(sample_rate, block_size, num_channels, random_samples, inc_sample
     # assert sampler.gate_view.shape == (sampler.num_gate_blocks, num_channels, gate_size)
 
     if use_random:
-        src_data = random_samples(num_channels, num_blocks*2, block_size)
+        src_data = random_samples((num_channels, num_blocks*2, block_size))
     else:
         src_data = inc_samples(
             count=total_samples*2,
