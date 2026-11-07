@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from fractions import Fraction
-from typing import overload
+from typing import Protocol, overload
 
 import numpy as np
 import pytest
@@ -15,6 +15,7 @@ from compliance_cases import (
 )
 
 from lupy.types import ChannelIndex, FloatArray, NumChannels, ShapeT
+from lupy.typeutils import ensure_array_of_shape
 
 IS_CI = 'CI' in os.environ
 
@@ -22,22 +23,31 @@ nan = np.nan
 rng = np.random.default_rng(seed=42)
 
 
+
+class RandomSamplesCallable(Protocol):
+    def __call__(self, shape: ShapeT) -> FloatArray[ShapeT]: ...
+
+
+class IncSamplesCallable(Protocol):
+    def __call__(self, count: int, shape: ShapeT) -> FloatArray[ShapeT]: ...
+
+
 @pytest.fixture
-def random_samples():
-    def gen(*shape: int):
+def random_samples() -> RandomSamplesCallable:
+    def gen(shape: ShapeT) -> FloatArray[ShapeT]:
         n = 1
         for s in shape:
             n *= s
-        return rng.random(n).reshape(shape)
+        r = rng.random(n).reshape(shape)
+        return ensure_array_of_shape(r, shape)
     return gen
 
 @pytest.fixture
-def inc_samples():
-    def gen(count: int, shape: tuple[int,...]|None = None):
-        a = np.arange(count)
-        if shape is not None:
-            a = np.resize(a, shape)
-        return a
+def inc_samples() -> IncSamplesCallable:
+    def gen(count: int, shape: ShapeT) -> FloatArray[ShapeT]:
+        a = np.arange(count, dtype=np.float64)
+        a = np.resize(a, shape)
+        return ensure_array_of_shape(a, shape)
     return gen
 
 
