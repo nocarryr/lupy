@@ -70,7 +70,8 @@ def gen_1k_sine(
 ) -> Float1dArray:
     t = np.arange(count) / sample_rate
     ph = np.deg2rad(phase_deg)
-    return amp * np.sin(2 * np.pi * fc * t + ph)
+    result: Float1dArray = amp * np.sin(2 * np.pi * fc * t + ph)
+    return result
 
 
 

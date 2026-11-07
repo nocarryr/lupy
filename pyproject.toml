@@ -79,6 +79,7 @@ dev = [
 
 [tool.mypy]
 files = ["src/lupy/", "tests/**/*.py"]
+strict = true
 
 
 [tool.ruff]

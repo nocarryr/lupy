@@ -4,7 +4,7 @@ import math
 import threading
 from abc import ABC, abstractmethod
 from fractions import Fraction
-from typing import Generic, NamedTuple, Self, TypeVar
+from typing import Any, Generic, NamedTuple, Self, TypeVar
 
 import numpy as np
 
@@ -150,7 +150,7 @@ class Slice:
         """The current index value"""
         return self._index
     @index.setter
-    def index(self, value: int):
+    def index(self, value: int) -> None:
         if value > self.max_index and self.overlap == 0:
             value = 0
         if value == self._index:
@@ -208,9 +208,9 @@ class Slice:
             x: The array being sliced
             axis: The axis along which to slice
         """
-        return self.end_index > x.shape[axis]
+        return bool(self.end_index > x.shape[axis])
 
-    def indices(self, arr_len: int) -> IndexArray:
+    def indices(self, arr_len: int) -> IndexArray[Any]:
         """Get an index array for the current slice, wrapping around
         the end of the array as needed
 
@@ -239,7 +239,7 @@ class Slice:
             del new_shape[axis + 1]
         return tuple(new_shape)
 
-    def build_slice_array(self, x: AnyArray, axis: int) -> tuple[slice|IndexArray, ...]:
+    def build_slice_array(self, x: AnyArray, axis: int) -> tuple[slice|IndexArray[Any], ...]:
         """Build a tuple of slices/indices for slicing the array along
         the specified axis
 
@@ -254,10 +254,10 @@ class Slice:
         start_ix, end_ix = self.start_index, self.end_index
         if start_ix == 0:
             start_ix = None
-        sl_arr: list[slice|IndexArray] = [
+        sl_arr: list[slice|IndexArray[Any]] = [
             slice(None, None, None) for _ in range(x.ndim)
         ]
-        ax_slice: slice|IndexArray
+        ax_slice: slice|IndexArray[Any]
         if self.is_wrapped(x, axis):
             ax_slice = self.indices(x.shape[axis])
         else:
@@ -494,7 +494,7 @@ class Sampler(BaseSampler[NumChannelsT]):
 
     def _read(self) -> Float2dArray:
         sl = self.gate_slice
-        r: FloatArray = sl.slice(self.gate_view, axis=1)
+        r: FloatArray[Any] = sl.slice(self.gate_view, axis=1)
         sl.increment(self.gate_view, axis=1)
         self.samples_available -= self.pad_size
         return ensure_2d_array(r)
@@ -593,7 +593,7 @@ class TruePeakSampler(BaseSampler[NumChannelsT]):
 
     def _read(self) -> Float2dArray:
         sl = self.gate_slice
-        r: FloatArray = self.gate_view[:, sl.index, :]
+        r: FloatArray[Any] = self.gate_view[:, sl.index, :]
         sl.index += 1
         assert r.shape == (self.num_channels, self.gate_size)
         self.samples_available -= self.gate_size
@@ -627,7 +627,7 @@ class LockContext:
         self.acquire()
         return self
 
-    def __exit__(self, *args) -> None:
+    def __exit__(self, *args: object) -> None:
         self.release()
 
 

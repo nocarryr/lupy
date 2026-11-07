@@ -51,11 +51,11 @@ def is_3d_array(arr: AnyNdArray[Any, DType_co]) -> TypeIs[Any3dArray[DType_co]]:
 
 
 @overload
-def is_nd_array(arr: AnyArray, ndim: Literal[1]) -> TypeIs[Any1dArray]: ...
+def is_nd_array(arr: AnyArray, ndim: Literal[1]) -> TypeIs[Any1dArray[Any]]: ...
 @overload
-def is_nd_array(arr: AnyArray, ndim: Literal[2]) -> TypeIs[Any2dArray]: ...
+def is_nd_array(arr: AnyArray, ndim: Literal[2]) -> TypeIs[Any2dArray[Any]]: ...
 @overload
-def is_nd_array(arr: AnyArray, ndim: Literal[3]) -> TypeIs[Any3dArray]: ...
+def is_nd_array(arr: AnyArray, ndim: Literal[3]) -> TypeIs[Any3dArray[Any]]: ...
 @overload
 def is_nd_array(arr: AnyArray, ndim: int) -> TypeIs[AnyNdArray[Any, DType_co]]: ...
 def is_nd_array(arr: AnyArray, ndim: int) -> TypeIs[AnyNdArray[Any, DType_co]]:
@@ -123,33 +123,33 @@ def is_array_of_dtype(
 ) -> TypeIs[AnyNdArray[ShapeT, DType_t]]:
     """Check if the given array's dtype matches the specified dtype
     """
-    return arr.dtype == dtype
+    return bool(arr.dtype == dtype)
 
 
 def is_float_array(arr: AnyNdArray[ShapeT, Any]) -> TypeIs[AnyFloatArray[ShapeT]]:
     """Check if the given array's dtype is a floating-point type
     """
-    return np.issubdtype(arr.dtype, np.floating)
+    return bool(np.issubdtype(arr.dtype, np.floating))
 
 def is_float32_array(arr: AnyNdArray[ShapeT, Any]) -> TypeIs[AnyNdArray[ShapeT, np.dtype[np.float32]]]:
     """Check if the given array's dtype is :obj:`numpy.float32`
     """
-    return arr.dtype == np.float32
+    return bool(arr.dtype == np.float32)
 
 def is_float64_array(arr: AnyNdArray[ShapeT, Any]) -> TypeIs[AnyNdArray[ShapeT, np.dtype[np.float64]]]:
     """Check if the given array's dtype is :obj:`numpy.float64`
     """
-    return arr.dtype == np.float64
+    return bool(arr.dtype == np.float64)
 
 def is_index_array(arr: AnyNdArray[ShapeT, Any]) -> TypeIs[IndexArray[ShapeT]]:
     """Check if the given array's dtype is an integer type suitable for indexing
     """
-    return arr.dtype == np.intp
+    return bool(arr.dtype == np.intp)
 
 def is_bool_array(arr: AnyNdArray[ShapeT, Any]) -> TypeIs[BoolArray[ShapeT]]:
     """Check if the given array's dtype is boolean
     """
-    return arr.dtype == np.bool_
+    return bool(arr.dtype == np.bool_)
 
 def is_complex_array(arr: AnyNdArray[ShapeT, Any]) -> TypeIs[ComplexArray[ShapeT]]:
     """Check if the given array's dtype is a complex floating-point type

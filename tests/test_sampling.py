@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from fractions import Fraction
+from typing import Any
 
 import numpy as np
 import pytest
@@ -14,10 +16,10 @@ from lupy.sampling import (
     TruePeakSampler,
     calc_buffer_length,
 )
-from lupy.types import NumChannels
+from lupy.types import AnyArray, FloatArray, NumChannels
 
 
-def test_slice_non_overlap():
+def test_slice_non_overlap() -> None:
     src_array_shape = (2, 48000)
     chunk_size = 1000
     overlap = 0
@@ -51,7 +53,7 @@ def test_slice_non_overlap():
     assert np.array_equal(chunk, expected_array[:, 0, :])
 
 
-def test_slice_with_overlap():
+def test_slice_with_overlap() -> None:
     N = 48000
     src_array_shape = (2, N)
     chunk_size = 1000
@@ -138,7 +140,7 @@ def test_slice_with_overlap():
 
 
 
-def test_buffer_length(sample_rate, block_size):
+def test_buffer_length(sample_rate: int, block_size: int) -> None:
     bfr_shape = calc_buffer_length(sample_rate, block_size)
     print(f'{block_size=} {bfr_shape=}')
     assert bfr_shape.total_samples % bfr_shape.block_size == 0
@@ -153,7 +155,7 @@ def test_buffer_length(sample_rate, block_size):
     assert bfr_shape.gate_size / bfr_shape.pad_size == 4
 
 
-def test_true_peak_gate_size(true_peak_gate_duration, sample_rate, block_size):
+def test_true_peak_gate_size(true_peak_gate_duration: Fraction, sample_rate: int, block_size: int) -> None:
     gate_size = int(true_peak_gate_duration * sample_rate)
     # Ensure the gate duration in samples is an exact integer (no rounding error)
     assert gate_size == true_peak_gate_duration * sample_rate
@@ -169,12 +171,13 @@ def test_true_peak_gate_size(true_peak_gate_duration, sample_rate, block_size):
 
 
 @pytest.fixture(params=[False, True])
-def use_random(request) -> bool:
-    return request.param
+def use_random(request: pytest.FixtureRequest) -> bool:
+    param: bool = request.param
+    return param
 
 
 @pytest.mark.slow
-def test_write(sample_rate, block_size, num_channels, random_samples, inc_samples, use_random):
+def test_write(sample_rate: int, block_size: int, num_channels: NumChannels, random_samples: Callable[..., FloatArray[Any]], inc_samples: Callable[..., AnyArray], use_random: bool) -> None:
     sampler = Sampler(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
     print(f'{sampler.bfr_shape=}')
     print(f'{sampler.gate_view.shape=}')
@@ -204,7 +207,7 @@ def test_write(sample_rate, block_size, num_channels, random_samples, inc_sample
     num_written = 0
     num_read = 0
 
-    def write_samples():
+    def write_samples() -> None:
         nonlocal write_block_index
         nonlocal num_written
 
@@ -225,7 +228,7 @@ def test_write(sample_rate, block_size, num_channels, random_samples, inc_sample
         end = int(T_g * (j * step + 1) * sampler.sample_rate)
         return start, end
 
-    def read_block():
+    def read_block() -> None:
         nonlocal src_data_index
         nonlocal num_read
         nonlocal num_written
@@ -289,10 +292,10 @@ def test_write(sample_rate, block_size, num_channels, random_samples, inc_sample
     assert not sampler.can_read()
 
 
-def test_thread_safe_sampler_read_write_clear():
+def test_thread_safe_sampler_read_write_clear() -> None:
     """ThreadSafeSampler: write enough blocks to fill a gate, read, then clear."""
     block_size = 512
-    num_channels = 2
+    num_channels: NumChannels = 2
     sample_rate = 48000
     sampler = ThreadSafeSampler(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
 
@@ -312,7 +315,7 @@ def test_thread_safe_sampler_read_write_clear():
     assert not sampler.can_read()
 
 
-def test_thread_safe_sampler_lock_context():
+def test_thread_safe_sampler_lock_context() -> None:
     """LockContext acquire/release and context-manager API work correctly."""
     sampler = ThreadSafeSampler(block_size=128, num_channels=1, sample_rate=48000)
 
@@ -363,10 +366,10 @@ def test_thread_safe_sampler_concurrent_writes() -> None:
     assert data.shape == (num_channels, sampler.gate_size)
 
 
-def test_thread_safe_true_peak_sampler_read_write_clear():
+def test_thread_safe_true_peak_sampler_read_write_clear() -> None:
     """ThreadSafeTruePeakSampler: write, read, and clear behave correctly."""
     block_size = 512
-    num_channels = 2
+    num_channels: NumChannels = 2
     sample_rate = 48000
     sampler = ThreadSafeTruePeakSampler(
         block_size=block_size,

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
-from typing import Literal, get_args
+from collections.abc import Callable, Iterable
+from fractions import Fraction
+from typing import Any, Literal, get_args
 
 import numpy as np
 import pytest
-from compliance_cases import BS2217_NPZ_DIR
+from compliance_cases import BS2217_NPZ_DIR, ComplianceBase
 from conftest import gen_1k_sine
+from pytest_codspeed.plugin import BenchmarkFixture
 from scipy import signal
 
 from lupy import BlockProcessor, Meter
@@ -28,8 +30,9 @@ from lupy.typeutils import is_array_of_shape
 
 
 @pytest.fixture(params=[True, False])
-def is_silent(request) -> bool:
-    return request.param
+def is_silent(request: pytest.FixtureRequest) -> bool:
+    param: bool = request.param
+    return param
 
 
 def build_samples(
@@ -48,7 +51,7 @@ def build_samples(
 
 
 @pytest.mark.slow
-def test_integrated_lkfs(sample_rate, block_size, all_channels, is_silent) -> None:
+def test_integrated_lkfs(sample_rate: int, block_size: int, all_channels: tuple[NumChannels, ChannelIndex], is_silent: bool) -> None:
     num_channels, sine_channel = all_channels
     meter = Meter(
         block_size=block_size,
@@ -89,7 +92,7 @@ def test_integrated_lkfs(sample_rate, block_size, all_channels, is_silent) -> No
 # https://tech.ebu.ch/docs/tech/tech3341.pdf Section 2.9
 # Stereo 1k (997 Hz) sine at -18 dBFS should read -18 LUFS
 @pytest.mark.slow
-def test_integrated_lkfs_neg18(sample_rate, block_size) -> None:
+def test_integrated_lkfs_neg18(sample_rate: int, block_size: int) -> None:
     num_channels: NumChannels = 2
     meter = Meter(
         block_size=block_size,
@@ -115,7 +118,7 @@ def test_integrated_lkfs_neg18(sample_rate, block_size) -> None:
 
 
 @pytest.mark.slow
-def test_compliance_cases(sample_rate, compliance_case) -> None:
+def test_compliance_cases(sample_rate: int, compliance_case: ComplianceBase) -> None:
     block_size = 128
     num_channels = compliance_case.num_channels
     meter = Meter(block_size=block_size, num_channels=num_channels, sample_rate=sample_rate)
@@ -169,7 +172,7 @@ def test_compliance_cases(sample_rate, compliance_case) -> None:
 
 
 @pytest.mark.slow
-def test_bs2217_compliance_cases(bs_2217_compliance_case) -> None:
+def test_bs2217_compliance_cases(bs_2217_compliance_case: ComplianceBase) -> None:
     # This is separate from the other compliance cases since we're only
     # testing at 48k and only checking integrated LKFS
     sample_rate = 48000
@@ -208,11 +211,11 @@ def test_bs2217_compliance_cases(bs_2217_compliance_case) -> None:
 
     if np.isneginf(lufs):
         # We treat -inf as -200 dBFS
-        lufs = SILENCE_DB
+        lufs = np.float64(SILENCE_DB)
     assert lufs - tol <= integrated <= lufs + tol
 
 
-def test_meter_current_measurement(all_channels) -> None:
+def test_meter_current_measurement(all_channels: tuple[NumChannels, ChannelIndex]) -> None:
     num_channels, sine_channel = all_channels
     silent_channels_ix = np.array(
         [i for i in range(num_channels) if i != sine_channel],
@@ -255,7 +258,7 @@ def test_meter_current_measurement(all_channels) -> None:
 
 
     gate_block_index = 0
-    prev_measurement: CurrentMeasurement | None = None
+    prev_measurement: CurrentMeasurement[Any] | None = None
 
     for i in range(num_blocks):
         block = src_data[:, i, :]
@@ -281,9 +284,9 @@ def test_meter_current_measurement(all_channels) -> None:
 
 @pytest.mark.slow
 def test_true_peak_gate_blocks(
-    true_peak_gate_duration,
-    sample_rate,
-    true_peak_compliance_case
+    true_peak_gate_duration: Fraction,
+    sample_rate: int,
+    true_peak_compliance_case: ComplianceBase
 ) -> None:
     block_size = 128
     num_channels = true_peak_compliance_case.num_channels
@@ -373,9 +376,9 @@ def test_true_peak_steady_tone(tp_block_size: int) -> None:
     pytest.param(False, id='true_peak_disabled'),
 ])
 def test_meter_benchmark(
-    sample_rate,
-    random_samples,
-    benchmark,
+    sample_rate: int,
+    random_samples: Callable[..., FloatArray[Any]],
+    benchmark: BenchmarkFixture,
     true_peak_enabled: bool,
 ) -> None:
     block_size = 1024
@@ -393,10 +396,10 @@ def test_meter_benchmark(
     assert N % block_size == 0
     src_data = random_samples(num_channels, N)
 
-    def bench():
+    def bench() -> None:
         meter.write_all(src_data)
 
-    def teardown():
+    def teardown() -> None:
         meter.reset()
 
     rounds = {
@@ -418,8 +421,8 @@ def test_meter_benchmark(
 ProcessorMode = Literal['integrated', 'momentary', 'short_term', 'lra']
 
 @pytest.fixture(params=get_args(ProcessorMode))
-def processor_bench_data(request) -> tuple[np.ndarray, int, BlockProcessor, ProcessorMode]:
-    mode = request.param
+def processor_bench_data(request: pytest.FixtureRequest) -> tuple[np.ndarray[tuple[int, int, int], np.dtype[np.float32]], int, BlockProcessor[Literal[5]], ProcessorMode]:
+    mode: ProcessorMode = request.param
     src_file = BS2217_NPZ_DIR / '1770-2_Comp_RelGateTest_prefiltered_gated.npz'
     with np.load(src_file) as data:
         in_samples: np.ndarray[tuple[int, int], np.dtype[np.float32]] = data['samples']
@@ -465,16 +468,16 @@ def processor_bench_data(request) -> tuple[np.ndarray, int, BlockProcessor, Proc
 
 
 @pytest.mark.benchmark(group='block_processor')
-def test_block_processor_benchmark(benchmark, processor_bench_data) -> None:
+def test_block_processor_benchmark(benchmark: BenchmarkFixture, processor_bench_data: tuple[np.ndarray[tuple[int, int, int], np.dtype[np.float32]], int, BlockProcessor[Literal[5]], ProcessorMode]) -> None:
     samples, num_gate_blocks, processor, mode = processor_bench_data
 
-    def bench():
+    def bench() -> np.floating:
         for i in range(num_gate_blocks):
             block = samples[i]
             processor.process_block(block)
         return processor.integrated_lkfs
 
-    def teardown():
+    def teardown() -> None:
         processor.reset()
 
     # The number of rounds is chosen based off of experimentation to get a
@@ -595,7 +598,7 @@ def test_true_peak_processor_t_property(sample_rate: int) -> None:
 # Upsample factors: 4x for <88.1kHz, 2x for >=88.1kHz (see TruePeakProcessor.__init__)
 @pytest.mark.benchmark(group='true_peak')
 @pytest.mark.parametrize('tp_sample_rate', [48000, 88200], ids=['48kHz-4x', '88kHz-2x'])
-def test_true_peak_processor_benchmark(benchmark, tp_sample_rate: int) -> None:
+def test_true_peak_processor_benchmark(benchmark: BenchmarkFixture, tp_sample_rate: int) -> None:
     """Benchmark TruePeakProcessor.process — the dominant CPU bottleneck (~55% of Meter time).
 
     Provides a measurement baseline for the polyphase FIR upsampling path so that
