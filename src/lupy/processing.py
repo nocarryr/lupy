@@ -630,7 +630,9 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
         update :attr:`max_peak`
         """
         tp_amp_max = np.abs(tp_vals).max(axis=1)
-        cur_peaks = lk_log10(tp_amp_max, offset=0, base=20, allow_negative_inf=True)
+        cur_peaks: Float1dArray = lk_log10(
+            tp_amp_max, offset=0, base=20, allow_negative_inf=True
+        )
         self.max_peak = max(self.max_peak, cur_peaks.max())
         return cur_peaks
 
