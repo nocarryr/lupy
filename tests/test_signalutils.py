@@ -52,7 +52,7 @@ def test_sosfilt_zi_shape_mismatch() -> None:
 def test_upfirdn_h_not_1d() -> None:
     """_UpFIRDn raises ValueError when h is not 1-D."""
     with pytest.raises(ValueError, match='h must be 1-D'):
-        _UpFIRDn(h=np.ones((3, 4)), up=1, down=1, input_shape=(1, 16))  # type: ignore[arg-type]
+        _UpFIRDn(h=np.ones((3, 4)), up=1, down=1, input_shape=(1, 16)) # pyright: ignore[reportArgumentType]
 
 
 def test_upfirdn_h_empty() -> None:

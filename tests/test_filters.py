@@ -276,7 +276,7 @@ def test_resample_poly_stream_input_validation() -> None:
         num_input_samples=32,
     )
     with pytest.raises(ValueError, match='dtype'):
-        resampler.apply_stream(np.zeros((1, 32), dtype=np.float32))
+        resampler.apply_stream(np.zeros((1, 32), dtype=np.float32)) # pyright: ignore[reportArgumentType]
     with pytest.raises(ValueError, match='shape'):
         resampler.apply_stream(np.zeros((1, 31), dtype=np.float64))
 
