@@ -16,8 +16,14 @@ from .types import (
     FloatArray,
     Floating,
     NumChannelsT,
+    ShapeT,
 )
-from .typeutils import build_meter_array, build_true_peak_array, ensure_nd_array
+from .typeutils import (
+    build_meter_array,
+    build_true_peak_array,
+    ensure_array_of_shape,
+    ensure_nd_array,
+)
 
 __all__ = ('BlockProcessor', 'TruePeakProcessor')
 
@@ -115,34 +121,40 @@ class RunningSum:
 
 
 @overload
-def lk_log10(x: FloatArray, offset: float = -0.691, base: int = 10, allow_negative_inf: bool = ...) -> FloatArray: ...
+def lk_log10(x: FloatArray[ShapeT], offset: float = -0.691, base: int = 10, allow_negative_inf: bool = ...) -> FloatArray[ShapeT]: ...
 @overload
 def lk_log10(x: np.floating, offset: float = -0.691, base: int = 10, allow_negative_inf: bool = ...) -> np.floating: ...
 def lk_log10(
-    x: FloatArray|np.floating,
+    x: FloatArray[ShapeT]|np.floating,
     offset: float = -0.691,
     base: int = 10,
     allow_negative_inf: bool = False,
-) -> FloatArray|np.floating:
+) -> FloatArray[ShapeT]|np.floating:
     if allow_negative_inf:
         with np.errstate(divide='ignore'):
-            r = offset + base * np.log10(x)
-        return r
+            if isinstance(x, np.ndarray):
+                r = offset + base * np.log10(x)
+                return ensure_array_of_shape(r, x.shape)
+            return np.float64(offset + base * np.log10(x))
     if isinstance(x, np.ndarray):
         x[np.less_equal(x, 0)] = EPSILON
-        return offset + base * np.log10(x)
+        r = offset + base * np.log10(x)
+        return ensure_array_of_shape(r, x.shape)
     if x <= 0:
         x = EPSILON
     return np.float64(offset + base * math.log10(x))
 
 @overload
-def from_lk_log10(x: FloatArray, offset: float = 0.691) -> FloatArray: ...
+def from_lk_log10(x: FloatArray[ShapeT], offset: float = 0.691) -> FloatArray[ShapeT]: ...
 @overload
 def from_lk_log10(x: np.floating, offset: float = 0.691) -> np.floating: ...
 def from_lk_log10(
-    x: FloatArray|np.floating,
+    x: FloatArray[ShapeT]|np.floating,
     offset: float = 0.691
-) -> FloatArray|np.floating:
+) -> FloatArray[ShapeT]|np.floating:
+    if isinstance(x, np.ndarray):
+        r = 10 ** ((x + offset) / 10)
+        return ensure_array_of_shape(r, x.shape)
     return 10 ** ((x + offset) / 10)
 
 def square_and_sum(a: Float2dArray) -> Float1dArray:
