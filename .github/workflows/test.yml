@@ -43,6 +43,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
+      - name: Ensure uv.lock is up to date
+        run: uv lock --check
       - name: Install the Project
         run: uv sync --frozen --no-dev --group test
       - name: Run type checks
@@ -70,6 +72,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
+      - name: Ensure uv.lock is up to date
+        run: uv lock --check
       - name: Install the Project
         run: uv sync --frozen --no-dev --group test
       - name: Test with pytest
