@@ -208,7 +208,7 @@ class Slice:
             x: The array being sliced
             axis: The axis along which to slice
         """
-        return self.end_index > x.shape[axis]
+        return bool(self.end_index > x.shape[axis])
 
     def indices(self, arr_len: int) -> IndexArray:
         """Get an index array for the current slice, wrapping around

@@ -87,19 +87,23 @@ class RunningSum:
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, (np.floating, float, int)):
             return NotImplemented
-        return self.value == other
+        return bool(self.value == other)
 
     def __gt__(self, other: Floating) -> bool|np.bool:
-        return self.value > other
+        result: bool|np.bool = self.value > other
+        return result
 
     def __ge__(self, other: Floating) -> bool|np.bool:
-        return self.value >= other
+        result: bool|np.bool = self.value >= other
+        return result
 
     def __lt__(self, other: Floating) -> bool|np.bool:
-        return self.value < other
+        result: bool|np.bool = self.value < other
+        return result
 
     def __le__(self, other: Floating) -> bool|np.bool:
-        return self.value <= other
+        result: bool|np.bool = self.value <= other
+        return result
 
     def __repr__(self) -> str:
         return f'<{self.__class__.__name__}: {self}>'
