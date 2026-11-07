@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from typing import Literal
+
 import numpy as np
 import pytest
 from scipy import signal
 
-from lupy.filters import HP_COEFF, HS_COEFF, Filter, FilterGroup, TruePeakFilter
+from lupy.filters import HP_COEFF, HS_COEFF, Coeff, Filter, FilterGroup, TruePeakFilter
 from lupy.signalutils.resample import (
     DEFAULT_INPUT_SAMPLES,
     ResamplePoly,
@@ -13,12 +15,13 @@ from lupy.signalutils.resample import (
 
 
 @pytest.fixture(params=[48000])
-def bench_sample_rate(request) -> int:
-    return request.param
+def bench_sample_rate(request: pytest.FixtureRequest) -> int:
+    param: int = request.param
+    return param
 
 
 @pytest.mark.parametrize('coeff', [HS_COEFF, HP_COEFF])
-def test_filter_requantize(coeff, sample_rate) -> None:
+def test_filter_requantize(coeff: Coeff, sample_rate: int) -> None:
     orig_sample_rate = coeff.sample_rate
     quantized = coeff.as_sample_rate(sample_rate)
 
@@ -86,7 +89,7 @@ def test_filter_benchmark(benchmark, random_samples, num_channels, bench_sample_
 
     filtered = np.zeros(samples.shape, dtype=np.float64)
 
-    def bench():
+    def bench() -> None:
         filtered[...] = fg(samples)
 
     benchmark(bench)
@@ -112,7 +115,7 @@ def test_truepeak_filter_benchmark(benchmark, random_samples, num_channels, benc
     # The first streamed call returns fewer samples due to the filter delay
     tp_filter(samples)
 
-    def bench():
+    def bench() -> None:
         filtered[...] = tp_filter(samples)
 
     benchmark(bench)
@@ -279,7 +282,10 @@ def test_resample_poly_stream_requires_no_downsampling() -> None:
         resampler.flush()
 
 
-def _make_stream_filter(up: int = 4, block_size: int = 64) -> TruePeakFilter:
+
+_TPFilter2d = TruePeakFilter[Literal[2]]
+
+def _make_stream_filter(up: int = 4, block_size: int = 64) -> _TPFilter2d:
     return TruePeakFilter(num_channels=2, num_input_samples=block_size, upsample_factor=up)
 
 
@@ -324,7 +330,7 @@ def test_resampler_reset_after_flush(up: int) -> None:
     block_size = 64
     blocks = [rng.uniform(-1, 1, (2, block_size)) for _ in range(3)]
 
-    def run(f: TruePeakFilter) -> np.ndarray:
+    def run(f: _TPFilter2d) -> np.ndarray:
         out = [f(b).copy() for b in blocks]
         out.append(f.flush().copy())
         return np.concatenate(out, axis=1)
