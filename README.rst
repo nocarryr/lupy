@@ -1,6 +1,9 @@
 lupy
 ####
 
+|uv badge| |actions badge| |codspeed badge| |PyPI version| |PyPI license| |PyPI pyversions| |PyPI download week|
+
+
 Python library for `Audio Loudness`_ measurements.
 Yet another implementation of `ITU-R BS.1770`_, `ITU-R BS.1771`_,
 `EBU Tech 3341`_ and `EBU Tech 3342`_.
@@ -95,6 +98,38 @@ This project is licensed under the MIT License - see the `LICENSE`_ file for det
 
 Portions of the code (src/lupy/signalutils) are derived from the Scipy library, which is
 licensed under the BSD License.  See the `LICENSE-SCIPY`_ file for details.
+
+
+
+.. |uv badge| image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json
+  :alt: uv
+  :target: https://docs.astral.sh/uv/
+
+.. |actions badge| image:: https://img.shields.io/github/actions/workflow/status/nocarryr/lupy/test.yml
+  :alt: GitHub Actions Workflow Status
+  :target: https://github.com/nocarryr/lupy/actions
+
+.. |codspeed badge| image:: https://img.shields.io/endpoint?url=https://codspeed.io/badge.json
+  :alt: CodSpeed Badge
+  :target: https://codspeed.io/nocarryr/lupy
+
+.. |PyPI version| image:: https://img.shields.io/pypi/v/lupy.svg
+  :alt: PyPI version
+  :target: https://pypi.python.org/pypi/lupy/
+
+.. |PyPI license| image:: https://img.shields.io/pypi/l/lupy.svg
+  :alt: PyPI license
+  :target: https://pypi.python.org/pypi/lupy/
+
+.. |PyPI pyversions| image:: https://img.shields.io/pypi/pyversions/lupy.svg
+  :alt: PyPI Python versions
+  :target: https://pypi.python.org/pypi/lupy/
+
+.. |PyPI download week| image:: https://img.shields.io/pypi/dw/lupy.svg
+  :alt: PyPI download week
+  :target: https://pypi.python.org/pypi/lupy/
+
+
 
 
 .. _Audio Loudness: https://tech.ebu.ch/loudness
