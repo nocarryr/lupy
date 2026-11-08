@@ -1,6 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, Generic, Literal, NamedTuple, TypeAlias, TypeVar
+import sys
+from typing import Any, Generic, Literal, NamedTuple, TypeAlias
+
+if sys.version_info < (3, 13):
+    # TypeVar.default is not available in Python versions below 3.13,
+    # so we import it from typing_extensions instead.
+    from typing_extensions import TypeVar
+else:
+    from typing import TypeVar
 
 import numpy as np
 import numpy.typing as npt
@@ -46,13 +54,31 @@ Complex = np.complex128
 
 
 
-DType_t = TypeVar("DType_t", bound=np.dtype[Any])
-DType_co = TypeVar("DType_co", bound=np.dtype[Any], covariant=True)
+DType_t = TypeVar(
+    "DType_t",
+    bound=np.dtype[Any],
+    default=np.dtype[Any],
+)
+DType_co = TypeVar(
+    "DType_co",
+    bound=np.dtype[Any],
+    default=np.dtype[Any],
+    covariant=True,
+)
 """"""
 
 
-ShapeT = TypeVar('ShapeT', bound=tuple[int,...])
-ShapeT_co = TypeVar('ShapeT_co', bound=tuple[int,...], covariant=True)
+ShapeT = TypeVar(
+    'ShapeT',
+    bound=tuple[int,...],
+    default=tuple[int,...]
+)
+ShapeT_co = TypeVar(
+    'ShapeT_co',
+    bound=tuple[int,...],
+    default=tuple[int,...],
+    covariant=True
+)
 
 _1DArray = np.ndarray[tuple[int], DType_co]
 _2DArray = np.ndarray[tuple[int, int], DType_co]

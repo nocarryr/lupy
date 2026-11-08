@@ -150,7 +150,7 @@ class Slice:
         """The current index value"""
         return self._index
     @index.setter
-    def index(self, value: int):
+    def index(self, value: int) -> None:
         if value > self.max_index and self.overlap == 0:
             value = 0
         if value == self._index:
@@ -208,7 +208,7 @@ class Slice:
             x: The array being sliced
             axis: The axis along which to slice
         """
-        return self.end_index > x.shape[axis]
+        return bool(self.end_index > x.shape[axis])
 
     def indices(self, arr_len: int) -> IndexArray:
         """Get an index array for the current slice, wrapping around
@@ -627,7 +627,7 @@ class LockContext:
         self.acquire()
         return self
 
-    def __exit__(self, *args) -> None:
+    def __exit__(self, *args: object) -> None:
         self.release()
 
 

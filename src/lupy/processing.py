@@ -16,8 +16,14 @@ from .types import (
     FloatArray,
     Floating,
     NumChannelsT,
+    ShapeT,
 )
-from .typeutils import build_meter_array, build_true_peak_array, ensure_nd_array
+from .typeutils import (
+    build_meter_array,
+    build_true_peak_array,
+    ensure_array_of_shape,
+    ensure_nd_array,
+)
 
 __all__ = ('BlockProcessor', 'TruePeakProcessor')
 
@@ -87,19 +93,23 @@ class RunningSum:
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, (np.floating, float, int)):
             return NotImplemented
-        return self.value == other
+        return bool(self.value == other)
 
     def __gt__(self, other: Floating) -> bool|np.bool:
-        return self.value > other
+        result: bool|np.bool = self.value > other
+        return result
 
     def __ge__(self, other: Floating) -> bool|np.bool:
-        return self.value >= other
+        result: bool|np.bool = self.value >= other
+        return result
 
     def __lt__(self, other: Floating) -> bool|np.bool:
-        return self.value < other
+        result: bool|np.bool = self.value < other
+        return result
 
     def __le__(self, other: Floating) -> bool|np.bool:
-        return self.value <= other
+        result: bool|np.bool = self.value <= other
+        return result
 
     def __repr__(self) -> str:
         return f'<{self.__class__.__name__}: {self}>'
@@ -111,34 +121,40 @@ class RunningSum:
 
 
 @overload
-def lk_log10(x: FloatArray, offset: float = -0.691, base: int = 10, allow_negative_inf: bool = ...) -> FloatArray: ...
+def lk_log10(x: FloatArray[ShapeT], offset: float = -0.691, base: int = 10, allow_negative_inf: bool = ...) -> FloatArray[ShapeT]: ...
 @overload
 def lk_log10(x: np.floating, offset: float = -0.691, base: int = 10, allow_negative_inf: bool = ...) -> np.floating: ...
 def lk_log10(
-    x: FloatArray|np.floating,
+    x: FloatArray[ShapeT]|np.floating,
     offset: float = -0.691,
     base: int = 10,
     allow_negative_inf: bool = False,
-) -> FloatArray|np.floating:
+) -> FloatArray[ShapeT]|np.floating:
     if allow_negative_inf:
         with np.errstate(divide='ignore'):
-            r = offset + base * np.log10(x)
-        return r
+            if isinstance(x, np.ndarray):
+                r = offset + base * np.log10(x)
+                return ensure_array_of_shape(r, x.shape)
+            return np.float64(offset + base * np.log10(x))
     if isinstance(x, np.ndarray):
         x[np.less_equal(x, 0)] = EPSILON
-        return offset + base * np.log10(x)
+        r = offset + base * np.log10(x)
+        return ensure_array_of_shape(r, x.shape)
     if x <= 0:
         x = EPSILON
     return np.float64(offset + base * math.log10(x))
 
 @overload
-def from_lk_log10(x: FloatArray, offset: float = 0.691) -> FloatArray: ...
+def from_lk_log10(x: FloatArray[ShapeT], offset: float = 0.691) -> FloatArray[ShapeT]: ...
 @overload
 def from_lk_log10(x: np.floating, offset: float = 0.691) -> np.floating: ...
 def from_lk_log10(
-    x: FloatArray|np.floating,
+    x: FloatArray[ShapeT]|np.floating,
     offset: float = 0.691
-) -> FloatArray|np.floating:
+) -> FloatArray[ShapeT]|np.floating:
+    if isinstance(x, np.ndarray):
+        r = 10 ** ((x + offset) / 10)
+        return ensure_array_of_shape(r, x.shape)
     return 10 ** ((x + offset) / 10)
 
 def square_and_sum(a: Float2dArray) -> Float1dArray:
@@ -148,7 +164,8 @@ def square_and_sum(a: Float2dArray) -> Float1dArray:
     intermediate ``(rows, cols)`` squared array, which can be large when
     *a* has many columns.
     """
-    return np.einsum('ij,ij->i', a, a)
+    result: Float1dArray = np.einsum('ij,ij->i', a, a)
+    return result
 
 
 def _sorted_quantile(sorted_vals: list[float], lo: int, n: int, q: float) -> float:
@@ -430,7 +447,7 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         else:
             self.integrated_lkfs = lk_log10(rs.mean)
 
-    def _calc_momentary(self):
+    def _calc_momentary(self) -> None:
         block_index = self.block_index
         new_val = self._quarter_block_weighted_sums[block_index]
         self._momentary_sum.value += new_val
@@ -443,7 +460,7 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         r = max(r, SILENCE_DB)
         self._momentary_lkfs[block_index] = r
 
-    def _calc_short_term(self):
+    def _calc_short_term(self) -> None:
         block_index = self.block_index
         num_blocks = 30    # 3 second window (100ms per block_index)
         new_val = self._quarter_block_weighted_sums[block_index]
@@ -456,7 +473,7 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         st = lk_log10(self._short_term_sum.mean)
         self._short_term_lkfs[block_index] = st
 
-    def _calc_lra(self):
+    def _calc_lra(self) -> None:
         block_index = self.block_index
 
         # Update incremental state with the current block's short-term loudness.
@@ -492,7 +509,7 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
             - _sorted_quantile(sorted_vals, lo_rel, n_rel, 0.10)
         )
 
-    def process_block(self, samples: Float2dArray):
+    def process_block(self, samples: Float2dArray) -> None:
         """Process one :term:`gating block`
 
         Input data must be of shape ``(num_channels, gate_size)``
@@ -534,7 +551,7 @@ class BlockProcessor(BaseProcessor[NumChannelsT]):
         self.block_index += 1
         self.num_blocks += 1
 
-    def _process_quarter_block(self, quarter_sq_sum: Float1dArray):
+    def _process_quarter_block(self, quarter_sq_sum: Float1dArray) -> None:
         # Calculate the weighted squared-sum of the last 100ms segment within
         # this 400ms block (for use in momentary/short-term calculation).
         # quarter_sq_sum is the per-channel sum of squares for the final pad_size
@@ -599,9 +616,12 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
     @property
     def current_peaks(self) -> np.ndarray[tuple[NumChannelsT], np.dtype[np.float64]]:
         """:term:`True Peak` values per channel from the last processing period"""
+        peaks: FloatArray[tuple[NumChannelsT]]
         if self._block_index == 0:
-            return self._all_tp_values[0]
-        return self.all_tp_values[-1]
+            peaks = self._all_tp_values[0]
+        else:
+            peaks = self.all_tp_values[-1]
+        return peaks
 
     def __call__(self, samples: Float2dArray) -> None:
         self.process(samples)
@@ -622,11 +642,13 @@ class TruePeakProcessor(BaseProcessor[NumChannelsT]):
         update :attr:`max_peak`
         """
         tp_amp_max = np.abs(tp_vals).max(axis=1)
-        cur_peaks = lk_log10(tp_amp_max, offset=0, base=20, allow_negative_inf=True)
+        cur_peaks: Float1dArray = lk_log10(
+            tp_amp_max, offset=0, base=20, allow_negative_inf=True
+        )
         self.max_peak = max(self.max_peak, cur_peaks.max())
         return cur_peaks
 
-    def process(self, samples: Float2dArray):
+    def process(self, samples: Float2dArray) -> None:
         # TODO: Check and raise exception if exceeding MAX_TIME_SECONDS
         tp_vals = self.resample_filt(samples)
         cur_peaks = self._process(tp_vals)

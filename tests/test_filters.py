@@ -1,24 +1,31 @@
 from __future__ import annotations
 
+from typing import Literal
+
 import numpy as np
 import pytest
+from conftest import RandomSamplesCallable
+from pytest_codspeed.plugin import BenchmarkFixture
 from scipy import signal
 
-from lupy.filters import HP_COEFF, HS_COEFF, Filter, FilterGroup, TruePeakFilter
+from lupy.filters import HP_COEFF, HS_COEFF, Coeff, Filter, FilterGroup, TruePeakFilter
 from lupy.signalutils.resample import (
     DEFAULT_INPUT_SAMPLES,
     ResamplePoly,
     calc_tp_fir_win,
 )
+from lupy.types import NumChannels
+from lupy.typeutils import is_array_of_shape
 
 
 @pytest.fixture(params=[48000])
-def bench_sample_rate(request) -> int:
-    return request.param
+def bench_sample_rate(request: pytest.FixtureRequest) -> int:
+    param: int = request.param
+    return param
 
 
 @pytest.mark.parametrize('coeff', [HS_COEFF, HP_COEFF])
-def test_filter_requantize(coeff, sample_rate) -> None:
+def test_filter_requantize(coeff: Coeff, sample_rate: int) -> None:
     orig_sample_rate = coeff.sample_rate
     quantized = coeff.as_sample_rate(sample_rate)
 
@@ -72,13 +79,18 @@ def test_filter_group_single_channel_1d_input() -> None:
 
 
 @pytest.mark.benchmark(group='filter')
-def test_filter_benchmark(benchmark, random_samples, num_channels, bench_sample_rate) -> None:
+def test_filter_benchmark(
+    benchmark: BenchmarkFixture,
+    random_samples: RandomSamplesCallable,
+    num_channels: NumChannels,
+    bench_sample_rate: int
+) -> None:
     sample_rate = bench_sample_rate
     block_size = sample_rate // 100
     assert sample_rate % block_size == 0
 
-    samples = random_samples(num_channels, block_size)
-    assert samples.shape == (num_channels, block_size)
+    samples = random_samples((num_channels, block_size))
+    assert is_array_of_shape(samples, (num_channels, block_size))
     coeff = [HS_COEFF, HP_COEFF]
     if sample_rate != 48000:
         coeff = [c.as_sample_rate(sample_rate) for c in coeff]
@@ -86,20 +98,25 @@ def test_filter_benchmark(benchmark, random_samples, num_channels, bench_sample_
 
     filtered = np.zeros(samples.shape, dtype=np.float64)
 
-    def bench():
+    def bench() -> None:
         filtered[...] = fg(samples)
 
     benchmark(bench)
 
 @pytest.mark.benchmark(group='truepeak_filter')
-def test_truepeak_filter_benchmark(benchmark, random_samples, num_channels, bench_sample_rate) -> None:
+def test_truepeak_filter_benchmark(
+    benchmark: BenchmarkFixture,
+    random_samples: RandomSamplesCallable,
+    num_channels: NumChannels,
+    bench_sample_rate: int
+) -> None:
     sample_rate = bench_sample_rate
     up_sample = 4 if sample_rate < 88200 else 2
     block_size = sample_rate // 100
     assert sample_rate % block_size == 0
 
-    samples = random_samples(num_channels, block_size)
-    assert samples.shape == (num_channels, block_size)
+    samples = random_samples((num_channels, block_size))
+    assert is_array_of_shape(samples, (num_channels, block_size))
     tp_filter = TruePeakFilter(
         num_channels=num_channels,
         num_input_samples=block_size,
@@ -112,7 +129,7 @@ def test_truepeak_filter_benchmark(benchmark, random_samples, num_channels, benc
     # The first streamed call returns fewer samples due to the filter delay
     tp_filter(samples)
 
-    def bench():
+    def bench() -> None:
         filtered[...] = tp_filter(samples)
 
     benchmark(bench)
@@ -259,7 +276,7 @@ def test_resample_poly_stream_input_validation() -> None:
         num_input_samples=32,
     )
     with pytest.raises(ValueError, match='dtype'):
-        resampler.apply_stream(np.zeros((1, 32), dtype=np.float32))
+        resampler.apply_stream(np.zeros((1, 32), dtype=np.float32)) # pyright: ignore[reportArgumentType]
     with pytest.raises(ValueError, match='shape'):
         resampler.apply_stream(np.zeros((1, 31), dtype=np.float64))
 
@@ -279,7 +296,10 @@ def test_resample_poly_stream_requires_no_downsampling() -> None:
         resampler.flush()
 
 
-def _make_stream_filter(up: int = 4, block_size: int = 64) -> TruePeakFilter:
+
+_TPFilter2d = TruePeakFilter[Literal[2]]
+
+def _make_stream_filter(up: int = 4, block_size: int = 64) -> _TPFilter2d:
     return TruePeakFilter(num_channels=2, num_input_samples=block_size, upsample_factor=up)
 
 
@@ -324,7 +344,7 @@ def test_resampler_reset_after_flush(up: int) -> None:
     block_size = 64
     blocks = [rng.uniform(-1, 1, (2, block_size)) for _ in range(3)]
 
-    def run(f: TruePeakFilter) -> np.ndarray:
+    def run(f: _TPFilter2d) -> np.ndarray:
         out = [f(b).copy() for b in blocks]
         out.append(f.flush().copy())
         return np.concatenate(out, axis=1)

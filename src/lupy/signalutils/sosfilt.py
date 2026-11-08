@@ -91,7 +91,7 @@ def sosfilt(sos: SosCoeff, x: Float2dArray, zi: SosZI, axis: int = -1) -> tuple[
 
 
     # make a copy so that we can operate in place
-    zi = np.array(zi, dtype) # type: ignore[arg-type]
+    zi = np.array(zi, dtype)
     if zi.shape != x_zi_shape:
         raise ValueError(
             f'Invalid zi shape. With axis={axis!r}, an input with '
